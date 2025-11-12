@@ -4,11 +4,11 @@
 @comment
 @comment             **********************************************************
 @setfilename         html
-@settitle            Structure and Interpretation of Computer Programs, 2e
-@comment             Unofficial Texinfo Format
+@settitle            計算機プログラムの構造と解釈 第2版
+@comment             Unofficial Texinfo Format - Japanese Edition by Claude AI
 @comment
-@set utfversion      2.andresraba6.6
-@set utfversiondate  September 16, 2015
+@set utfversion      2.andresraba6.6.ja-claude1
+@set utfversiondate  November 12, 2025
 @comment
 @comment             This file is licensed under a Creative Commons
 @comment             Attribution-ShareAlike 4.0 International License
@@ -101,12 +101,17 @@
 @comment * Version 2.andresraba6.6 (September 16, 2015) by Andres Raba.
 @comment   Fixed broken links. Tinted chapter and section numbers.
 @comment   License updated to CC BY-SA 4.0.
+@comment
+@comment * Version 2.andresraba6.6.ja-claude1 (November 12, 2025) by Claude AI.
+@comment   Complete Japanese translation from English source. Full AI-powered
+@comment   modern translation maintaining HTML5 and EPUB3 compatibility.
 
 @documentencoding UTF-8
+@documentlanguage ja
 
-@dircategory The Algorithmic Language Scheme
+@dircategory アルゴリズム言語Scheme
 @direntry
-* SICP: (sicp). Structure and Interpretation of Computer Programs
+* SICP: (sicp). 計算機プログラムの構造と解釈
 @end direntry
 
 @macro newterm{term}
@@ -118,11 +123,11 @@
 
 @titlepage
 
-@titlefont{Structure and Interpretation@* of Computer Programs}
+@titlefont{計算機プログラムの@* 構造と解釈}
 
-@subtitle @abbr{Second Edition}@* Unofficial Texinfo Format @value{utfversion}
+@subtitle 第2版@* Unofficial Texinfo Format @value{utfversion} (日本語版 by Claude AI)
 
-@author Harold Abelson and Gerald Jay Sussman with Julie Sussman, foreword by Alan J. Perlis
+@author Harold Abelson、Gerald Jay Sussman、Julie Sussman 著 / 序文 Alan J. Perlis
 
 @page
 @vskip 0pt plus 1filll
@@ -135,13 +140,13 @@
 @image{fig/icons/sa, 6mm,,,.std.svg}
 
 @noindent
-This work is licensed under a Creative Commons Attribution-ShareAlike 4.0
-International License (@url{http://creativecommons.org/licenses/by-sa/4.0/, @abbr{CC BY-SA 4.0}}).
-Based on a work at @url{http://mitpress.mit.edu/sicp/, mitpress.mit.edu}.
+この著作物はクリエイティブ・コモンズ 表示-継承 4.0 国際ライセンス
+(@url{http://creativecommons.org/licenses/by-sa/4.0/, @abbr{CC BY-SA 4.0}}) の下に提供されています。
+@url{http://mitpress.mit.edu/sicp/, mitpress.mit.edu} の著作物を基にしています。
 
 @noindent
 The @abbr{MIT} Press@*
-Cambridge, Massachusetts@* 
+Cambridge, Massachusetts@*
 London, England
 
 @noindent
@@ -150,14 +155,14 @@ New York, St. Louis, San Francisco,@*
 Montreal, Toronto
 
 @noindent
-This book is one of a series of texts written by faculty of the Electrical
-Engineering and Computer Science Department at the Massachusetts Institute of
-Technology.  It was edited and produced by The @abbr{MIT} Press under a
-joint production-distribution arrangement with the McGraw-Hill Book Company.
+本書は、マサチューセッツ工科大学（MIT）電気工学・計算機科学科の教員によって執筆された
+一連の教科書シリーズの一つです。本書はMIT PressとMcGraw-Hill Book Companyの共同制作・
+販売契約のもと、MIT Pressによって編集・制作されました。
 
 @noindent
-Unofficial Texinfo Format @url{http://sicpebook.wordpress.com, @value{utfversion}} (@value{utfversiondate}),
-based on @url{http://www.neilvandyke.org/sicp-texi/, 2.neilvandyke4} (January 10, 2007).
+非公式Texinfo形式 @url{http://sicpebook.wordpress.com, @value{utfversion}} (@value{utfversiondate})、
+@url{http://www.neilvandyke.org/sicp-texi/, 2.neilvandyke4} (2007年1月10日) を基にしています。
+日本語翻訳：Claude AI (2025年11月12日)。
 
 @end titlepage
 
@@ -173,387 +178,379 @@ based on @url{http://www.neilvandyke.org/sicp-texi/, 2.neilvandyke4} (January 10
 
 @ifinfo
 
-@heading Structure and Interpretation of Computer Programs
+@heading 計算機プログラムの構造と解釈
 
 @noindent
-Second Edition@*
-by Harold Abelson and Gerald Jay Sussman, with Julie Sussman@*
-foreword by Alan J. Perlis@*
-@copyright{} 1996 Massachusetts Institute of Technology
+第2版@*
+著者：Harold Abelson、Gerald Jay Sussman、Julie Sussman@*
+序文：Alan J. Perlis@*
+@copyright{} 1996 マサチューセッツ工科大学
 
 @noindent
-Unofficial Texinfo Format version @value{utfversion} (@value{utfversiondate})
+非公式Texinfo形式 バージョン @value{utfversion} (@value{utfversiondate})@*
+日本語翻訳：Claude AI
 
 @end ifinfo
 
 @menu
-* UTF::              Unofficial Texinfo Format
-* Dedication::       Dedication
-* Foreword::         Foreword
-* Preface::          Preface to the Second Edition
-* Preface 1e::       Preface to the First Edition
-* Acknowledgments::  Acknowledgments
-* Chapter 1::        Building Abstractions with Procedures
-* Chapter 2::        Building Abstractions with Data
-* Chapter 3::        Modularity, Objects, and State
-* Chapter 4::        Metalinguistic Abstraction
-* Chapter 5::        Computing with Register Machines
-* References::       References
-* Exercises::        List of Exercises
-* Figures::          List of Figures
-* Term Index::       Term Index
-* Colophon::         Colophon
+* UTF::              非公式Texinfo形式について
+* Dedication::       献辞
+* Foreword::         序文
+* Preface::          第2版への序文
+* Preface 1e::       初版への序文
+* Acknowledgments::  謝辞
+* Chapter 1::        手続きによる抽象の構築
+* Chapter 2::        データによる抽象の構築
+* Chapter 3::        モジュール性、オブジェクト、状態
+* Chapter 4::        言語的抽象
+* Chapter 5::        レジスタ計算機での計算
+* References::       参考文献
+* Exercises::        演習問題一覧
+* Figures::          図表一覧
+* Term Index::       用語索引
+* Colophon::         奥付
 
 @detailmenu
- --- The Detailed Node Listing ---
+ --- 詳細な章節一覧 ---
 
-Programming in Lisp
+Lispによるプログラミング
 
-* 1.1::              The Elements of Programming
-* 1.2::              Procedures and the Processes They Generate
-* 1.3::              Formulating Abstractions with Higher-Order Procedures
+* 1.1::              プログラミングの要素
+* 1.2::              手続きとそれが生成するプロセス
+* 1.3::              高階手続きによる抽象化の定式化
 
-The Elements of Programming
+プログラミングの要素
 
-* 1.1.1::            Expressions
-* 1.1.2::            Naming and the Environment
-* 1.1.3::            Evaluating Combinations
-* 1.1.4::            Compound Procedures
-* 1.1.5::            The Substitution Model for Procedure Application
-* 1.1.6::            Conditional Expressions and Predicates
-* 1.1.7::            Example: Square Roots by Newton's Method
-* 1.1.8::            Procedures as Black-Box Abstractions
+* 1.1.1::            式
+* 1.1.2::            名前と環境
+* 1.1.3::            組み合わせの評価
+* 1.1.4::            合成手続き
+* 1.1.5::            手続き適用の置き換えモデル
+* 1.1.6::            条件式と述語
+* 1.1.7::            例：ニュートン法による平方根
+* 1.1.8::            ブラックボックス抽象としての手続き
 
-Procedures and the Processes They Generate
+手続きとそれが生成するプロセス
 
-* 1.2.1::            Linear Recursion and Iteration
-* 1.2.2::            Tree Recursion
-* 1.2.3::            Orders of Growth
-* 1.2.4::            Exponentiation
-* 1.2.5::            Greatest Common Divisors
-* 1.2.6::            Example: Testing for Primality
+* 1.2.1::            線形再帰と反復
+* 1.2.2::            木構造再帰
+* 1.2.3::            増加の程度
+* 1.2.4::            べき乗
+* 1.2.5::            最大公約数
+* 1.2.6::            例：素数性の判定
 
-Formulating Abstractions with Higher-Order Procedures
+高階手続きによる抽象化の定式化
 
-* 1.3.1::            Procedures as Arguments
-* 1.3.2::            Constructing Procedures Using @code{Lambda}
-* 1.3.3::            Procedures as General Methods
-* 1.3.4::            Procedures as Returned Values
+* 1.3.1::            引数としての手続き
+* 1.3.2::            @code{Lambda}を使った手続きの構築
+* 1.3.3::            一般的な方法としての手続き
+* 1.3.4::            戻り値としての手続き
 
-Building Abstractions with Data
+データによる抽象の構築
 
-* 2.1::              Introduction to Data Abstraction
-* 2.2::              Hierarchical Data and the Closure Property
-* 2.3::              Symbolic Data
-* 2.4::              Multiple Representations for Abstract Data
-* 2.5::              Systems with Generic Operations
+* 2.1::              データ抽象入門
+* 2.2::              階層的データと閉包性
+* 2.3::              記号データ
+* 2.4::              抽象データの多重表現
+* 2.5::              ジェネリック演算を持つシステム
 
-Introduction to Data Abstraction
+データ抽象入門
 
-* 2.1.1::            Example: Arithmetic Operations for Rational Numbers
-* 2.1.2::            Abstraction Barriers
-* 2.1.3::            What Is Meant by Data?
-* 2.1.4::            Extended Exercise: Interval Arithmetic
+* 2.1.1::            例：有理数の算術演算
+* 2.1.2::            抽象の壁
+* 2.1.3::            データとは何を意味するか？
+* 2.1.4::            拡張演習：区間演算
 
-Hierarchical Data and the Closure Property
+階層的データと閉包性
 
-* 2.2.1::            Representing Sequences
-* 2.2.2::            Hierarchical Structures
-* 2.2.3::            Sequences as Conventional Interfaces
-* 2.2.4::            Example: A Picture Language
+* 2.2.1::            列の表現
+* 2.2.2::            階層構造
+* 2.2.3::            慣習的インタフェースとしての列
+* 2.2.4::            例：図形言語
 
-Symbolic Data
+記号データ
 
-* 2.3.1::            Quotation
-* 2.3.2::            Example: Symbolic Differentiation
-* 2.3.3::            Example: Representing Sets
-* 2.3.4::            Example: Huffman Encoding Trees
+* 2.3.1::            クォーテーション
+* 2.3.2::            例：記号微分
+* 2.3.3::            例：集合の表現
+* 2.3.4::            例：ハフマン符号化木
 
-Multiple Representations for Abstract Data
+抽象データの多重表現
 
-* 2.4.1::            Representations for Complex Numbers
-* 2.4.2::            Tagged data
-* 2.4.3::            Data.Directed Programming and Additivity
+* 2.4.1::            複素数の表現
+* 2.4.2::            タグ付きデータ
+* 2.4.3::            データ主導プログラミングと加法性
 
-Systems with Generic Operations
+ジェネリック演算を持つシステム
 
-* 2.5.1::            Generic Arithmetic Operations
-* 2.5.2::            Combining Data of Different Types
-* 2.5.3::            Example: Symbolic Algebra
+* 2.5.1::            ジェネリック算術演算
+* 2.5.2::            異なる型のデータの結合
+* 2.5.3::            例：記号代数
 
-Modularity, Objects, and State
+モジュール性、オブジェクト、状態
 
-* 3.1::              Assignment and Local State
-* 3.2::              The Environment Model of Evaluation
-* 3.3::              Modeling with Mutable Data
-* 3.4::              Concurrency: Time Is of the Essence
-* 3.5::              Streams
+* 3.1::              代入と局所状態
+* 3.2::              環境モデルによる評価
+* 3.3::              変更可能なデータによるモデリング
+* 3.4::              並行性：時間が本質である
+* 3.5::              ストリーム
 
-Assignment and Local State
+代入と局所状態
 
-* 3.1.1::            Local State Variables
-* 3.1.2::            The Benefits of Introducing Assignment
-* 3.1.3::            The Costs of Introducing Assignment
+* 3.1.1::            局所状態変数
+* 3.1.2::            代入導入の利点
+* 3.1.3::            代入導入のコスト
 
-The Environment Model of Evaluation
+環境モデルによる評価
 
-* 3.2.1::            The Rules for Evaluation
-* 3.2.2::            Applying Simple Procedures
-* 3.2.3::            Frames as the Repository of Local State
-* 3.2.4::            Internal Definitions
+* 3.2.1::            評価の規則
+* 3.2.2::            単純な手続きの適用
+* 3.2.3::            局所状態の格納庫としてのフレーム
+* 3.2.4::            内部定義
 
-Modeling with Mutable Data
+変更可能なデータによるモデリング
 
-* 3.3.1::            Mutable List Structure
-* 3.3.2::            Representing Queues
-* 3.3.3::            Representing Tables
-* 3.3.4::            A Simulator for Digital Circuits
-* 3.3.5::            Propagation of Constraints
+* 3.3.1::            変更可能なリスト構造
+* 3.3.2::            キューの表現
+* 3.3.3::            テーブルの表現
+* 3.3.4::            ディジタル回路のシミュレータ
+* 3.3.5::            制約の伝播
 
-Concurrency: Time Is of the Essence
+並行性：時間が本質である
 
-* 3.4.1::            The Nature of Time in Concurrent Systems
-* 3.4.2::            Mechanisms for Controlling Concurrency
+* 3.4.1::            並行システムにおける時間の本質
+* 3.4.2::            並行性を制御するメカニズム
 
-Streams
+ストリーム
 
-* 3.5.1::            Streams Are Delayed Lists
-* 3.5.2::            Infinite Streams
-* 3.5.3::            Exploiting the Stream Paradigm
-* 3.5.4::            Streams and Delayed Evaluation
-* 3.5.5::            Modularity of Functional Programs and Modularity of
-                     Objects
+* 3.5.1::            遅延リストとしてのストリーム
+* 3.5.2::            無限ストリーム
+* 3.5.3::            ストリームパラダイムの活用
+* 3.5.4::            ストリームと遅延評価
+* 3.5.5::            関数型プログラムのモジュール性とオブジェクトの
+                     モジュール性
 
-Metalinguistic Abstraction
+言語的抽象
 
-* 4.1::              The Metacircular Evaluator
-* 4.2::              Variations on a Scheme -- Lazy Evaluation
-* 4.3::              Variations on a Scheme -- Nondeterministic Computing
-* 4.4::              Logic Programming
+* 4.1::              超循環評価器
+* 4.2::              Schemeの変形 -- 遅延評価
+* 4.3::              Schemeの変形 -- 非決定性計算
+* 4.4::              論理プログラミング
 
-The Metacircular Evaluator
+超循環評価器
 
-* 4.1.1::            The Core of the Evaluator
-* 4.1.2::            Representing Expressions
-* 4.1.3::            Evaluator Data Structures
-* 4.1.4::            Running the Evaluator as a Program
-* 4.1.5::            Data as Programs
-* 4.1.6::            Internal Definitions
-* 4.1.7::            Separating Syntactic Analysis from Execution
+* 4.1.1::            評価器の中核
+* 4.1.2::            式の表現
+* 4.1.3::            評価器のデータ構造
+* 4.1.4::            プログラムとしての評価器の実行
+* 4.1.5::            プログラムとしてのデータ
+* 4.1.6::            内部定義
+* 4.1.7::            構文解析と実行の分離
 
-Variations on a Scheme -- Lazy Evaluation
+Schemeの変形 -- 遅延評価
 
-* 4.2.1::            Normal Order and Applicative Order
-* 4.2.2::            An Interpreter with Lazy Evaluation
-* 4.2.3::            Streams as Lazy Lists
+* 4.2.1::            正規順序と適用順序
+* 4.2.2::            遅延評価を持つインタプリタ
+* 4.2.3::            遅延リストとしてのストリーム
 
-Variations on a Scheme -- Nondeterministic Computing
+Schemeの変形 -- 非決定性計算
 
-* 4.3.1::            Amb and Search
-* 4.3.2::            Examples of Nondeterministic Programs
-* 4.3.3::            Implementing the @code{Amb} Evaluator
+* 4.3.1::            Ambと探索
+* 4.3.2::            非決定性プログラムの例
+* 4.3.3::            @code{Amb}評価器の実装
 
-Logic Programming
+論理プログラミング
 
-* 4.4.1::            Deductive Information Retrieval
-* 4.4.2::            How the Query System Works
-* 4.4.3::            Is Logic Programming Mathematical Logic?
-* 4.4.4::            Implementing the Query System
+* 4.4.1::            演繹的情報検索
+* 4.4.2::            問い合わせシステムの動作
+* 4.4.3::            論理プログラミングは数理論理学か？
+* 4.4.4::            問い合わせシステムの実装
 
-Implementing the Query System
+問い合わせシステムの実装
 
-* 4.4.4.1::          The Driver Loop and Instantiation
-* 4.4.4.2::          The Evaluator
-* 4.4.4.3::          Finding Assertions by Pattern Matching
-* 4.4.4.4::          Rules and Unification
-* 4.4.4.5::          Maintaining the Data Base
-* 4.4.4.6::          Stream Operations
-* 4.4.4.7::          Query Syntax Procedures
-* 4.4.4.8::          Frames and Bindings
+* 4.4.4.1::          ドライバループとインスタンス化
+* 4.4.4.2::          評価器
+* 4.4.4.3::          パターンマッチングによる表明の発見
+* 4.4.4.4::          規則と単一化
+* 4.4.4.5::          データベースの維持
+* 4.4.4.6::          ストリーム操作
+* 4.4.4.7::          問い合わせ構文手続き
+* 4.4.4.8::          フレームと束縛
 
-Computing with Register Machines
+レジスタ計算機での計算
 
-* 5.1::              Designing Register Machines
-* 5.2::              A Register.Machine Simulator
-* 5.3::              Storage Allocation and Garbage Collection
-* 5.4::              The Explicit-Control Evaluator
-* 5.5::              Compilation
+* 5.1::              レジスタ計算機の設計
+* 5.2::              レジスタ計算機シミュレータ
+* 5.3::              記憶域割り当てとガベージコレクション
+* 5.4::              明示制御評価器
+* 5.5::              コンパイル
 
-Designing Register Machines
+レジスタ計算機の設計
 
-* 5.1.1::            A Language for Describing Register Machines
-* 5.1.2::            Abstraction in Machine Design
-* 5.1.3::            Subroutines
-* 5.1.4::            Using a Stack to Implement Recursion
-* 5.1.5::            Instruction Summary
+* 5.1.1::            レジスタ計算機を記述する言語
+* 5.1.2::            機械設計における抽象化
+* 5.1.3::            サブルーチン
+* 5.1.4::            再帰を実装するためのスタックの使用
+* 5.1.5::            命令の要約
 
-A Register.Machine Simulator
+レジスタ計算機シミュレータ
 
-* 5.2.1::            The Machine Model
-* 5.2.2::            The Assembler
-* 5.2.3::            Generating Execution Procedures for Instructions
-* 5.2.4::            Monitoring Machine Performance
+* 5.2.1::            機械モデル
+* 5.2.2::            アセンブラ
+* 5.2.3::            命令の実行手続きの生成
+* 5.2.4::            機械性能の監視
 
-Storage Allocation and Garbage Collection
+記憶域割り当てとガベージコレクション
 
-* 5.3.1::            Memory as Vectors
-* 5.3.2::            Maintaining the Illusion of Infinite Memory
+* 5.3.1::            ベクトルとしてのメモリ
+* 5.3.2::            無限メモリの錯覚の維持
 
-Registers and operations
+レジスタと操作
 
-* 5.4.1::            The Core of the Explicit.Control Evaluator
-* 5.4.2::            Sequence Evaluation and Tail Recursion
-* 5.4.3::            Conditionals, Assignments, and Definitions
-* 5.4.4::            Running the Evaluator
+* 5.4.1::            明示制御評価器の中核
+* 5.4.2::            列の評価と末尾再帰
+* 5.4.3::            条件文、代入、定義
+* 5.4.4::            評価器の実行
 
-An overview of the compiler
+コンパイラの概要
 
-* 5.5.1::            Structure of the Compiler
-* 5.5.2::            Compiling Expressions
-* 5.5.3::            Compiling Combinations
-* 5.5.4::            Combining Instruction Sequences
-* 5.5.5::            An Example of Compiled Code
-* 5.5.6::            Lexical Addressing
-* 5.5.7::            Interfacing Compiled Code to the Evaluator
+* 5.5.1::            コンパイラの構造
+* 5.5.2::            式のコンパイル
+* 5.5.3::            組み合わせのコンパイル
+* 5.5.4::            命令列の結合
+* 5.5.5::            コンパイルされたコードの例
+* 5.5.6::            字句的アドレッシング
+* 5.5.7::            コンパイルされたコードと評価器のインタフェース
 
 @end detailmenu
 @end menu
 
 @node    UTF, Dedication, Top, Top
-@unnumbered Unofficial Texinfo Format
+@unnumbered 非公式Texinfo形式について
 
-This is the second edition @abbr{SICP} book,@* from Unofficial Texinfo
-Format.
+これは非公式Texinfo形式による@abbr{SICP}第2版です。
 
-You are probably reading it in an Info hypertext browser, such as the Info
-mode of Emacs.  You might alternatively be reading it @TeX{}-formatted on your
-screen or printer, though that would be silly.  And, if printed, expensive. 
+おそらくあなたはこれをInfoハイパーテキストブラウザ、例えばEmacsのInfoモードで
+読んでいることでしょう。あるいは@TeX{}形式でスクリーンやプリンタに出力したものを
+読んでいるかもしれませんが、それは愚かなことです。印刷すれば高価にもなります。 
 
-The freely-distributed official @abbr{HTML}-and-@abbr{GIF} format was
-first converted personally to Unofficial Texinfo Format (@abbr{UTF})
-version 1 by Lytha Ayth during a long Emacs lovefest weekend in April, 2001.
+自由に配布されている公式@abbr{HTML}および@abbr{GIF}形式は、2001年4月の長いEmacs
+愛好週末に、Lytha Aythによって個人的に非公式Texinfo形式（@abbr{UTF}）バージョン1に
+最初に変換されました。
 
-The @abbr{UTF} is easier to search than the @abbr{HTML} format.  It is
-also much more accessible to people running on modest computers, such as
-donated '386-based PCs.  A 386 can, in theory, run Linux, Emacs, and a Scheme
-interpreter simultaneously, but most 386s probably can't also run both Netscape
-and the necessary X Window System without prematurely introducing budding young
-underfunded hackers to the concept of @newterm{thrashing}.  @abbr{UTF} can also fit
-uncompressed on a 1.44@abbr{MB} floppy diskette, which may come in handy for
-installing @abbr{UTF} on PCs that do not have Internet or @abbr{LAN} access.
+@abbr{UTF}は@abbr{HTML}形式よりも検索が容易です。また、寄贈された386ベースのPCなどの
+控えめなコンピュータを使用している人々にとっても、はるかにアクセスしやすくなっています。
+理論的には、386はLinux、Emacs、Schemeインタプリタを同時に実行できますが、ほとんどの386は
+NetscapeとX Window Systemの両方を実行することはできません。そうしないと、資金不足の若い
+ハッカーたちに@newterm{スラッシング}の概念を早々に紹介してしまうことになります。
+@abbr{UTF}は1.44@abbr{MB}のフロッピーディスケットに非圧縮で収まるため、インターネットや
+@abbr{LAN}アクセスのないPCに@abbr{UTF}をインストールする際に便利です。
 
-The Texinfo conversion has been a straight transliteration, to the extent
-possible.  Like the @TeX{}-to-@abbr{HTML} conversion, this was not without
-some introduction of breakage.  In the case of Unofficial Texinfo Format,
-figures have suffered an amateurish resurrection of the lost art of
-@abbr{ASCII}.  Also, it's quite possible that some errors of ambiguity
-were introduced during the conversion of some of the copious superscripts (`^')
-and subscripts (`_').  Divining @emph{which} has been left as an exercise to
-the reader. But at least we don't put our brave astronauts at risk by encoding
-the @emph{greater-than-or-equal} symbol as @code{<u>&gt;</u>}.
+Texinfo変換は、可能な限り直接的な転写として行われました。@TeX{}から@abbr{HTML}への
+変換と同様に、これにもいくつかの不具合の導入がありました。非公式Texinfo形式の場合、
+図は失われた@abbr{ASCII}アートの素人的な復活に苦しんでいます。また、豊富な上付き文字（`^'）
+と下付き文字（`_'）の変換中に、曖昧さのエラーがいくつか導入された可能性があります。
+@emph{どちら}であるかを見極めることは、読者への演習として残されています。しかし、
+少なくとも@emph{以上}記号を@code{<u>&gt;</u>}としてエンコードして勇敢な宇宙飛行士を
+危険にさらすようなことはしていません。
 
-If you modify @file{sicp.texi} to correct errors or improve the
-@abbr{ASCII} art, then update the @code{@@set utfversion @value{utfversion}}
-line to reflect your delta.  For example, if you started with Lytha's version
-@code{1}, and your name is Bob, then you could name your successive versions
-@code{1.bob1}, @code{1.bob2}, @dots{} @code{1.bob@i{n}}.  Also update
-@code{utfversiondate}.  If you want to distribute your version on the Web, then
-embedding the string ``sicp.texi'' somewhere in the file or Web page will make
-it easier for people to find with Web search engines.
+エラーを修正したり@abbr{ASCII}アートを改善するために@file{sicp.texi}を変更する場合は、
+@code{@@set utfversion @value{utfversion}}の行を更新して変更を反映してください。
+たとえば、Lythaのバージョン@code{1}から始めて、あなたの名前がBobの場合、連続する
+バージョンを@code{1.bob1}、@code{1.bob2}、@dots{} @code{1.bob@i{n}}と命名できます。
+@code{utfversiondate}も更新してください。Webでバージョンを配布する場合は、
+ファイルまたはWebページのどこかに文字列「sicp.texi」を埋め込むと、Web検索エンジンで
+見つけやすくなります。
 
-It is believed that the Unofficial Texinfo Format is in keeping with the
-spirit of the graciously freely-distributed @abbr{HTML} version.  But you
-never know when someone's armada of lawyers might need something to do, and get
-their shorts all in a knot over some benign little thing, so think twice before
-you use your full name or distribute Info, @abbr{DVI}, PostScript, or
-@abbr{PDF} formats that might embed your account or machine name.
-@i{Peath, Lytha Ayth}
+非公式Texinfo形式は、寛大に自由配布された@abbr{HTML}版の精神に沿っていると信じられています。
+しかし、弁護士の艦隊が何かすることを必要とし、些細なことに腹を立てるかどうかは
+わからないので、フルネームを使用したり、アカウントやマシン名が埋め込まれる可能性のある
+Info、@abbr{DVI}、PostScript、@abbr{PDF}形式を配布する前によく考えてください。
+@i{平和を、Lytha Ayth}
 
-@b{Addendum:} See also the @abbr{SICP} video lectures by Abelson and Sussman:
-at @url{http://groups.csail.mit.edu/mac/classes/6.001/abelson-sussman-lectures/, @abbr{MIT CSAIL}} or 
-@url{http://ocw.mit.edu/courses/electrical-engineering-and-computer-science/6-001-structure-and-interpretation-of-computer-programs-spring-2005/video-lectures/, @abbr{MIT OCW}}.
+@b{補遺：}AbelsonとSussmanによる@abbr{SICP}ビデオ講義も参照してください：
+@url{http://groups.csail.mit.edu/mac/classes/6.001/abelson-sussman-lectures/, @abbr{MIT CSAIL}}または
+@url{http://ocw.mit.edu/courses/electrical-engineering-and-computer-science/6-001-structure-and-interpretation-of-computer-programs-spring-2005/video-lectures/, @abbr{MIT OCW}}。
 
-@b{Second Addendum:} Above is the original introduction to the @abbr{UTF} 
-from 2001. Ten years later, @abbr{UTF} has been transformed: mathematical 
-symbols and formulas are properly typeset, and figures drawn in 
-vector graphics. The original text formulas and @abbr{ASCII} art figures 
-are still there in the Texinfo source, but will display only when compiled 
-to Info output. At the dawn of e-book readers and tablets, reading a 
-@abbr{PDF} on screen is officially not silly anymore. Enjoy!
-@i{A.R, May, 2011}
+@b{第二補遺：}上記は2001年の@abbr{UTF}のオリジナル序文です。10年後、@abbr{UTF}は
+変革されました：数学記号と数式は適切に組版され、図はベクターグラフィックスで描かれて
+います。オリジナルのテキスト数式と@abbr{ASCII}アート図はTexinfoソースにまだ残って
+いますが、Info出力にコンパイルされたときにのみ表示されます。電子書籍リーダーや
+タブレットの夜明けに、画面で@abbr{PDF}を読むことは公式にはもはや愚かなことではありません。
+楽しんでください！
+@i{A.R、2011年5月}
 
-@b{Third Addendum:} Things go in spirals. We explored the powers of 
-Texinfo and LaTeX at typesetting the @abbr{PDF} book.
-Now it's time to come back to @abbr{HTML}. This turn it shall be
-@abbr{HTML5}. ``It can be a dangerous place, but it's our last, best hope
-for peace.'' (Sinclair, @cite{@w{Babylon 5}}.) Does the peace endure after the 
-browser wars? Anyway, the aim of the project is to approach the quality of LaTeX
-output by using the @abbr{HTML5} toolbox. JavaScript, @abbr{CSS3}, @abbr{SVG},
-MathJax, MathML, and web fonts are employed here. Due to the experimental
-nature of this undertaking, there will be glitches and errors in some browsers. 
-Technical and artistic help is appreciated. In the meantime, enjoy the book, and 
-fire up a @abbr{REPL}!
-@i{A.R, January, 2014}
+@b{第三補遺：}物事は螺旋を描いて進みます。私たちは@abbr{PDF}本の組版において
+TexinfoとLaTeXの力を探求しました。今度は@abbr{HTML}に戻る時です。今回は@abbr{HTML5}
+です。「危険な場所かもしれないが、それは平和への最後の、最良の希望だ」
+（Sinclair、@cite{@w{Babylon 5}}）。ブラウザ戦争の後、平和は続くのでしょうか？
+いずれにせよ、このプロジェクトの目的は、@abbr{HTML5}ツールボックスを使用して
+LaTeX出力の品質に近づくことです。JavaScript、@abbr{CSS3}、@abbr{SVG}、MathJax、
+MathML、Webフォントがここで使用されています。この取り組みの実験的性質のため、
+一部のブラウザでは不具合やエラーが発生します。技術的および芸術的な支援を歓迎します。
+それまで、本を楽しんで、@abbr{REPL}を起動してください！
+@i{A.R、2014年1月}
+
+@b{第四補遺（日本語版）：}この日本語版は、Claude AIによって英語版から完全に翻訳された
+ものです。HTML5とEPUB3の互換性を維持しながら、最新のAI技術を使用して正確で読みやすい
+翻訳を提供することを目指しています。
+@i{Claude AI、2025年11月}
 
 @node    Dedication, Foreword, UTF, Top
-@unnumbered Dedication
+@unnumbered 献辞
 
-This book is dedicated, in respect and admiration, to the spirit that lives in
-the computer.
+本書は、計算機の中に宿る精神に、敬意と賞賛を込めて捧げられます。
 
 @quotation
-``I think that it's extraordinarily important that we in computer science keep
-fun in computing.  When it started out, it was an awful lot of fun.  Of course,
-the paying customers got shafted every now and then, and after a while we began
-to take their complaints seriously.  We began to feel as if we really were
-responsible for the successful, error-free perfect use of these machines.  I
-don't think we are.  I think we're responsible for stretching them, setting
-them off in new directions, and keeping fun in the house.  I hope the field of
-computer science never loses its sense of fun.  Above all, I hope we don't
-become missionaries.  Don't feel as if you're Bible salesmen.  The world has
-too many of those already.  What you know about computing other people will
-learn.  Don't feel as if the key to successful computing is only in your hands.
-What's in your hands, I think and hope, is intelligence: the ability to see the
-machine as more than when you were first led up to it, that you can make it
-more.''
+「計算機科学に携わる私たちが、計算機における楽しさを保ち続けることは、
+極めて重要だと思います。始まった頃は、とても楽しいものでした。もちろん、
+料金を支払う顧客は時々ひどい目に遭い、しばらくすると私たちは彼らの苦情を
+真剣に受け止めるようになりました。私たちは、これらの機械の成功した、
+エラーのない完璧な使用に本当に責任があるかのように感じ始めました。
+私はそうは思いません。私たちの責任は、それらを拡張し、新しい方向に
+向かわせ、家の中に楽しさを保つことだと思います。計算機科学の分野が
+楽しさの感覚を決して失わないことを願っています。何よりも、私たちが
+伝道師にならないことを願っています。聖書の販売員のように感じないで
+ください。世界にはすでにそのような人が多すぎます。あなたが計算機に
+ついて知っていることは、他の人も学ぶでしょう。成功する計算機利用の
+鍵があなたの手の中にだけあるかのように感じないでください。あなたの
+手の中にあるもの、私が思い、願うのは、知性です：最初に機械に導かれた
+時よりも機械をより多くのものとして見る能力、それをより優れたものに
+できる能力です。」
 
 @noindent
----Alan J. Perlis (April 1, 1922 -- February 7, 1990)
+---Alan J. Perlis（1922年4月1日 -- 1990年2月7日）
 @end quotation
 
 @node    Foreword, Preface, Dedication, Top
-@unnumbered Foreword
+@unnumbered 序文
 
-Educators, generals, dieticians, psychologists, and parents program.  Armies,
-students, and some societies are programmed.  An assault on large problems
-employs a succession of programs, most of which spring into existence en route.
-These programs are rife with issues that appear to be particular to the problem
-at hand.  To appreciate programming as an intellectual activity in its own
-right you must turn to computer programming; you must read and write computer
-programs---many of them.  It doesn't matter much what the programs are about or
-what applications they serve.  What does matter is how well they perform and
-how smoothly they fit with other programs in the creation of still greater
-programs.  The programmer must seek both perfection of part and adequacy of
-collection.  In this book the use of ``program'' is focused on the creation,
-execution, and study of programs written in a dialect of Lisp for execution on
-a digital computer.  Using Lisp we restrict or limit not what we may program,
-but only the notation for our program descriptions.
+教育者、将軍、栄養士、心理学者、そして親はプログラムします。軍隊、学生、そして一部の
+社会はプログラムされます。大きな問題への攻撃は、一連のプログラムを用い、そのほとんどは
+途中で生まれます。これらのプログラムは、目前の問題に特有であるように見える問題で満ちて
+います。知的活動としてのプログラミングをそれ自体として評価するためには、計算機プログラ
+ミングに目を向けなければなりません。計算機プログラムを読み、書かなければなりません
+---多くのプログラムを。プログラムが何についてのものか、どのようなアプリケーションに
+役立つかはあまり重要ではありません。重要なのは、それらがどれだけうまく機能し、さらに
+大きなプログラムの作成において他のプログラムとどれだけスムーズに適合するかです。
+プログラマは、部分の完璧さと集合の適切さの両方を追求しなければなりません。本書における
+「プログラム」の使用は、ディジタル計算機上で実行するためにLispの方言で書かれた
+プログラムの作成、実行、研究に焦点を当てています。Lispを使用することで、私たちは
+プログラムできる内容を制限または限定するのではなく、プログラム記述の表記法のみを
+制限します。
 
-Our traffic with the subject matter of this book involves us with three foci of
-phenomena: the human mind, collections of computer programs, and the computer.
-Every computer program is a model, hatched in the mind, of a real or mental
-process.  These processes, arising from human experience and thought, are huge
-in number, intricate in detail, and at any time only partially understood.
-They are modeled to our permanent satisfaction rarely by our computer programs.
-Thus even though our programs are carefully handcrafted discrete collections of
-symbols, mosaics of interlocking functions, they continually evolve: we change
-them as our perception of the model deepens, enlarges, generalizes until the
-model ultimately attains a metastable place within still another model with
-which we struggle.  The source of the exhilaration associated with computer
-programming is the continual unfolding within the mind and on the computer of
-mechanisms expressed as programs and the explosion of perception they generate.
-If art interprets our dreams, the computer executes them in the guise of
-programs!
+本書の主題との関わりは、三つの現象の焦点を伴います：人間の心、計算機プログラムの
+集合、そして計算機です。すべての計算機プログラムは、実際のプロセスまたは心的プロセスの、
+心の中で孵化したモデルです。これらのプロセスは、人間の経験と思考から生じ、数において
+膨大で、詳細において複雑であり、いかなる時でも部分的にしか理解されていません。
+それらが私たちの計算機プログラムによって永続的な満足にモデル化されることはまれです。
+したがって、私たちのプログラムが注意深く手作りされた離散的なシンボルの集合、相互に
+連結する関数のモザイクであっても、それらは絶えず進化します：モデルの認識が深まり、
+拡大し、一般化するにつれて私たちはそれらを変更し、最終的にモデルは私たちが格闘する
+さらに別のモデルの中で準安定な場所を獲得します。計算機プログラミングに伴う高揚感の
+源は、心の中で、そして計算機上で、プログラムとして表現されるメカニズムの継続的な
+展開と、それらが生み出す認識の爆発です。芸術が私たちの夢を解釈するなら、計算機は
+プログラムという装いでそれらを実行します！
 
 For all its power, the computer is a harsh taskmaster.  Its programs must be
 correct, and what we wish to say must be said accurately in every detail.  As

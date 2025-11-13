@@ -1,0 +1,93 @@
+473, @abbr{MIT} Artificial Intelligence Laboratory.
+@url{http://dspace.mit.edu/handle/1721.1/6296, –›}
+
+McAllester, David Allen.  1980.  真理維持の展望。Memo 551,
+@abbr{MIT} Artificial Intelligence Laboratory.
+@url{http://dspace.mit.edu/handle/1721.1/6327, –›}
+
+@anchor{McCarthy 1960}
+McCarthy, John.  1960.  記号式の再帰関数とマシンによるその計算。@cite{Communications of the @abbr{ACM}} 3(4): 184-195.
+@url{http://homepages.inf.ed.ac.uk/wadler/papers/papers-we-love/mccarthy-recursive-functions.pdf, –›}
+
+@anchor{McCarthy 1963}
+McCarthy, John.  1963.  計算の数学的理論の基礎。@cite{Computer Programming and Formal Systems}、P. BraffortとD. Hirschberg編集。North-Holland.
+@url{https://ropas.snu.ac.kr/~kwang/4190.310/mccarthy63basis.pdf, –›}
+
+@anchor{McCarthy 1978}
+McCarthy, John.  1978.  Lispの歴史。@cite{Proceedings of the
+@abbr{ACM} @abbr{SIGPLAN} Conference on the History of Programming
+Languages}.
+@url{http://jmc.stanford.edu/articles/lisp.html, –›}
+
+@anchor{McCarthy et al. 1965}
+McCarthy, John, P. W. Abrahams, D. J. Edwards, T. P. Hart, and M. I.  Levin.
+1965.  @cite{Lisp 1.5 Programmer's Manual}.  2nd edition.  Cambridge, @abbr{MA}:
+@abbr{MIT} Press.
+@url{http://www.softwarepreservation.org/projects/LISP/book/LISP%201.5%20Programmers%20Manual.pdf/view, –›}
+
+@anchor{McDermott and Sussman (1972)}
+McDermott, Drew, and Gerald Jay Sussman.  1972. Conniver参照マニュアル。
+Memo 259, @abbr{MIT} Artificial Intelligence Laboratory.
+@url{http://dspace.mit.edu/handle/1721.1/6203, –›}
+
+@anchor{Miller 1976}
+Miller, Gary L.  1976.  リーマン予想と素数性のためのテスト。
+@cite{Journal of Computer and System Sciences} 13(3): 300-317.
+@url{http://www.cs.cmu.edu/~glmiller/Publications/b2hd-Mi76.html, –›}
+
+@anchor{Miller and Rozas 1994}
+Miller, James S., and Guillermo J. Rozas. 1994.  ガベージコレクションは速いが、スタックはもっと速い。Memo 1462, @abbr{MIT} Artificial Intelligence
+Laboratory.
+@url{http://dspace.mit.edu/handle/1721.1/6622, –›}
+
+@anchor{Moon 1978}
+Moon, David.  1978.  MacLisp参照マニュアル、バージョン0。Technical report,
+@abbr{MIT} Laboratory for Computer Science.
+@url{http://www.softwarepreservation.org/projects/LISP/MIT/Moon-MACLISP_Reference_Manual-Apr_08_1974.pdf/view, –›}
+
+@anchor{Moon and Weinreb 1981}
+Moon, David, and Daniel Weinreb.  1981.  Lispマシンマニュアル。Technical
+report, @abbr{MIT} Artificial Intelligence Laboratory.
+@url{http://www.unlambda.com/lmman/index.html, –›}
+
+@anchor{Morris et al. 1980}
+Morris, J. H., Eric Schmidt, and Philip Wadler.  1980.  適用的文字列処理言語の経験。@cite{Proceedings of the 7th Annual
+@abbr{ACM} @abbr{SIGACT}/@abbr{SIGPLAN} Symposium on the Principles of
+Programming Languages}.
+
+@anchor{Phillips 1934}
+Phillips, Hubert.  1934. @cite{The Sphinx Problem Book}.  London: Faber and
+Faber.
+
+@anchor{Pitman 1983}
+Pitman, Kent. 1983. 改訂MacLispマニュアル(土曜夜版)。
+Technical report 295, @abbr{MIT} Laboratory for Computer Science.
+@url{http://maclisp.info/pitmanual, –›}
+
+@anchor{Rabin 1980}
+Rabin, Michael O. 1980. 素数性をテストするための確率的アルゴリズム。
+@cite{Journal of Number Theory} 12: 128-138.
+
+@anchor{Raymond 1993}
+Raymond, Eric.  1993. @cite{The New Hacker's Dictionary}. 2nd edition.
+Cambridge, @abbr{MA}: @abbr{MIT} Press.
+@url{http://www.catb.org/jargon/, –›}
+
+Raynal, Michel. 1986. @cite{Algorithms for Mutual Exclusion}.  Cambridge, @abbr{MA}:
+@abbr{MIT} Press.
+
+@anchor{Rees and Adams 1982}
+Rees, Jonathan A., and Norman I. Adams IV. 1982.  T: Lispの方言、または、
+lambda: 究極のソフトウェアツール。@cite{Conference Record of the 1982
+@abbr{ACM} Symposium on Lisp and Functional Programming}, pp.  114-122.
+@url{http://people.csail.mit.edu/riastradh/t/adams82t.pdf, –›}
+
+Rees, Jonathan, and William Clinger (eds). 1991.  アルゴリズム言語Schemeの改訂⁴報告書。@cite{Lisp Pointers}, 4(3).
+@url{http://people.csail.mit.edu/jaffer/r4rs.pdf, –›}
+
+@anchor{Rivest et al. (1977)}
+Rivest, Ronald, Adi Shamir, and Leonard Adleman.  1977.  デジタル署名と公開鍵暗号システムを得るための方法。Technical memo @abbr{LCS}/@abbr{TM82},
+@abbr{MIT} Laboratory for Computer Science.
+@url{http://people.csail.mit.edu/rivest/Rsapaper.pdf, –›}
+
+@anchor{Robinson 1965}

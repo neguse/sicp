@@ -1,0 +1,50 @@
+@anchor{Winston 1992}
+Winston, Patrick. 1992. @cite{Artificial Intelligence}.  3rd edition.  Reading,
+@abbr{MA}: Addison-Wesley.
+
+@anchor{Zabih et al. 1987}
+Zabih, Ramin, David McAllester, and David Chapman.  1987.  依存指向バックトラッキングを持つ非決定論的Lisp。@cite{@abbr{AAAI}-87},
+pp. 59-64.
+@url{http://www.aaai.org/Papers/AAAI/1987/AAAI87-011.pdf, –›}
+
+@anchor{Zippel (1979)}
+Zippel, Richard.  1979.  疎多項式のための確率的アルゴリズム。
+Ph.D. dissertation, Department of Electrical Engineering and Computer Science,
+@abbr{MIT}.
+
+@anchor{Zippel 1993}
+Zippel, Richard.  1993.  @cite{Effective Polynomial Computation}.  Boston, @abbr{MA}:
+Kluwer Academic Publishers.
+
+@node    Exercises, Figures, References, Top
+@unnumbered 練習問題リスト
+
+@include exercises.texi
+
+@node    Figures, Term Index, Exercises, Top
+@unnumbered 図のリスト
+
+@include figures.texi
+
+@node    Term Index, Colophon, Figures, Top
+@unnumbered 用語索引
+
+@quotation
+この索引の不正確さは、コンピュータの助けを借りて準備されたという事実によって説明されるかもしれない。
+
+---Donald E. Knuth, @cite{Fundamental Algorithms}@*
+(Volume 1 of @cite{The Art of Computer Programming})
+@end quotation
+
+@printindex cp
+
+@node    Colophon, , Term Index, Top
+@unnumbered 奥付
+
+表紙にあるのは1588年のAgostino Ramelliのブックホイールメカニズムです。これは初期のハイパーテキストナビゲーション支援と見なすことができます。この版画の画像は@url{http://newgottland.com/2012/02/09/before-the-ereader-there-was-the-wheelreader/ramelli_bookwheel_1032px/, New Gottland}のJ. E. Johnsonによってホストされています。
+
+書体は本文にLinux Libertine、見出しにLinux Biolinumを使用しており、どちらもPhilipp H. Pollによるものです。タイプライター書体はRaph Levienによって作成され、Inconsolata LGCの形でDimosthenis KaponisとTakashi Tanigawaによって補完されたInconsolataです。
+
+グラフィックデザインとタイポグラフィはAndres Rabaによって行われています。Texinfoソースは、Texinfo 5.1パッケージの@code{texi2any}ユーティリティのカスタマイズバージョンを使用して@abbr{HTML}に変換されます。図はInkscapeで描かれ、数学はMathJaxとMathMLの助けを借りて組版されています。
+
+@bye

@@ -1,0 +1,67 @@
+     1	@math{{n \times n}}チェスボード。@code{Queens}には、ボードの最初の@math{k}列にクイーンを配置するすべての方法のシーケンスを返す内部手続き@code{queen-cols}があります。
+     2
+     3	@lisp
+     4	(define (queens board-size)
+     5	  (define (queen-cols k)
+     6	    (if (= k 0)
+     7	        (list empty-board)
+     8	        (filter
+     9	         (lambda (positions)
+    10	           (safe? k positions))
+    11	         (flatmap
+    12	          (lambda (rest-of-queens)
+    13	            (map (lambda (new-row)
+    14	                   (adjoin-position
+    15	                    new-row
+    16	                    k
+    17	                    rest-of-queens))
+    18	                 (enumerate-interval
+    19	                  1
+    20	                  board-size)))
+    21	          (queen-cols (- k 1))))))
+    22	  (queen-cols board-size))
+    23	@end lisp
+    24
+    25	この手続きで、@code{rest-of-queens}は最初の@math{{k - 1}}列に@math{{k - 1}}個のクイーンを配置する方法であり、@code{new-row}は@math{k^{\text{th}}}列にクイーンを配置する提案された行です。ボード位置の集合の表現を実装してプログラムを完成させてください。これには、新しい行列位置を位置の集合に追加する手続き@code{adjoin-position}と、空の位置の集合を表す@code{empty-board}が含まれます。また、位置の集合に対して、@math{k^{\text{th}}}列のクイーンが他のクイーンに対して安全かどうかを判定する手続き@code{safe?}も記述する必要があります。（新しいクイーンが安全かどうかを確認するだけでよいことに注意してください。他のクイーンはすでに互いに対して安全であることが保証されています。）
+    26	@end quotation
+    27
+    28	@quotation
+    29	@strong{@anchor{Exercise 2.43}Exercise 2.43:} Louis Reasonerは@ref{Exercise 2.42}を実行するのに大変な苦労をしています。彼の@code{queens}手続きは動作するようですが、非常に遅く実行されます。（Louisは@math{{6\times6}}のケースを解くのにさえ、十分に長く待つことができませんでした。）LouisがEva Lu Atorに助けを求めると、彼女は彼が@code{flatmap}内の入れ子のマッピングの順序を入れ替えて、次のように書いていることを指摘します
+    30
+    31	@lisp
+    32	(flatmap
+    33	 (lambda (new-row)
+    34	   (map (lambda (rest-of-queens)
+    35	          (adjoin-position
+    36	           new-row k rest-of-queens))
+    37	        (queen-cols (- k 1))))
+    38	 (enumerate-interval 1 board-size))
+    39	@end lisp
+    40
+    41	この交換がなぜプログラムを遅くするのかを説明してください。@ref{Exercise 2.42}のプログラムがパズルを時間@math{T}で解くと仮定して、Louisのプログラムが8クイーンパズルを解くのにどのくらい時間がかかるかを見積もってください。
+    42	@end quotation
+    43
+    44	@node	2.2.4, 2.3, 2.1, 2.2
+    45	@subsection 例: 画像言語
+    46
+    47	このセクションでは、データ抽象化と閉包の力を示し、また本質的な方法で高階手続きを活用する、画像を描画するための単純な言語を提示します。この言語は、@ref{Figure 2.9}のようなパターンで実験することを容易にするように設計されています。これらは、シフトおよびスケーリングされた繰り返し要素で構成されています。@footnote{画像言語は、Peter HendersonがM.C. Escherの「Square Limit」木版画のような画像を構築するために作成した言語に基づいています（@ref{Henderson 1982}参照）。この木版画には、このセクションの@code{square-limit}手続きを使用して描画される配置と同様の、繰り返しスケーリングされたパターンが組み込まれています。}この言語では、組み合わされるデータオブジェクトは、リスト構造としてではなく、手続きとして表現されます。閉包性を満たす@code{cons}が任意に複雑なリスト構造を簡単に構築できるようにしたのと同様に、この言語の操作も閉包性を満たし、任意に複雑なパターンを簡単に構築できるようにします。
+    48
+    49	@float
+    50	@anchor{Figure 2.9}
+    51	@ifinfo
+    52	@quotation
+    53	@strong{Figure 2.9:} 画像言語で生成されたデザイン。
+    54
+    55	[2つのグラフィック画像は含まれていません]
+    56	@end quotation
+    57	@end ifinfo
+    58	@iftex
+    59	@image{fig/chap2/Fig2.9,139mm,60mm,,.std.svg}
+    60	@caption{@strong{Figure 2.9:} 画像言語で生成されたデザイン。}
+    61	@end iftex
+    62	@end float
+    63
+    64	@subsubheading 画像言語
+    65
+    66	@ref{1.1}でプログラミングの研究を始めたとき、言語のプリミティブ、組み合わせの手段、および抽象化の手段に焦点を当てて言語を記述することの重要性を強調しました。ここでもそのフレームワークに従います。
+    67

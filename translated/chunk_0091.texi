@@ -1,0 +1,78 @@
+     1	与えられたペインターをこれらの4つの操作で変換し、結果を正方形に配置するペインター操作を生成します。@code{Tl}、@code{tr}、@code{bl}、@code{br}は、それぞれ左上のコピー、右上のコピー、左下のコピー、右下のコピーに適用する変換です。
+     2
+     3	@lisp
+     4	(define (square-of-four tl tr bl br)
+     5	  (lambda (painter)
+     6	    (let ((top (beside (tl painter)
+     7	                       (tr painter)))
+     8	          (bottom (beside (bl painter)
+     9	                          (br painter))))
+    10	      (below bottom top))))
+    11	@end lisp
+    12
+    13	@noindent
+    14	次に、@code{flipped-pairs}を@code{square-of-four}の観点から次のように定義できます:@footnote{同等に、次のように書くこともできます
+    15
+    16	@lisp
+    17	(define flipped-pairs
+    18	  (square-of-four
+    19	   identity flip-vert identity flip-vert))
+    20	@end lisp
+    21	}
+    22
+    23	@lisp
+    24	(define (flipped-pairs painter)
+    25	  (let ((combine4
+    26	         (square-of-four identity
+    27	                         flip-vert
+    28	                         identity
+    29	                         flip-vert)))
+    30	    (combine4 painter)))
+    31	@end lisp
+    32
+    33	@noindent
+    34	そして@code{square-limit}は次のように表現できます@footnote{@code{Rotate180}はペインターを180度回転します（@ref{Exercise 2.50}参照）。@code{rotate180}の代わりに、@ref{Exercise 1.42}の@code{compose}手続きを使用して@code{(compose flip-vert flip-horiz)}と言うこともできます。}
+    35
+    36	@lisp
+    37	(define (square-limit painter n)
+    38	  (let ((combine4
+    39	         (square-of-four flip-horiz
+    40	                         identity
+    41	                         rotate180
+    42	                         flip-vert)))
+    43	    (combine4 (corner-split painter n))))
+    44	@end lisp
+    45
+    46	@quotation
+    47	@strong{@anchor{Exercise 2.45}Exercise 2.45:} @code{Right-split}と@code{up-split}は、一般的な分割操作のインスタンスとして表現できます。次のように評価すると
+    48
+    49	@lisp
+    50	(define right-split (split beside below))
+    51	(define up-split (split below beside))
+    52	@end lisp
+    53
+    54	@noindent
+    55	すでに定義されているものと同じ動作を持つ手続き@code{right-split}と@code{up-split}を生成するという性質を持つ手続き@code{split}を定義してください。
+    56	@end quotation
+    57
+    58	@subsubheading フレーム
+    59
+    60	ペインターとその組み合わせ手段の実装方法を示す前に、まずフレームを考慮する必要があります。フレームは3つのベクトル---原点ベクトルと2つの辺ベクトル---で記述できます。原点ベクトルは、平面内の何らかの絶対原点からのフレームの原点のオフセットを指定し、辺ベクトルは、原点からのフレームの角のオフセットを指定します。辺が垂直である場合、フレームは長方形になります。そうでない場合、フレームはより一般的な平行四辺形になります。
+    61
+    62	@ref{Figure 2.15}は、フレームとそれに関連するベクトルを示しています。データ抽象化に従って、3つのベクトルを取りフレームを生成するコンストラクタ@code{make-frame}と、対応する3つのセレクタ@code{origin-frame}、@code{edge1-frame}、@code{edge2-frame}があるということ以外、フレームがどのように表現されるかについて具体的である必要はありません（@ref{Exercise 2.47}参照）。
+    63
+    64	@float
+    65	@anchor{Figure 2.15}
+    66	@ifinfo
+    67	@quotation
+    68	@strong{Figure 2.15:} フレームは3つのベクトル---原点と2つの辺---で記述されます。
+    69
+    70	@example
+    71	                         __
+    72	                     __--  \
+    73	                 __--       \
+    74	      __     __--            \   __
+    75	     |\  __--                 \__-|
+    76	       \-                  __--
+    77	frame   \              __--
+    78

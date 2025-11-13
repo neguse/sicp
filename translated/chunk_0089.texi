@@ -1,0 +1,76 @@
+     1	@noindent
+     2	画像を組み合わせるために、与えられたペインターから新しいペインターを構築するさまざまな操作を使用します。たとえば、@code{beside}操作は2つのペインターを取り、最初のペインターの画像をフレームの左半分に描画し、2番目のペインターの画像をフレームの右半分に描画する新しい複合ペインターを生成します。同様に、@code{below}は2つのペインターを取り、最初のペインターの画像を2番目のペインターの画像の下に描画する複合ペインターを生成します。一部の操作は、単一のペインターを変換して新しいペインターを生成します。たとえば、@code{flip-vert}はペインターを取り、その画像を上下逆さまに描画するペインターを生成し、@code{flip-horiz}は元のペインターの画像を左右反転して描画するペインターを生成します。
+     3
+     4	@ref{Figure 2.12}は、@code{wave}から始めて2段階で構築された@code{wave4}と呼ばれるペインターの描画を示しています:
+     5
+     6	@lisp
+     7	(define wave2 (beside wave (flip-vert wave)))
+     8	(define wave4 (below wave2 wave2))
+     9	@end lisp
+    10
+    11	@float
+    12	@anchor{Figure 2.12}
+    13	@ifinfo
+    14	@quotation
+    15	@strong{Figure 2.12:} @ref{Figure 2.10}の@code{wave}ペインターから始めて、複雑な図形を作成。
+    16
+    17	[2つのグラフィック画像は含まれていません]
+    18
+    19	@lisp
+    20	(define wave2                      (define wave4
+    21	  (beside wave (flip-vert wave)))    (below wave2 wave2))
+    22	@end lisp
+    23	@end quotation
+    24	@end ifinfo
+    25	@iftex
+    26	@image{fig/chap2/Fig2.12,118mm,,,.std.svg}
+    27	@caption{@strong{Figure 2.12:} @ref{Figure 2.10}の@code{wave}ペインターから始めて、複雑な図形を作成。}
+    28	@end iftex
+    29	@end float
+    30
+    31	@noindent
+    32	この方法で複雑な画像を構築する際、ペインターが言語の組み合わせ手段の下で閉じていることを利用しています。2つのペインターの@code{beside}または@code{below}はそれ自体がペインターです。したがって、より複雑なペインターを作成する際の要素として使用できます。@code{cons}を使用してリスト構造を構築するのと同様に、組み合わせ手段の下でデータが閉じていることは、少数の操作のみを使用して複雑な構造を作成する能力にとって重要です。
+    33
+    34	ペインターを組み合わせることができるようになったら、ペインターを組み合わせる典型的なパターンを抽象化できるようにしたいと思います。ペインター操作をScheme手続きとして実装します。これは、画像言語に特別な抽象化メカニズムが必要ないことを意味します: 組み合わせ手段は通常のScheme手続きであるため、手続きでできることはすべて、ペインター操作でも自動的にできます。たとえば、@code{wave4}のパターンを次のように抽象化できます
+    35
+    36	@lisp
+    37	(define (flipped-pairs painter)
+    38	  (let ((painter2
+    39	         (beside painter
+    40	                 (flip-vert painter))))
+    41	    (below painter2 painter2)))
+    42	@end lisp
+    43
+    44	@noindent
+    45	そして、@code{wave4}をこのパターンのインスタンスとして定義します:
+    46
+    47	@lisp
+    48	(define wave4 (flipped-pairs wave))
+    49	@end lisp
+    50
+    51	@noindent
+    52	再帰的操作も定義できます。次は、@ref{Figure 2.13}と@ref{Figure 2.14}に示されているように、ペインターを右に向かって分割して分岐させるものです:
+    53
+    54	@lisp
+    55	(define (right-split painter n)
+    56	  (if (= n 0)
+    57	      painter
+    58	      (let ((smaller (right-split painter
+    59	                                  (- n 1))))
+    60	        (beside painter
+    61	                (below smaller smaller)))))
+    62	@end lisp
+    63
+    64	@float
+    65	@anchor{Figure 2.13}
+    66	@ifinfo
+    67	@quotation
+    68	@strong{Figure 2.13:} @code{right-split}と@code{corner-split}の再帰的計画。
+    69
+    70	@example
+    71	+-------------+-------------+    +------+------+-------------+
+    72	|             |             |    | up-  | up-  |             |
+    73	|             | right-split |    | split| split| corner-split|
+    74	|             |             |    |      |      |             |
+    75	|             |     n-1     |    |  n-1 |  n-1 |     n-1     |
+    76

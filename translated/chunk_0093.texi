@@ -1,0 +1,64 @@
+     1	@quotation
+     2	@strong{@anchor{Exercise 2.47}Exercise 2.47:} フレーム用の2つの可能なコンストラクタは次の通りです:
+     3
+     4	@lisp
+     5	(define (make-frame origin edge1 edge2)
+     6	  (list origin edge1 edge2))
+     7
+     8	(define (make-frame origin edge1 edge2)
+     9	  (cons origin (cons edge1 edge2)))
+    10	@end lisp
+    11
+    12	各コンストラクタについて、フレームの実装を生成するための適切なセレクタを提供してください。
+    13	@end quotation
+    14
+    15	@subsubheading ペインター
+    16
+    17	ペインターは、フレームを引数として与えられたときに、特定の画像をシフトおよびスケーリングしてフレームに適合させて描画する手続きとして表現されます。つまり、@code{p}がペインターで@code{f}がフレームである場合、@code{f}で引数として@code{p}を呼び出すことにより、@code{f}内に@code{p}の画像を生成します。
+    18
+    19	プリミティブペインターの実装方法の詳細は、グラフィックスシステムの特定の特性と描画される画像のタイプに依存します。たとえば、画面上の2つの指定された点の間に線を描画する手続き@code{draw-line}があるとします。次に、@ref{Figure 2.10}の@code{wave}ペインターのような線画のペインターを、次のように線分のリストから作成できます:@footnote{@code{Segments->painter}は、@ref{Exercise 2.48}以下で説明されている線分の表現を使用します。また、@ref{Exercise 2.23}で説明されている@code{for-each}手続きも使用します。}
+    20
+    21	@lisp
+    22	(define (segments->painter segment-list)
+    23	  (lambda (frame)
+    24	    (for-each
+    25	     (lambda (segment)
+    26	       (draw-line
+    27	        ((frame-coord-map frame)
+    28	         (start-segment segment))
+    29	        ((frame-coord-map frame)
+    30	         (end-segment segment))))
+    31	     segment-list)))
+    32	@end lisp
+    33
+    34	@noindent
+    35	線分は単位正方形に対する座標を使用して与えられます。リスト内の各線分について、ペインターはフレーム座標マップで線分の端点を変換し、変換された点の間に線を描画します。
+    36
+    37	ペインターを手続きとして表現することは、画像言語に強力な抽象化障壁を構築します。さまざまなグラフィックス機能に基づいて、あらゆる種類のプリミティブペインターを作成し、混在させることができます。それらの実装の詳細は問題ではありません。どのような手続きも、フレームを引数として取り、フレームに適合するようにスケーリングされた何かを描画する限り、ペインターとして機能できます。@footnote{たとえば、@ref{Figure 2.11}の@code{rogers}ペインターは、グレーレベル画像から構築されました。与えられたフレーム内の各点について、@code{rogers}ペインターは、フレーム座標マップの下でそれにマップされる画像内の点を決定し、それに応じて陰影を付けます。異なるタイプのペインターを許可することにより、@ref{2.1.3}で議論した抽象データのアイデアを活用しています。そこでは、有理数表現は適切な条件を満たす限り何でもよいと主張しました。ここでは、ペインターが指定されたフレームに何かを描画する限り、どのような方法でも実装できるという事実を使用しています。@ref{2.1.3}は、対が手続きとして実装できることも示しました。ペインターは、データの手続き表現の2番目の例です。}
+    38
+    39	@quotation
+    40	@strong{@anchor{Exercise 2.48}Exercise 2.48:} 平面内の有向線分は、2つのベクトルの対として表現できます---線分の始点への原点からのベクトルと、線分の終点への原点からのベクトル。@ref{Exercise 2.46}のベクトル表現を使用して、コンストラクタ@code{make-segment}とセレクタ@code{start-segment}および@code{end-segment}を持つ線分の表現を定義してください。
+    41	@end quotation
+    42
+    43	@quotation
+    44	@strong{@anchor{Exercise 2.49}Exercise 2.49:} @code{segments->painter}を使用して、次のプリミティブペインターを定義してください:
+    45
+    46	@enumerate a
+    47
+    48	@item
+    49	指定されたフレームの輪郭を描画するペインター。
+    50
+    51	@item
+    52	フレームの対角の角を接続して「X」を描画するペインター。
+    53
+    54	@item
+    55	フレームの辺の中点を接続してひし形を描画するペインター。
+    56
+    57	@item
+    58	@code{wave}ペインター。
+    59
+    60	@end enumerate
+    61	@end quotation
+    62
+    63	@subsubheading ペインターの変換と組み合わせ
+    64

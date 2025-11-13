@@ -1,0 +1,77 @@
+     1	i + j | 3 5 5 7 7 7 11
+     2	@end example
+     3
+     4	@end ifinfo
+     5	@tex
+     6	\[ % :39:
+     7
+     8	\begin{array}{c|ccccccc}
+     9	i 	& 2 & 3 & 4 & 4 & 5 & 6 & 6 \\
+    10	j 	& 1 & 2 & 1 & 3 & 2 & 1 & 5 \\
+    11	\hline
+    12	i + j	& 3 & 5 & 5 & 7 & 7 & 7 & 11
+    13	\end{array}
+    14	\]
+    15	@end tex
+    16	この計算を整理する自然な方法は、@math{n}以下の正の整数の順序対のシーケンスをすべて生成し、その和が素数である対を選択するようにフィルタリングし、次にフィルタを通過した各対@math{{(i, j)}}について、三つ組@math{{(i, j, i + j)}}を生成することです。
+    17
+    18	対のシーケンスを生成する方法は次の通りです: @math{{i \le n}}の各整数について、整数@math{{j < i}}を列挙し、そのような各@math{i}と@math{j}について対@math{{(i, j)}}を生成します。シーケンス操作の観点から言えば、シーケンス@code{(enumerate-interval 1 n)}に沿ってマップします。このシーケンスの各@math{i}について、シーケンス@code{(enumerate-interval 1 (- i 1))}に沿ってマップします。この後者のシーケンスの各@math{j}について、対@code{(list i j)}を生成します。これにより、各@math{i}について対のシーケンスが得られます。すべての@math{i}のすべてのシーケンスを結合する（@code{append}で累積する）ことにより、必要な対のシーケンスが生成されます:@footnote{ここでは対をLispの対としてではなく、2つの要素のリストとして表現しています。したがって、「対」@math{{(i, j)}}は@code{(cons i j)}ではなく@code{(list i j)}として表現されます。}
+    19
+    20	@lisp
+    21	(accumulate
+    22	 append
+    23	 nil
+    24	 (map (lambda (i)
+    25	        (map (lambda (j)
+    26	               (list i j))
+    27	             (enumerate-interval 1 (- i 1))))
+    28	      (enumerate-interval 1 n)))
+    29	@end lisp
+    30
+    31	@noindent
+    32	@code{append}でマッピングと累積を組み合わせることは、この種のプログラムでは非常に一般的なので、別の手続きとして分離します:
+    33
+    34	@lisp
+    35	(define (flatmap proc seq)
+    36	  (accumulate append nil (map proc seq)))
+    37	@end lisp
+    38
+    39	@noindent
+    40	次に、この対のシーケンスをフィルタリングして、和が素数であるものを見つけます。フィルタの述語はシーケンスの各要素に対して呼び出されます。その引数は対であり、対から整数を抽出する必要があります。したがって、シーケンスの各要素に適用する述語は次のようになります
+    41
+    42	@lisp
+    43	(define (prime-sum? pair)
+    44	  (prime? (+ (car pair) (cadr pair))))
+    45	@end lisp
+    46
+    47	@noindent
+    48	最後に、フィルタリングされた対をマップして、次の手続きを使用して結果のシーケンスを生成します。この手続きは、対の2つの要素とそれらの和からなる三つ組を構成します:
+    49
+    50	@lisp
+    51	(define (make-pair-sum pair)
+    52	  (list (car pair)
+    53	        (cadr pair)
+    54	        (+ (car pair) (cadr pair))))
+    55	@end lisp
+    56
+    57	@noindent
+    58	これらすべてのステップを組み合わせると、完全な手続きが得られます:
+    59
+    60	@lisp
+    61	(define (prime-sum-pairs n)
+    62	  (map make-pair-sum
+    63	       (filter
+    64	        prime-sum?
+    65	        (flatmap
+    66	         (lambda (i)
+    67	           (map (lambda (j)
+    68	                  (list i j))
+    69	                (enumerate-interval
+    70	                 1
+    71	                 (- i 1))))
+    72	         (enumerate-interval 1 n)))))
+    73	@end lisp
+    74
+    75	@noindent
+    76	入れ子のマッピングは、区間を列挙するシーケンス以外のシーケンスにも役立ちます。集合@math{{S}}のすべての順列、つまり集合内の項目を順序付けるすべての方法を生成したいとします。たとえば、@math{{\{1, 2, 3\}}}の順列は@math{{\{1, 2, 3\}}}、@math{{\{1, 3, 2\}}}、@math{{\{2, 1, 3\}}}、@math{{\{2, 3, 1\}}}、@math{{\{3, 1, 2\}}}、@math{{\{3, 2, 1\}}}です。@math{S}の順列を生成する計画は次の通りです: @math{S}内の各項目@math{x}について、@math{{S - x}}の順列のシーケンスを再帰的に生成し、
+    77

@@ -1,0 +1,95 @@
+@quotation
+@strong{@anchor{Exercise 5.13}練習問題 5.13:} @code{make-machine}への引数と
+してレジスタのリストを要求する代わりに、コントローラーシーケンスを使用して
+マシンが持つレジスタを決定するようにシミュレータを変更せよ。@code{make-machine}で
+レジスタを事前に割り当てる代わりに、命令のアセンブリ中に最初に見られたときに
+1つずつ割り当てることができる。
+@end quotation
+
+@node	5.2.4, 5.3, 5.1, 5.2
+@subsection マシン性能の監視
+
+シミュレーションは、提案されたマシン設計の正しさを検証するだけでなく、
+マシンの性能を測定するためにも有用である。たとえば、計算で使用された
+スタック演算の数を測定する「メーター」をシミュレーションプログラムに
+インストールできる。これを行うには、レジスタがスタックに保存された回数と
+スタックが到達した最大深度を追跡するようにシミュレートされたスタックを
+変更し、以下に示すように、統計を印字するメッセージをスタックの
+インターフェースに追加する。また、スタック統計を印字する演算を基本的な
+マシンモデルに追加するために、@code{make-new-machine}の@code{the-ops}を
+次のように初期化する：
+
+@lisp
+(list (list 'initialize-stack
+            (lambda ()
+              (stack 'initialize)))
+      (list 'print-stack-statistics
+            (lambda ()
+              (stack 'print-statistics))))
+@end lisp
+
+@noindent
+これが@code{make-stack}の新しいバージョンである：
+
+@lisp
+(define (make-stack)
+  (let ((s '())
+        (number-pushes 0)
+        (max-depth 0)
+        (current-depth 0))
+    (define (push x)
+      (set! s (cons x s))
+      (set! number-pushes (+ 1 number-pushes))
+      (set! current-depth (+ 1 current-depth))
+      (set! max-depth
+            (max current-depth max-depth)))
+    (define (pop)
+      (if (null? s)
+          (error "Empty stack: POP")
+          (let ((top (car s)))
+            (set! s (cdr s))
+            (set! current-depth
+                  (- current-depth 1))
+            top)))
+    (define (initialize)
+      (set! s '())
+      (set! number-pushes 0)
+      (set! max-depth 0)
+      (set! current-depth 0)
+      'done)
+
+    (define (print-statistics)
+      (newline)
+      (display (list 'total-pushes
+                     '=
+                     number-pushes
+                     'maximum-depth
+                     '=
+                     max-depth)))
+    (define (dispatch message)
+      (cond ((eq? message 'push) push)
+            ((eq? message 'pop) (pop))
+            ((eq? message 'initialize)
+             (initialize))
+            ((eq? message 'print-statistics)
+             (print-statistics))
+            (else
+             (error "Unknown request: STACK"
+                    message))))
+    dispatch))
+@end lisp
+
+@noindent
+@ref{練習問題 5.15}から@ref{練習問題 5.19}は、レジスタマシンシミュレータに
+追加できる他の有用な監視およびデバッグ機能を説明している。
+
+@quotation
+@strong{@anchor{Exercise 5.14}練習問題 5.14:} @ref{図5.11}に示された
+階乗マシンを使用して、@math{n}の様々な小さな値に対して@math{{n!}}を計算する
+ために必要なプッシュの数と最大スタック深度を測定せよ。データから、任意の
+@math{{n > 1}}に対して@math{{n!}}を計算する際に使用される総プッシュ演算数と
+最大スタック深度の@math{n}の関数である公式を決定せよ。これらの各々は
+@math{n}の線形関数であり、したがって2つの定数によって決定されることに
+注意せよ。統計を印字するには、スタックを初期化して統計を印字する命令で
+階乗マシンを拡張する必要がある。また、@code{get-register-contents}、
+

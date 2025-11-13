@@ -1,0 +1,96 @@
+(assign the-stack (op cdr) (reg the-stack))
+@end lisp
+
+@noindent
+そして@code{(perform (op initialize-stack))}は次のように実装できる：
+
+@lisp
+(assign the-stack (const ()))
+@end lisp
+
+@noindent
+これらの演算は、上記のベクトル演算でさらに展開できる。しかし、従来のコンピュータ
+アーキテクチャでは、通常、スタックを別個のベクトルとして割り当てる方が有利である。
+その場合、スタックのプッシュとポップは、そのベクトルへのインデックスをインクリメント
+またはデクリメントすることで達成できる。
+
+@quotation
+@strong{@anchor{Exercise 5.20}練習問題 5.20:} 次によって生成されるリスト構造の
+箱とポインタ表現とメモリベクトル表現（@ref{図5.14}のように）を描け：
+
+@lisp
+(define x (cons 1 2))
+(define y (list x x))
+@end lisp
+
+@noindent
+@code{free}ポインタが最初は@code{p1}である場合、@code{free}の最終値は何か？
+@code{x}と@code{y}の値を表すポインタは何か？
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.21}練習問題 5.21:} 次の手続きのレジスタマシンを
+実装せよ。リスト構造メモリ演算がマシンプリミティブとして利用可能であると仮定せよ。
+
+@enumerate a
+
+@item
+再帰的@code{count-leaves}：
+
+@lisp
+(define (count-leaves tree)
+  (cond ((null? tree) 0)
+        ((not (pair? tree)) 1)
+        (else
+         (+ (count-leaves (car tree))
+            (count-leaves (cdr tree))))))
+@end lisp
+
+@item
+明示的なカウンタを持つ再帰的@code{count-leaves}：
+
+@lisp
+(define (count-leaves tree)
+  (define (count-iter tree n)
+    (cond ((null? tree) n)
+          ((not (pair? tree)) (+ n 1))
+          (else
+           (count-iter
+            (cdr tree)
+            (count-iter (car tree)
+                        n)))))
+  (count-iter tree 0))
+@end lisp
+@end enumerate
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.22}練習問題 5.22:} @ref{3.3.1}の@ref{練習問題 3.12}は、
+2つのリストを追加して新しいリストを形成する@code{append}手続きと、2つのリストを
+つなぎ合わせる@code{append!}手続きを提示した。これらの各手続きを実装するための
+レジスタマシンを設計せよ。リスト構造メモリ演算がプリミティブ演算として利用可能で
+あると仮定せよ。
+@end quotation
+
+@node	5.3.2, 5.4, 5.2, 5.3
+@subsection 無限メモリの錯覚を維持する
+
+@ref{5.3.1}で概説した表現方法は、無限の量のメモリがあれば、リスト構造を
+実装する問題を解決する。実際のコンピュータでは、新しいペアを構築するための
+空きスペースが最終的になくなる。@footnote{これは最終的に真実ではないかもしれない。
+なぜなら、メモリが非常に大きくなるため、コンピュータの生涯で空きメモリを使い果たす
+ことが不可能になる可能性があるからである。たとえば、1年には約@math{{3\cdot10^{13}}}
+マイクロ秒があるため、マイクロ秒ごとに1回@code{cons}を実行する場合、30年間
+メモリを使い果たすことなく動作できるマシンを構築するには、約@math{10^{15}}個の
+メモリセルが必要になる。その量のメモリは今日の基準では不条理なほど大きいが、
+物理的に不可能ではない。一方、プロセッサはより高速になり、将来のコンピュータは
+単一のメモリで並列に動作する多数のプロセッサを持つ可能性があるため、私たちが
+仮定したよりもはるかに速くメモリを使い果たすことが可能かもしれない。}しかし、
+典型的な計算で生成されるペアのほとんどは、中間結果を保持するためにのみ使用される。
+これらの結果にアクセスした後、ペアはもはや必要ない——それらは@newterm{ガベージ}
+である。たとえば、計算
+
+@lisp
+(accumulate
+ +
+

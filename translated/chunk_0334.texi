@@ -1,0 +1,78 @@
+@node	5.4, 5.5, 5.3, Chapter 5
+@section 明示的制御評価器
+
+@ref{5.1}では、単純なSchemeプログラムをレジスタマシンの記述に変換する方法を
+見た。今度は、より複雑なプログラム、@ref{4.1.1}から@ref{4.1.4}のメタ循環
+評価器に対してこの変換を実行する。これは、Schemeインタプリタの動作が手続き
+@code{eval}と@code{apply}によってどのように記述できるかを示した。この
+セクションで開発する@newterm{明示的制御評価器}は、評価プロセスで使用される
+基礎となる手続き呼び出しと引数渡しのメカニズムが、レジスタとスタックに対する
+演算でどのように記述できるかを示す。さらに、明示的制御評価器は、従来の
+コンピュータのネイティブマシン言語に非常に似た言語で書かれたSchemeインタプリタの
+実装として機能できる。評価器は@ref{5.2}のレジスタマシンシミュレータで実行
+できる。あるいは、Scheme評価器のマシン言語実装を構築するための開始点、または
+Scheme式を評価するための専用マシンとしても使用できる。@ref{図5.16}はこのような
+ハードウェア実装を示している：Schemeの評価器として機能するシリコンチップである。
+チップ設計者は、このセクションで説明する評価器に似たレジスタマシンのデータパスと
+コントローラーの仕様から始め、設計自動化プログラムを使用して集積回路レイアウトを
+構築した。@footnote{チップとそれが設計された方法についての詳細情報は
+@ref{Batali et al. 1982}を参照せよ。}
+
+@float
+@anchor{図5.16}
+@ifinfo
+@strong{図5.16:} Scheme評価器のシリコンチップ実装。
+@end ifinfo
+@iftex
+@image{fig/chap5/Batali-photo,56mm,,,jpg}
+@caption{@strong{図5.16:} Scheme評価器のシリコンチップ実装。}
+@end iftex
+@end float
+
+@menu
+* 5.4.1::            明示的制御評価器の中核
+* 5.4.2::            シーケンス評価と末尾再帰
+* 5.4.3::            条件文、代入、定義
+* 5.4.4::            評価器の実行
+@end menu
+
+@node	5.4.1, 5.4.2, 5.4, 5.4
+@subsection 明示的制御評価器の中核
+
+評価器の中心的な要素は、@code{eval-dispatch}から始まる命令シーケンスである。
+これは、@ref{4.1.1}で説明されたメタ循環評価器の@code{eval}手続きに対応する。
+コントローラーが@code{eval-dispatch}から開始すると、@code{env}で指定された
+環境で@code{exp}で指定された式を評価する。評価が完了すると、コントローラーは
+@code{continue}に格納されたエントリポイントに進み、@code{val}レジスタは式の
+値を保持する。メタ循環@code{eval}と同様に、@code{eval-dispatch}の構造は、
+評価される式の構文タイプに対するケース分析である。@footnote{コントローラーでは、
+ディスパッチは@code{test}と@code{branch}命令のシーケンスとして書かれている。
+あるいは、順次テストを実行する必要を回避し、新しい式タイプの定義を容易にする
+ために、データ主導スタイルで（そして実際のシステムではおそらくそうなる）書かれた
+可能性がある。Lispを実行するように設計されたマシンは、おそらくこのようなデータ
+主導のディスパッチを効率的に実行する@code{dispatch-on-type}命令を含むだろう。}
+
+@lisp
+eval-dispatch
+  (test (op self-evaluating?) (reg exp))
+  (branch (label ev-self-eval))
+  (test (op variable?) (reg exp))
+  (branch (label ev-variable))
+  (test (op quoted?) (reg exp))
+  (branch (label ev-quoted))
+  (test (op assignment?) (reg exp))
+  (branch (label ev-assignment))
+  (test (op definition?) (reg exp))
+  (branch (label ev-definition))
+  (test (op if?) (reg exp))
+  (branch (label ev-if))
+  (test (op lambda?) (reg exp))
+  (branch (label ev-lambda))
+  (test (op begin?) (reg exp))
+  (branch (label ev-begin))
+  (test (op application?) (reg exp))
+  (branch (label ev-application))
+  (goto (label unknown-expression-type))
+@end lisp
+
+

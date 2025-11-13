@@ -1,0 +1,96 @@
+
+@noindent
+ガベージコレクタのメインループでは、スキャンすべきオブジェクトがまだあるかどうかを
+判定しなければならない。これは、@code{scan}ポインタが@code{free}ポインタと一致
+しているかどうかをテストすることで行う。ポインタが等しい場合、全てのアクセス可能な
+オブジェクトが再配置されており、@code{gc-flip}に分岐する。これは、中断された計算を
+続けられるように後片付けを行う。まだスキャンすべきペアがある場合、再配置サブルーチンを
+呼び出して、次のペアの@code{car}を再配置する（@code{car}ポインタを@code{old}に置く
+ことで）。@code{relocate-continue}レジスタは、サブルーチンが@code{car}ポインタを
+更新するために戻るように設定される。
+
+@lisp
+gc-loop
+  (test (op =) (reg scan) (reg free))
+  (branch (label gc-flip))
+  (assign old
+          (op vector-ref)
+          (reg new-cars)
+          (reg scan))
+  (assign relocate-continue
+          (label update-car))
+  (goto (label relocate-old-result-in-new))
+@end lisp
+
+@noindent
+@code{update-car}では、スキャンしているペアの@code{car}ポインタを変更し、
+その後ペアの@code{cdr}を再配置する。その再配置が達成されると、@code{update-cdr}に
+戻る。@code{cdr}を再配置して更新した後、そのペアのスキャンは終了したので、
+メインループを続ける。
+
+@lisp
+update-car
+  (perform (op vector-set!)
+           (reg new-cars)
+           (reg scan)
+           (reg new))
+  (assign  old
+           (op vector-ref)
+           (reg new-cdrs)
+           (reg scan))
+  (assign  relocate-continue
+           (label update-cdr))
+  (goto (label relocate-old-result-in-new))
+update-cdr
+  (perform (op vector-set!)
+           (reg new-cdrs)
+           (reg scan)
+           (reg new))
+  (assign  scan (op +) (reg scan) (const 1))
+  (goto (label gc-loop))
+@end lisp
+
+@noindent
+サブルーチン@code{relocate-old-result-in-new}は、次のようにオブジェクトを再配置
+する：再配置されるオブジェクト（@code{old}が指す）がペアでない場合、オブジェクトへの
+同じポインタを変更せずに（@code{new}に）返す（たとえば、@code{car}が数値4である
+ペアをスキャンしている可能性がある。@ref{5.3.1}で説明されているように@code{car}を
+@code{n4}で表現する場合、「再配置された」@code{car}ポインタは依然として@code{n4}で
+ある必要がある）。そうでない場合、再配置を実行しなければならない。再配置される
+ペアの@code{car}位置にブロークンハートタグが含まれている場合、ペアは実際には既に
+移動されているため、転送アドレス（ブロークンハートの@code{cdr}位置から）を取得し、
+これを@code{new}に返す。@code{old}のポインタがまだ移動していないペアを指している
+場合、ペアを新しいメモリの最初の空きセル（@code{free}が指す）に移動し、古い位置に
+ブロークンハートタグと転送アドレスを格納することでブロークンハートを設定する。
+@code{Relocate-old-result-in-new}は、@code{old}が指すオブジェクトの@code{car}
+または@code{cdr}を保持するために@code{oldcr}というレジスタを使用する。
+@footnote{ガベージコレクタは、リスト構造の@code{pair?}演算の代わりに低レベルの
+述語@code{pointer-to-pair?}を使用する。なぜなら、実際のシステムでは、ガベージ
+コレクションの目的でペアとして扱われる様々なものがある可能性があるからである。
+たとえば、@abbr{IEEE}標準に準拠するSchemeシステムでは、手続きオブジェクトは
+@code{pair?}述語を満たさない特別な種類の「ペア」として実装される可能性がある。
+シミュレーションの目的では、@code{pointer-to-pair?}は@code{pair?}として実装
+できる。}
+
+@lisp
+relocate-old-result-in-new
+  (test (op pointer-to-pair?) (reg old))
+  (branch (label pair))
+  (assign new (reg old))
+  (goto (reg relocate-continue))
+pair
+  (assign  oldcr
+           (op vector-ref)
+           (reg the-cars)
+           (reg old))
+  (test (op broken-heart?) (reg oldcr))
+  (branch  (label already-moved))
+  (assign  new (reg free)) @r{; ペアの新しい位置}
+  @r{;; @code{free}ポインタを更新する。}
+  (assign free (op +) (reg free) (const 1))
+  @r{;; @code{car}と@code{cdr}を新しいメモリにコピーする。}
+  (perform (op vector-set!)
+           (reg new-cars)
+           (reg new)
+           (reg oldcr))
+

@@ -1,0 +1,97 @@
+        (reg the-cars)
+        (reg ⟨@var{reg₂}⟩))
+(assign ⟨@var{reg₁}⟩
+        (op vector-ref)
+        (reg the-cdrs)
+        (reg ⟨@var{reg₂}⟩))
+@end lisp
+
+@noindent
+命令
+
+@lisp
+(perform (op set-car!) (reg ⟨@var{reg₁}⟩) (reg ⟨@var{reg₂}⟩))
+(perform (op set-cdr!) (reg ⟨@var{reg₁}⟩) (reg ⟨@var{reg₂}⟩))
+@end lisp
+
+@noindent
+は次のように実装される：
+
+@lisp
+(perform (op vector-set!)
+         (reg the-cars)
+         (reg ⟨@var{reg₁}⟩)
+         (reg ⟨@var{reg₂}⟩))
+(perform (op vector-set!)
+         (reg the-cdrs)
+         (reg ⟨@var{reg₁}⟩)
+         (reg ⟨@var{reg₂}⟩))
+@end lisp
+
+@noindent
+@code{Cons}は、未使用のインデックスを割り当て、そのインデックス付きベクトル位置の
+@code{the-cars}と@code{the-cdrs}に@code{cons}への引数を格納することで実行される。
+常に次に利用可能なインデックスを含むペアポインタを保持する特別なレジスタ@code{free}が
+あり、そのポインタのインデックス部分をインクリメントして次の空き位置を見つけることが
+できると仮定する。@footnote{空きストレージを見つける他の方法がある。たとえば、
+未使用のペアを全て@newterm{フリーリスト}にリンクすることができる。@ref{5.3.2}で
+見るように、圧縮ガベージコレクタを使用しているため、空き位置は連続している（したがって、
+ポインタをインクリメントすることでアクセスできる）。}たとえば、命令
+
+@lisp
+(assign ⟨@var{reg₁}⟩
+        (op cons)
+        (reg ⟨@var{reg₂}⟩)
+        (reg ⟨@var{reg₃}⟩))
+@end lisp
+
+@noindent
+は次のベクトル演算のシーケンスとして実装される：@footnote{これは本質的に、
+@ref{3.3.1}で説明された@code{set-car!}と@code{set-cdr!}による@code{cons}の
+実装である。その実装で使用された@code{get-new-pair}演算は、ここでは@code{free}
+ポインタによって実現される。}
+
+@lisp
+(perform (op vector-set!)
+         (reg the-cars)
+         (reg free)
+         (reg ⟨@var{reg₂}⟩))
+(perform (op vector-set!)
+         (reg the-cdrs)
+         (reg free)
+         (reg ⟨@var{reg₃}⟩))
+(assign ⟨@var{reg₁}⟩ (reg free))
+(assign free (op +) (reg free) (const 1))
+@end lisp
+
+@noindent
+@code{eq?}演算
+
+@lisp
+(op eq?) (reg ⟨@var{reg₁}⟩) (reg ⟨@var{reg₂}⟩)
+@end lisp
+
+@noindent
+は単にレジスタ内の全てのフィールドの等価性をテストし、@code{pair?}、@code{null?}、
+@code{symbol?}、@code{number?}などの述語は型フィールドのみをチェックすれば良い。
+
+@subsubheading スタックの実装
+
+レジスタマシンはスタックを使用するが、スタックはリストで表現できるため、ここでは
+特別なことは何もしなくて良い。スタックは、特別なレジスタ@code{the-stack}が指す
+保存された値のリストである。したがって、@code{(save ⟨@var{reg}⟩)}は次のように
+実装できる：
+
+@lisp
+(assign the-stack
+        (op cons)
+        (reg ⟨@var{reg}⟩)
+        (reg the-stack))
+@end lisp
+
+@noindent
+同様に、@code{(restore ⟨@var{reg}⟩)}は次のように実装できる：
+
+@lisp
+(assign ⟨@var{reg}⟩ (op car) (reg the-stack))
+

@@ -1,0 +1,74 @@
+@end quotation
+
+@quotation
+@strong{@anchor{練習問題 3.57}練習問題 3.57:} @code{add-streams}手続きに基づく@code{fibs}の定義を使用して@math{n^{\text{番目}}}のフィボナッチ数を計算するとき、何回の加算が実行されるでしょうか？@ref{3.5.1}で説明された@code{memo-proc}手続きによる最適化を使わずに単に@code{(delay ⟨@var{exp}⟩)}を@code{(lambda () ⟨@var{exp}⟩)}として実装していた場合、加算の回数が指数関数的に大きくなることを示してください。@footnote{この練習問題は、必要呼び出しが@ref{練習問題 3.27}で説明された通常のメモ化とどのように密接に関連しているかを示しています。その練習問題では、代入を使用して明示的にローカルテーブルを構築しました。必要呼び出しストリーム最適化は、ストリームの以前に強制された部分に値を格納することにより、このようなテーブルを自動的に構築します。}
+@end quotation
+
+@quotation
+@strong{@anchor{練習問題 3.58}練習問題 3.58:} 次の手続きによって計算されるストリームの解釈を与えてください：
+
+@lisp
+(define (expand num den radix)
+  (cons-stream
+   (quotient (* num radix) den)
+   (expand (remainder (* num radix) den)
+           den
+           radix)))
+@end lisp
+
+（@code{Quotient}は2つの整数の整数商を返すプリミティブです。）@code{(expand 1 7 10)}によって生成される連続する要素は何でしょうか？@code{(expand 3 8 10)}によって生成されるものは何でしょうか？
+@end quotation
+
+@quotation
+@strong{@anchor{練習問題 3.59}練習問題 3.59:} @ref{2.5.3}で、項のリストとして多項式を表現する多項式算術システムを実装する方法を見ました。同様の方法で、@newterm{冪級数}を扱うことができます。例えば
+@ifinfo
+
+@example
+               x^2     x^3       x^4
+e^x = 1 + x + ----- + ----- + --------- + ...
+                2     3 * 2   4 * 3 * 2
+
+             x^2       x^4
+cos x = 1 - ----- + --------- - ...
+              2     4 * 3 * 2
+
+             x^3         x^5
+sin x = x - ----- + ------------- - ...
+            3 * 2   5 * 4 * 3 * 2
+@end example
+
+@end ifinfo
+@tex
+\[ % :63:
+\begin{eqnarray}
+  e^x 	  &=& 1 + x + \frac{1}{2} x^2  + \frac{1}{3 \cdot 2} x^3  + \frac{1}{4 \cdot 3 \cdot 2} x^4  + \dots, \\
+  \cos x  &=& 1 - \frac{1}{2} x^2  + \frac{1}{4 \cdot 3 \cdot 2} x^4  - \dots, \\
+  \sin x  &=& x - \frac{1}{3 \cdot 2} x^3  + \frac{1}{5 \cdot 4 \cdot 3 \cdot 2} x^5  - \dots
+\end{eqnarray}
+\]
+@end tex
+@noindent
+を無限ストリームとして表現します。級数@math{{a_0 + a_1 x} + {a_2 x^2} + {a_3 x^3 + \dots}}を、要素が係数@math{a_0}, @math{a_1}, @math{a_2}, @math{a_3}, @dots{}であるストリームとして表現します。
+
+@enumerate a
+
+@item
+級数@math{{a_0 + a_1 x} + {a_2 x^2} + {a_3 x^3 + \dots}}の積分は級数
+@ifinfo
+
+@example
+             1             1             1
+c + a_0 x + --- a_1 x^2 + --- a_2 x^3 + --- a_3 x^4 + ...
+             2             3             4
+@end example
+
+@end ifinfo
+@tex
+\[ % :64:
+  c + {a_0 x} + {\frac{1}{2} a_1 x^2} + {\frac{1}{3} a_2 x^3} + {\frac{1}{4} a_3 x^4 + \dots,}  \]
+@end tex
+@noindent
+です。ここで@math{c}は任意の定数です。入力として冪級数を表すストリーム@math{a_0}, @math{a_1}, @math{a_2}, @dots{}を受け取り、級数の積分の非定数項の係数のストリーム@math{a_0}, @math{{{1\over2}a_1}}, @math{{{1\over3}a_2}}, @dots{}を返す手続き@code{integrate-series}を定義してください。（結果には定数項がないため、冪級数を表していません。@code{integrate-series}を使用するときは、適切な定数を@code{cons}します。）
+
+@item
+関数@math{{x \mapsto e^x}}はそれ自身の導関数です。これは@math{e^x}と@math{e^x}の積分が、定数項を除いて同じ級数であることを意味します。定数項は@math{{e^0 = 1}}です。したがって、@math{e^x}の級数を次のように生成できます：

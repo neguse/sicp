@@ -1,0 +1,76 @@
+@end lisp
+
+@noindent
+これで整数を次のように定義できます：
+
+@lisp
+(define integers
+  (cons-stream 1 (add-streams ones integers)))
+@end lisp
+
+@noindent
+これは、@code{integers}を最初の要素が1で、残りが@code{ones}と@code{integers}の合計であるストリームとして定義します。したがって、@code{integers}の2番目の要素は1と@code{integers}の最初の要素を足したもの、つまり2です。@code{integers}の3番目の要素は1と@code{integers}の2番目の要素を足したもの、つまり3です。以下同様に続きます。この定義が機能するのは、どの時点においても、次の整数を生成するために定義に戻すことができるだけの十分な@code{integers}ストリームが生成されているためです。
+
+同じスタイルでフィボナッチ数を定義できます：
+
+@lisp
+(define fibs
+  (cons-stream
+   0 (cons-stream
+      1 (add-streams
+         (stream-cdr fibs) fibs))))
+@end lisp
+
+@noindent
+この定義は、@code{fibs}が0と1で始まるストリームで、ストリームの残りが@code{fibs}を1つずらして自分自身に加えることで生成できると言っています：
+
+@example
+    1 1 2 3 5  8 13 21 @r{…} = @code{(stream-cdr fibs)}
+    0 1 1 2 3  5  8 13 @r{…} = @code{fibs}
+0 1 1 2 3 5 8 13 21 34 @r{…} = @code{fibs}
+@end example
+
+@noindent
+@code{Scale-stream}は、このようなストリーム定義を定式化する際の別の有用な手続きです。これはストリーム内の各項目に指定された定数を乗じます：
+
+@lisp
+(define (scale-stream stream factor)
+  (stream-map
+   (lambda (x) (* x factor))
+   stream))
+@end lisp
+
+@noindent
+例えば、
+
+@lisp
+(define double
+  (cons-stream 1 (scale-stream double 2)))
+@end lisp
+
+@noindent
+は2の累乗のストリーム：1, 2, 4, 8, 16, 32, @dots{}を生成します。
+
+素数のストリームの別の定義は、整数から始めて素数性をテストしてフィルタリングすることで与えることができます。開始するには最初の素数2が必要です：
+
+@lisp
+(define primes
+  (cons-stream
+   2 (stream-filter
+      prime? (integers-starting-from 3))))
+@end lisp
+
+@noindent
+この定義は見かけほど単純ではありません。なぜなら、数@math{n}が素数かどうかを、@math{n}が@math{\sqrt{n}}以下の素数（単なる任意の整数ではない）で割り切れるかをチェックすることでテストするからです：
+
+@lisp
+(define (prime? n)
+  (define (iter ps)
+    (cond ((> (square (stream-car ps)) n) true)
+          ((divisible? n (stream-car ps)) false)
+          (else (iter (stream-cdr ps)))))
+  (iter primes))
+@end lisp
+
+@noindent
+これは再帰的な定義です。@code{primes}は@code{prime?}述語の観点から定義され、それ自身が@code{primes}ストリームを使用するからです。この手続きが機能する理由は、どの時点においても、次にチェックする必要がある数の素数性をテストするのに十分な@code{primes}ストリームが生成されているためです。つまり、素数性をテストするすべての@math{n}について、@math{n}が素数でない（その場合、それを割る素数がすでに生成されている）か、@math{n}が素数である（その場合、@math{\sqrt{n}}より大きい素数、つまり@math{n}より小さい素数がすでに生成されている）かのいずれかです。@footnote{この最後の点は非常に微妙で、@math{{p_{n+1} \le p_n^2}}という事実に依存しています。（ここで、@math{p_k}は@math{k^{\text{番目}}}の素数を示します。）このような推定を確立することは非常に困難です。無限個の素数が存在することのユークリッドによる古代の証明は、

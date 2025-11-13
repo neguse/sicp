@@ -1,0 +1,69 @@
+  (set! sum (+ x sum))
+  sum)
+
+(define seq
+  (stream-map
+   accum
+   (stream-enumerate-interval 1 20)))
+
+(define y (stream-filter even? seq))
+
+(define z
+  (stream-filter
+   (lambda (x)
+     (= (remainder x 5) 0)) seq))
+
+(stream-ref y 7)
+(display-stream z)
+@end lisp
+
+上記の各式を評価した後の@code{sum}の値はいくつになるでしょうか？@code{stream-ref}と@code{display-stream}式を評価したときに表示される応答は何でしょうか？@code{memo-proc}による最適化を使わずに単に@code{(delay ⟨@var{exp}⟩)}を@code{(lambda () ⟨@var{exp}⟩)}として実装していた場合、これらの応答は異なるでしょうか？説明してください。
+@end quotation
+
+@node	3.5.2, 3.5.3, 3.5.1, 3.5
+@subsection 無限ストリーム
+
+ストリームの一部分にしかアクセスしないにもかかわらず、完全な実体としてストリームを操作するという錯覚をサポートする方法を見てきました。この技法を利用して、非常に長い列であっても、列をストリームとして効率的に表現できます。さらに驚くべきことに、無限に長い列をストリームで表現することができます。例えば、正の整数のストリームの以下の定義を考えてみましょう：
+
+@lisp
+(define (integers-starting-from n)
+  (cons-stream
+   n (integers-starting-from (+ n 1))))
+(define integers (integers-starting-from 1))
+@end lisp
+
+@noindent
+これが意味を持つのは、@code{integers}が@code{car}が1で@code{cdr}が2から始まる整数を生成する約束であるようなペアになるからです。これは無限に長いストリームですが、どの時点においても有限の部分しか調べることができません。したがって、プログラムは無限ストリーム全体が存在しないことを決して知ることはありません。
+
+@code{integers}を使って、7で割り切れない整数のストリームなど、他の無限ストリームを定義できます：
+
+@lisp
+(define (divisible? x y) (= (remainder x y) 0))
+(define no-sevens
+  (stream-filter (lambda (x)
+                   (not (divisible? x 7)))
+                 integers))
+@end lisp
+
+@noindent
+すると、単にこのストリームの要素にアクセスするだけで、7で割り切れない整数を見つけることができます：
+
+@lisp
+(stream-ref no-sevens 100)
+@i{117}
+@end lisp
+
+@noindent
+@code{integers}と同様に、フィボナッチ数の無限ストリームを定義できます：
+
+@lisp
+(define (fibgen a b)
+  (cons-stream a (fibgen b (+ a b))))
+(define fibs (fibgen 0 1))
+@end lisp
+
+@noindent
+@code{Fibs}は@code{car}が0で@code{cdr}が@code{(fibgen 1 1)}を評価する約束であるようなペアです。この遅延された@code{(fibgen 1 1)}を評価すると、@code{car}が1で@code{cdr}が@code{(fibgen 1 2)}を評価する約束であるようなペアが生成され、以下同様に続きます。
+
+より興味深い無限ストリームとして、@newterm{エラトステネスの篩}として知られる方法を使って、素数の無限ストリームを構成できます。@footnote{紀元前3世紀のアレクサンドリアのギリシャ哲学者エラトステネスは、夏至の日の正午に落ちる影を観察することにより地球の周囲の長さを初めて正確に推定したことで有名です。エラトステネスの篩の方法は、古代のものですが、最近まで大きな素数を見つけるための最も強力なツールであった特殊目的ハードウェアの「篩」の基礎となってきました。しかし、70年代以降、これらの方法は@ref{1.2.6}で議論された確率的手法の発展形に取って代わられました。}
+2から始まる整数から始めます。2は最初の素数です。残りの素数を得るには、残りの整数から2の倍数をフィルタリングします。これにより、次の素数である3から始まるストリームが残ります。

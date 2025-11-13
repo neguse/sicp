@@ -1,0 +1,90 @@
+@noindent
+問題は、ストリーム@code{int-pairs}を生成することです。より一般的には、2つのストリーム@math{{S = (S_i)}}と@math{{T = (T_j)}}があり、無限の長方形配列を想像するとします
+@ifinfo
+
+@example
+(S_0, T_0)  (S_0, T_1)  (S_0, T_2)  ...
+(S_1, T_0)  (S_1, T_1)  (S_1, T_2)  ...
+(S_2, T_0)  (S_2, T_1)  (S_2, T_2)  ...
+   ...
+@end example
+
+@end ifinfo
+@tex
+\[ % :70:
+
+\begin{array}{cccc}
+	 (S_0, T_0)  &  (S_0, T_1)  &  (S_0, T_2)  &  \dots  \\
+	 (S_1, T_0)  &  (S_1, T_1)  &  (S_1, T_2)  &  \dots  \\
+	 (S_2, T_0)  &  (S_2, T_1)  &  (S_2, T_2)  &  \dots  \\
+	 \dots  & & &
+\end{array}
+\]
+@end tex
+対角線上またはそれより上にある配列内のすべての対を含むストリームを生成したいとします。つまり、対
+@ifinfo
+
+@example
+(S_0, T_0)  (S_0, T_1)  (S_0, T_2)  ...
+            (S_1, T_1)  (S_1, T_2)  ...
+                        (S_2, T_2)  ...
+                                    ...
+@end example
+
+@end ifinfo
+@tex
+\[ % :71:
+
+\begin{array}{cccc}
+ (S_0, T_0)  	&  (S_0, T_1)  	&  (S_0, T_2)  	&  \dots  \\
+		&  (S_1, T_1)  	&  (S_1, T_2)  	&  \dots  \\
+		& 		&  (S_2, T_2)  	&  \dots  \\
+		& 		& 		&  \dots
+\end{array}
+\]
+@end tex
+@noindent
+（@math{S}と@math{T}の両方を整数のストリームとすると、これが求めるストリーム@code{int-pairs}になります。）
+
+対の一般的なストリームを@code{(pairs S T)}と呼び、それが3つの部分から構成されると考えます：対@math{{(S_0, T_0)}}、最初の行の残りの対、および残りの対です：@footnote{この分解を選択した理由についての洞察は@ref{練習問題 3.68}を参照してください。}
+@ifinfo
+
+@example
+(S_0, T_0) | (S_0, T_1)  (S_0, T_2)  ...
+-----------+-----------------------------
+           | (S_1, T_1)  (S_1, T_2)  ...
+           |             (S_2, T_2)  ...
+           |                         ...
+@end example
+
+@end ifinfo
+@tex
+\[ % :72:
+
+\begin{array}{c|ccc}
+ (S_0, T_0)  	&  (S_0, T_1)  	&  (S_0, T_2)  	&  \dots  \\
+\hline
+		&  (S_1, T_1)  	&  (S_1, T_2)  	&  \dots  \\
+		& 		&  (S_2, T_2)  	&  \dots  \\
+		& 		& 		&  \dots
+\end{array}
+\]
+@end tex
+この分解における3番目の部分（最初の行にない対）が、@code{(stream-cdr S)}と@code{(stream-cdr T)}から形成される対であることに（再帰的に）注目してください。また、2番目の部分（最初の行の残り）は
+
+@lisp
+(stream-map (lambda (x)
+              (list (stream-car s) x))
+            (stream-cdr t))
+@end lisp
+
+@noindent
+であることに注意してください。したがって、次のように対のストリームを形成できます：
+
+@lisp
+(define (pairs s t)
+  (cons-stream
+   (list (stream-car s) (stream-car t))
+   (⟨@var{combine-in-some-way}⟩
+    (stream-map (lambda (x)
+                  (list (stream-car s) x))

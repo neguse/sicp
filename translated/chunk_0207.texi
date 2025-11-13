@@ -1,0 +1,76 @@
+@math{p_{n+1} \le {p_1 p_2 \cdots p_n + 1}}であることを示しており、1851年にロシアの数学者P. L. チェビシェフがすべての@math{n}について@math{p_{n+1} \le 2p_n}を確立するまで、実質的により良い結果は証明されませんでした。この結果は、元々1845年に予想され、@newterm{ベルトランの仮説}として知られています。証明は@ref{Hardy and Wright 1960}のセクション22.3にあります。}
+
+@quotation
+@strong{@anchor{練習問題 3.53}練習問題 3.53:} プログラムを実行せずに、次のように定義されたストリームの要素を説明してください。
+
+@lisp
+(define s (cons-stream 1 (add-streams s s)))
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{練習問題 3.54}練習問題 3.54:} @code{add-streams}に類似した、2つの入力ストリームの要素ごとの積を生成する手続き@code{mul-streams}を定義してください。これを@code{integers}のストリームと一緒に使用して、@math{n^{\text{番目}}}の要素（0から数えて）が@math{{n + 1}}の階乗であるストリームの以下の定義を完成させてください：
+
+@lisp
+(define factorials
+  (cons-stream 1 (mul-streams ⟨??⟩ ⟨??⟩)))
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{練習問題 3.55}練習問題 3.55:} 引数としてストリーム@math{S}を受け取り、要素が@math{S_0}, @math{{S_0 + S_1}}, @math{{S_0 + S_1} + {S_2, \dots}}であるストリームを返す手続き@code{partial-sums}を定義してください。例えば、@code{(partial-sums integers)}はストリーム1, 3, 6, 10, 15, @dots{}であるべきです。
+@end quotation
+
+@quotation
+@strong{@anchor{練習問題 3.56}練習問題 3.56:} R. ハミングによって最初に提起された有名な問題は、2、3、または5以外の素因数を持たないすべての正の整数を、重複なしに昇順で列挙することです。これを行う1つの明白な方法は、各整数を順番にテストして、2、3、および5以外の因数を持つかどうかを確認することです。しかし、これは非常に非効率的です。なぜなら、整数が大きくなるにつれて、要件に適合するものが少なくなるからです。別の方法として、必要な数のストリームを@code{S}と呼び、それについて以下の事実に注目しましょう。
+
+@itemize @bullet
+
+@item
+@code{S}は1で始まります。
+
+@item
+@code{(scale-stream S 2)}の要素も@code{S}の要素です。
+
+@item
+@code{(scale-stream S 3)}と@code{(scale-stream S 5)}についても同じことが言えます。
+
+@item
+これらが@code{S}のすべての要素です。
+
+@end itemize
+
+今、これらのソースから要素を組み合わせるだけで済みます。このために、2つの順序付けされたストリームを1つの順序付けされた結果ストリームに結合し、重複を排除する手続き@code{merge}を定義します：
+
+@lisp
+(define (merge s1 s2)
+  (cond ((stream-null? s1) s2)
+        ((stream-null? s2) s1)
+        (else
+         (let ((s1car (stream-car s1))
+               (s2car (stream-car s2)))
+           (cond ((< s1car s2car)
+                  (cons-stream
+                   s1car
+                   (merge (stream-cdr s1)
+                          s2)))
+                 ((> s1car s2car)
+                  (cons-stream
+                   s2car
+                   (merge s1
+                          (stream-cdr s2))))
+                 (else
+                  (cons-stream
+                   s1car
+                   (merge
+                    (stream-cdr s1)
+                    (stream-cdr s2)))))))))
+@end lisp
+
+すると、必要なストリームは以下のように@code{merge}で構成できます：
+
+@lisp
+(define S (cons-stream 1 (merge ⟨??⟩ ⟨??⟩)))
+@end lisp
+
+上記の@code{⟨??⟩}とマークされた場所の欠けている式を埋めてください。

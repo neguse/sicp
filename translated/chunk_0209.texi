@@ -1,0 +1,68 @@
+@lisp
+(define exp-series
+  (cons-stream
+   1 (integrate-series exp-series)))
+@end lisp
+
+正弦の導関数が余弦であり、余弦の導関数が正弦の負であるという事実から始めて、正弦と余弦の級数を生成する方法を示してください：
+
+@lisp
+(define cosine-series
+  (cons-stream 1 ⟨??⟩))
+
+(define sine-series
+  (cons-stream 0 ⟨??⟩))
+@end lisp
+@end enumerate
+@end quotation
+
+@quotation
+@strong{@anchor{練習問題 3.60}練習問題 3.60:} @ref{練習問題 3.59}のように係数のストリームとして表現された冪級数では、級数の加算は@code{add-streams}によって実装されます。級数を乗算する次の手続きの定義を完成させてください：
+
+@lisp
+(define (mul-series s1 s2)
+  (cons-stream ⟨??⟩ (add-streams ⟨??⟩ ⟨??⟩)))
+@end lisp
+
+@ref{練習問題 3.59}の級数を使用して@math{{\sin^2x + \cos^2x = 1,}}を検証することにより、手続きをテストできます。
+@end quotation
+
+@quotation
+@strong{@anchor{練習問題 3.61}練習問題 3.61:} @math{S}を定数項が1である冪級数（@ref{練習問題 3.59}）とします。冪級数@math{{1 / S}}、つまり@math{{SX = 1}}となるような級数@math{X}を見つけたいとします。@math{{S = 1 + S_R}}と書きます。ここで@math{S_R}は定数項の後の@math{S}の部分です。すると、次のように@math{X}を解くことができます：
+@ifinfo
+
+@example
+        S * X = 1
+(1 + S_R) * X = 1
+  X + S_R * X = 1
+            X = 1 - S_R * X
+@end example
+
+@end ifinfo
+@tex
+\[ % :65:
+\begin{eqnarray}
+  S \cdot X           &=&   1, \\
+  (1 + S_R) \cdot X   &=&   1, \\
+  X + S_R \cdot X     &=&   1, \\
+  X                   &=&   1 - S_R \cdot X.
+\end{eqnarray}
+\]
+@end tex
+言い換えれば、@math{X}は定数項が1で、高次項が@math{S_R}と@math{X}の積の負で与えられる冪級数です。このアイデアを使用して、定数項が1である冪級数@math{S}に対して@math{{1 / S}}を計算する手続き@code{invert-unit-series}を書いてください。@ref{練習問題 3.60}の@code{mul-series}を使用する必要があります。
+@end quotation
+
+@quotation
+@strong{@anchor{練習問題 3.62}練習問題 3.62:} @ref{練習問題 3.60}と@ref{練習問題 3.61}の結果を使用して、2つの冪級数を除算する手続き@code{div-series}を定義してください。@code{Div-series}は、分母の級数がゼロでない定数項で始まる限り、任意の2つの級数に対して機能するはずです。（分母がゼロの定数項を持つ場合、@code{div-series}はエラーを通知する必要があります。）@code{div-series}を@ref{練習問題 3.59}の結果と一緒に使用して正接の冪級数を生成する方法を示してください。
+@end quotation
+
+@node	3.5.3, 3.5.4, 3.5.2, 3.5
+@subsection ストリームパラダイムの活用
+
+遅延評価を伴うストリームは、局所状態と代入の多くの利点を提供する強力なモデリングツールになり得ます。さらに、プログラミング言語への代入の導入に伴ういくつかの理論的なもつれを回避します。
+
+ストリームアプローチは、状態変数への代入を中心に組織されたシステムとは異なるモジュール境界を持つシステムを構築できるため、啓発的である可能性があります。例えば、個々の瞬間における状態変数の値ではなく、時系列全体（または信号）を関心の焦点として考えることができます。これにより、異なる瞬間からの状態の成分を組み合わせて比較することが便利になります。
+
+@subsubheading ストリームプロセスとしての反復の定式化
+
+セクション@ref{1.2.1}で、状態変数を更新することによって進行する反復プロセスを紹介しました。状態を更新される変数のセットとしてではなく、値の「時間のない」ストリームとして表現できることがわかりました。@ref{1.1.7}の平方根手続きを再訪する際にこの視点を採用しましょう。アイデアは、改善手続きを何度も何度も適用することにより、@math{x}の平方根のより良い推測の列を生成することです：

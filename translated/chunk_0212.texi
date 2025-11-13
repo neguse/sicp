@@ -1,0 +1,70 @@
+@i{3.166666666666667}
+@i{3.142105263157895}
+@i{3.141599357319005}
+@i{3.1415927140337785}
+@i{3.1415926539752927}
+@i{3.1415926535911765}
+@i{3.141592653589778}
+@r{…}
+@end lisp
+
+@noindent
+結果は印象的です。列の8項を取ると、@math{\pi}の正しい値が小数点以下14桁まで得られます。元の@math{\pi}列のみを使用した場合、その精度を得るには@math{10^{13}}のオーダーの項を計算する必要があります（つまり、個々の項が@math{10^{-13}}より小さくなるまで級数を十分に展開する必要があります）！
+
+ストリームを使用せずにこれらの加速技法を実装することもできました。しかし、ストリーム定式化は、状態の列全体が均一な操作セットで操作できるデータ構造として利用可能であるため、特にエレガントで便利です。
+
+@quotation
+@strong{@anchor{練習問題 3.63}練習問題 3.63:} Louis Reasonerは、@code{sqrt-stream}手続きがローカル変数@code{guesses}なしで次のようなより直接的な方法で書かれなかった理由を尋ねます：
+
+@lisp
+(define (sqrt-stream x)
+  (cons-stream
+   1.0
+   (stream-map (lambda (guess)
+                 (sqrt-improve guess x))
+               (sqrt-stream x))))
+@end lisp
+
+Alyssa P. Hackerは、このバージョンの手続きは冗長な計算を実行するため、かなり効率が悪いと答えます。Alyssaの答えを説明してください。@code{delay}の実装が@code{memo-proc}（@ref{3.5.1}）による最適化を使わずに単に@code{(lambda () ⟨@var{exp}⟩)}を使用した場合、2つのバージョンの効率に違いはあるでしょうか？
+@end quotation
+
+@quotation
+@strong{@anchor{練習問題 3.64}練習問題 3.64:} 引数としてストリームと数値（許容誤差）を受け取る手続き@code{stream-limit}を書いてください。これは、絶対値の差が許容誤差より小さい連続する2つの要素が見つかるまでストリームを調べ、2つの要素のうち2番目を返す必要があります。これを使用して、指定された許容誤差までの平方根を次のように計算できます：
+
+@lisp
+(define (sqrt x tolerance)
+  (stream-limit (sqrt-stream x) tolerance))
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{練習問題 3.65}練習問題 3.65:} 級数
+@ifinfo
+
+@example
+            1     1     1
+ln 2 = 1 - --- + --- - --- + ...
+            2     3     4
+@end example
+
+@end ifinfo
+@tex
+\[ % :69:
+  \ln 2 \,=\, 1 - {1\over2} + {1\over3} - {1\over4} + \dots  \]
+@end tex
+@noindent
+を使用して、@math{\pi}に対して上で行ったのと同じ方法で、2の自然対数への3つの近似列を計算してください。これらの列はどれくらい速く収束しますか？
+@end quotation
+
+@subsubheading 対の無限ストリーム
+
+@ref{2.2.3}で、列パラダイムが対の列上で定義されたプロセスとして従来のネストされたループをどのように扱うかを見ました。この技法を無限ストリームに一般化すると、「ループ」が無限集合にわたる必要があるため、ループとして簡単に表現できないプログラムを書くことができます。
+
+例えば、@ref{2.2.3}の@code{prime-sum-pairs}手続きを一般化して、@math{{i + j}}が素数であるような@math{{i \le j}}を持つ@emph{すべて}の整数の対@math{{(i, j)}}のストリームを生成したいとします。@code{int-pairs}が@math{{i \le j}}を持つすべての整数の対@math{{(i, j)}}の列である場合、必要なストリームは単に@footnote{@ref{2.2.3}のように、整数の対をLispペアではなくリストとして表現します。}
+
+@lisp
+(stream-filter
+ (lambda (pair)
+   (prime? (+ (car pair) (cadr pair))))
+ int-pairs)
+@end lisp

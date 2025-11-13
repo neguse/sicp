@@ -1,0 +1,93 @@
+
+@example
+             (S_(n+1) - S_n)^2
+S_(n+1) - ------------------------
+          S_(n-1) - 2S_n + S_(n+1)
+@end example
+
+@end ifinfo
+@tex
+\[ % :67:
+  S_{n+1} - {{(S_{n+1} - S_n)^2 \over S_{n-1} - 2S_n + S_{n+1}}.}  \]
+@end tex
+したがって、元の列が値のストリームとして表現される場合、変換された列は次のように与えられます：
+
+@lisp
+(define (euler-transform s)
+  (let ((s0 (stream-ref s 0))     ; @var{Sₙ}₋₁
+        (s1 (stream-ref s 1))     ; @var{Sₙ}
+        (s2 (stream-ref s 2)))    ; @var{Sₙ}₊₁
+    (cons-stream
+     (- s2 (/ (square (- s2 s1))
+              (+ s0 (* -2 s1) s2)))
+     (euler-transform (stream-cdr s)))))
+@end lisp
+
+@noindent
+@math{\pi}への近似の列でオイラー加速を実証できます：
+
+@lisp
+(display-stream
+ (euler-transform pi-stream))
+@i{3.166666666666667}
+@i{3.1333333333333337}
+@i{3.1452380952380956}
+@i{3.13968253968254}
+@i{3.1427128427128435}
+@i{3.1408813408813416}
+@i{3.142071817071818}
+@i{3.1412548236077655}
+@r{…}
+@end lisp
+
+@noindent
+さらに良いことに、加速された列を加速し、それを再帰的に加速するなどができます。すなわち、各ストリームが前のストリームの変換であるストリームのストリーム（@newterm{タブロー}と呼ぶ構造）を作成します：
+
+@lisp
+(define (make-tableau transform s)
+  (cons-stream
+   s
+   (make-tableau
+    transform
+    (transform s))))
+@end lisp
+
+@noindent
+タブローは次の形式を持ちます：
+@ifinfo
+
+@example
+s_00   s_01   s_02   s_03   s_04   ...
+       s_10   s_11   s_12   s_13   ...
+              s_20   s_21   s_22   ...
+                            ...
+@end example
+
+@end ifinfo
+@tex
+\[ % :68:
+
+\begin{array}{cccccc}
+ s_{00} 	&   s_{01}  	&   s_{02}  	&   s_{03}  	&   s_{04}  	&   \dots  \\
+		&   s_{10}  	&   s_{11}  	&   s_{12}  	&   s_{13}  	&   \dots  \\
+		& 		&   s_{20}  	&   s_{21}  	&   s_{22}  	&   \dots  \\
+		& 		& 		&   \dots  	& 		&
+\end{array}
+\]
+@end tex
+最後に、タブローの各行の最初の項を取ることによって列を形成します：
+
+@lisp
+(define (accelerated-sequence transform s)
+  (stream-map stream-car
+              (make-tableau transform s)))
+@end lisp
+
+@noindent
+@math{\pi}列のこの種の「超加速」を実証できます：
+
+@lisp
+(display-stream
+ (accelerated-sequence euler-transform
+                       pi-stream))
+@i{4.}

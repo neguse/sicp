@@ -1,0 +1,54 @@
+     1	@item
+     2	不要な括弧を削除し、乗算は加算の前に行われると仮定する@code{(x + 3 * (x + y + 2))}のような標準的な代数表記を許可すると、問題は実質的に難しくなります。この表記のための適切な述語、セレクタ、およびコンストラクタを設計して、私たちの導関数プログラムが引き続き機能するようにできますか?
+     3
+     4	@end enumerate
+     5	@end quotation
+     6
+     7	@node	2.3.3, 2.3.4, 2.3.2, 2.3
+     8	@subsection 例: 集合の表現
+     9
+    10	前の例では、2種類の複合データオブジェクトの表現を構築しました: 有理数と代数式。これらの例の1つでは、構築時または選択時に式を簡略化（簡約）する選択がありましたが、それ以外は、これらの構造のリストによる表現の選択は簡単でした。集合の表現に移ると、表現の選択はそれほど明白ではありません。実際、多くの可能な表現があり、それらはいくつかの点で互いに大きく異なります。
+    11
+    12	非公式には、集合は単に異なるオブジェクトの集まりです。より正確な定義を与えるために、データ抽象化の方法を使用できます。つまり、集合で使用される操作を指定することによって「集合」を定義します。これらは@code{union-set}、@code{intersection-set}、@code{element-of-set?}、および@code{adjoin-set}です。@code{Element-of-set?}は、与えられた要素が集合のメンバーであるかどうかを判定する述語です。@code{Adjoin-set}は、オブジェクトと集合を引数として取り、元の集合の要素と追加された要素を含む集合を返します。@code{Union-set}は、2つの集合の和集合を計算します。これは、どちらかの引数に現れる各要素を含む集合です。@code{Intersection-set}は、2つの集合の積集合を計算します。これは、両方の引数に現れる要素のみを含む集合です。データ抽象化の観点から、上記で与えられた解釈と一致する方法でこれらの操作を実装する任意の表現を自由に設計できます。@footnote{より形式的にしたい場合、「上記で与えられた解釈と一致する」とは、操作が次のような規則の集合を満たすことを意味するように指定できます:
+    13
+    14	@itemize @bullet
+    15
+    16	@item
+    17	任意の集合@code{S}と任意のオブジェクト@code{x}について、@code{(element-of-set? x (adjoin-set x S))}はtrue（非公式には: 「集合にオブジェクトを追加すると、そのオブジェクトを含む集合が生成される」）。
+    18
+    19	@item
+    20	任意の集合@code{S}と@code{T}、および任意のオブジェクト@code{x}について、@code{(element-of-set? x (union-set S T))}は@code{(or (element-of-set? x S) (element-of-set? x T))}と等しい（非公式には: 「@code{(union S T)}の要素は、@code{S}または@code{T}にある要素である」）。
+    21
+    22	@item
+    23	任意のオブジェクト@code{x}について、@code{(element-of-set? x '())}はfalse（非公式には: 「空集合の要素であるオブジェクトはない」）。
+    24
+    25	@end itemize
+    26	}
+    27
+    28	@subsubheading 順序なしリストとしての集合
+    29
+    30	集合を表現する1つの方法は、要素が複数回出現しないその要素のリストとして表現することです。空集合は空リストで表されます。この表現では、@code{element-of-set?}は@ref{2.3.1}の手続き@code{memq}に似ています。集合要素がシンボルである必要がないように、@code{eq?}の代わりに@code{equal?}を使用します:
+    31
+    32	@lisp
+    33	(define (element-of-set? x set)
+    34	  (cond ((null? set) false)
+    35	        ((equal? x (car set)) true)
+    36	        (else (element-of-set? x (cdr set)))))
+    37	@end lisp
+    38
+    39	@noindent
+    40	これを使用して、@code{adjoin-set}を書くことができます。追加されるオブジェクトがすでに集合にある場合は、集合を返すだけです。それ以外の場合は、@code{cons}を使用して、集合を表すリストにオブジェクトを追加します:
+    41
+    42	@lisp
+    43	(define (adjoin-set x set)
+    44	  (if (element-of-set? x set)
+    45	      set
+    46	      (cons x set)))
+    47	@end lisp
+    48
+    49	@noindent
+    50	@code{intersection-set}には、再帰的戦略を使用できます。@code{set2}と@code{set1}の@code{cdr}の積集合を形成する方法がわかっている場合、@code{set1}の@code{car}をこれに含めるかどうかを決定するだけで済みます。しかし、これは@code{(car set1)}が@code{set2}にもあるかどうかに依存します。結果の手続きは次の通りです:
+    51
+    52	@lisp
+    53	(define (intersection-set set1 set2)
+    54	  (cond ((or (null? set1) (null? set2))

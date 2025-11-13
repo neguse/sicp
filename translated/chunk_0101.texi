@@ -1,0 +1,75 @@
+     1
+     2	@lisp
+     3	(define (=number? exp num)
+     4	  (and (number? exp) (= exp num)))
+     5	@end lisp
+     6
+     7	@noindent
+     8	同様に、@code{make-product}を変更して、0と何かを掛けると0になり、1と何かを掛けるとそのもの自体になるという規則を組み込みます:
+     9
+    10	@lisp
+    11	(define (make-product m1 m2)
+    12	  (cond ((or (=number? m1 0)
+    13	             (=number? m2 0))
+    14	         0)
+    15	        ((=number? m1 1) m2)
+    16	        ((=number? m2 1) m1)
+    17	        ((and (number? m1) (number? m2))
+    18	         (* m1 m2))
+    19	        (else (list '* m1 m2))))
+    20	@end lisp
+    21
+    22	@noindent
+    23	このバージョンが3つの例でどのように機能するかを次に示します:
+    24
+    25	@lisp
+    26	(deriv '(+ x 3) 'x)
+    27	@i{1}
+    28
+    29	(deriv '(* x y) 'x)
+    30	@i{y}
+    31
+    32	(deriv '(* (* x y) (+ x 3)) 'x)
+    33	@i{(+ (* x y) (* y (+ x 3)))}
+    34	@end lisp
+    35
+    36	@noindent
+    37	これはかなりの改善ですが、3番目の例は、式を「最も単純」であると同意できる形式にするプログラムを取得するまでに、まだ長い道のりがあることを示しています。代数的簡略化の問題は複雑です。なぜなら、他の理由の中でも、ある目的には最も単純である形式が、別の目的には最も単純でない可能性があるからです。
+    38
+    39	@quotation
+    40	@strong{@anchor{Exercise 2.56}Exercise 2.56:} 基本的な微分器を拡張して、より多くの種類の式を処理する方法を示してください。たとえば、微分規則を実装してください
+    41	@ifinfo
+    42
+    43	@example
+    44	d(u^n)            du
+    45	------ = nu^(n-1) --
+    46	  dx              dx
+    47	@end example
+    48
+    49	@end ifinfo
+    50	@tex
+    51	\[ % :45:
+    52	  {d(u^{\kern0.1ex n}) \over dx} \,=\, {nu^{\kern0.1ex n-1} \, {du \over dx}}  \]
+    53	@end tex
+    54	@noindent
+    55	@code{deriv}プログラムに新しい節を追加し、適切な手続き@code{exponentiation?}、@code{base}、@code{exponent}、および@code{make-exponentiation}を定義することによって。（記号@code{**}を使用して累乗を示すことができます。）何かを0乗すると1になり、何かを1乗するとそのもの自体になるという規則を組み込んでください。
+    56	@end quotation
+    57
+    58	@quotation
+    59	@strong{@anchor{Exercise 2.57}Exercise 2.57:} 微分プログラムを拡張して、任意の数の（2つ以上の）項の和と積を処理できるようにしてください。そうすれば、上記の最後の例を次のように表現できます
+    60
+    61	@lisp
+    62	(deriv '(* x y (+ x 3)) 'x)
+    63	@end lisp
+    64
+    65	@code{deriv}手続きをまったく変更せずに、和と積の表現のみを変更することによってこれを実行してみてください。たとえば、和の@code{addend}は最初の項であり、@code{augend}は残りの項の和になります。
+    66	@end quotation
+    67
+    68	@quotation
+    69	@strong{@anchor{Exercise 2.58}Exercise 2.58:} @code{+}と@code{*}が前置演算子ではなく中置演算子である通常の数学表記で動作するように微分プログラムを変更したいとします。微分プログラムは抽象データの観点から定義されているため、微分器が操作する代数式の表現を定義する述語、セレクタ、およびコンストラクタを変更するだけで、異なる表現で動作するように変更できます。
+    70
+    71	@enumerate a
+    72
+    73	@item
+    74	@code{(x + (3 * (x + (y + 2))))}のような中置形式で提示された代数式を微分するためにこれを行う方法を示してください。タスクを簡略化するために、@code{+}と@code{*}は常に2つの引数を取り、式は完全に括弧で囲まれていると仮定します。
+    75

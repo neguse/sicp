@@ -1,0 +1,76 @@
+     1	ペインターに対する操作（@code{flip-vert}や@code{beside}など）は、引数のフレームから派生したフレームに対して元のペインターを呼び出すペインターを作成することによって機能します。したがって、たとえば、@code{flip-vert}は、ペインターを反転するためにペインターがどのように機能するかを知る必要はありません---フレームを上下逆さまにする方法を知るだけで済みます: 反転されたペインターは、単に元のペインターを使用しますが、反転されたフレーム内で使用します。
+     2
+     3	ペインター操作は、手続き@code{transform-painter}に基づいています。これは、ペインターとフレームを変換する方法に関する情報を引数として取り、新しいペインターを生成します。変換されたペインターは、フレームで呼び出されると、フレームを変換し、変換されたフレームで元のペインターを呼び出します。@code{transform-painter}への引数は、新しいフレームの角を指定する点（ベクトルとして表される）です: フレームにマップされると、最初の点は新しいフレームの原点を指定し、他の2つはその辺ベクトルの端を指定します。したがって、単位正方形内の引数は、元のフレーム内に含まれるフレームを指定します。
+     4
+     5	@lisp
+     6	(define (transform-painter
+     7	         painter origin corner1 corner2)
+     8	  (lambda (frame)
+     9	    (let ((m (frame-coord-map frame)))
+    10	      (let ((new-origin (m origin)))
+    11	        (painter (make-frame new-origin
+    12	                  (sub-vect (m corner1)
+    13	                            new-origin)
+    14	                  (sub-vect (m corner2)
+    15	                            new-origin)))))))
+    16	@end lisp
+    17
+    18	@noindent
+    19	ペインター画像を垂直に反転する方法は次の通りです:
+    20
+    21	@lisp
+    22	(define (flip-vert painter)
+    23	  (transform-painter
+    24	   painter
+    25	   (make-vect 0.0 1.0)   @r{; 新しい@code{origin}}
+    26	   (make-vect 1.0 1.0)   @r{; 新しい@code{edge1}の端}
+    27	   (make-vect 0.0 0.0))) @r{; 新しい@code{edge2}の端}
+    28	@end lisp
+    29
+    30	@noindent
+    31	@code{transform-painter}を使用すると、新しい変換を簡単に定義できます。たとえば、与えられたフレームの右上の4分の1に画像を縮小するペインターを定義できます:
+    32
+    33	@lisp
+    34	(define (shrink-to-upper-right painter)
+    35	  (transform-painter painter
+    36	                     (make-vect 0.5 0.5)
+    37	                     (make-vect 1.0 0.5)
+    38	                     (make-vect 0.5 1.0)))
+    39	@end lisp
+    40
+    41	@noindent
+    42	他の変換は、画像を反時計回りに90度回転します@footnote{@code{Rotate90}は、正方形のフレームに対してのみ純粋な回転です。なぜなら、回転したフレームに適合するように画像を伸縮させるからです。}
+    43
+    44	@lisp
+    45	(define (rotate90 painter)
+    46	  (transform-painter painter
+    47	                     (make-vect 1.0 0.0)
+    48	                     (make-vect 1.0 1.0)
+    49	                     (make-vect 0.0 0.0)))
+    50	@end lisp
+    51
+    52	@noindent
+    53	または、画像をフレームの中心に向かって押しつぶします:@footnote{@ref{Figure 2.10}と@ref{Figure 2.11}のひし形の画像は、@code{wave}と@code{rogers}に@code{squash-inwards}を適用して作成されました。}
+    54
+    55	@lisp
+    56	(define (squash-inwards painter)
+    57	  (transform-painter painter
+    58	                     (make-vect 0.0 0.0)
+    59	                     (make-vect 0.65 0.35)
+    60	                     (make-vect 0.35 0.65)))
+    61	@end lisp
+    62
+    63	@noindent
+    64	フレーム変換は、2つ以上のペインターを組み合わせる手段を定義する鍵でもあります。たとえば、@code{beside}手続きは、2つのペインターを取り、それぞれが引数フレームの左半分と右半分に描画するように変換し、新しい複合ペインターを生成します。複合ペインターがフレームを与えられると、最初の変換されたペインターを呼び出してフレームの左半分に描画し、2番目の変換されたペインターを呼び出してフレームの右半分に描画します:
+    65
+    66	@lisp
+    67	(define (beside painter1 painter2)
+    68	  (let ((split-point (make-vect 0.5 0.0)))
+    69	    (let ((paint-left  (transform-painter
+    70	                        painter1
+    71	                        (make-vect 0.0 0.0)
+    72	                        split-point
+    73	                        (make-vect 0.0 1.0)))
+    74	          (paint-right (transform-painter
+    75	                        painter2
+    76

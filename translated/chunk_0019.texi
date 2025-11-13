@@ -1,0 +1,93 @@
+また、真または偽に評価される式にも使用されます。絶対値手続き@code{abs}は、
+プリミティブ述語@code{>}、@code{<}、@code{=}を使用します。@footnote{@code{Abs}は、
+@code{(- x)}のように単一の被演算子で使用される場合、否定を示す「マイナス」
+演算子@code{-}も使用します。}これらは2つの数を引数として受け取り、最初の数が
+それぞれ2番目の数より大きいか、小さいか、等しいかをテストし、それに応じて
+真または偽を返します。
+
+絶対値手続きを書く別の方法は次のとおりです。
+
+@lisp
+(define (abs x)
+  (cond ((< x 0) (- x))
+        (else x)))
+@end lisp
+
+@noindent
+これは英語で「もし@math{x}がゼロより小さければ@math{{-x}}を返し、
+そうでなければ@math{x}を返す」と表現できます。@code{Else}は、@code{cond}の
+最後の節の@math{{⟨p⟩}}の代わりに使用できる特殊なシンボルです。これにより、
+以前のすべての節がバイパスされたときに、対応する@math{{⟨e⟩}}の値を@code{cond}の
+値として返します。実際、常に真の値に評価される任意の式を、ここで@math{{⟨p⟩}}として
+使用できます。
+
+絶対値手続きを書くさらに別の方法は次のとおりです。
+
+@lisp
+(define (abs x)
+  (if (< x 0)
+      (- x)
+      x))
+@end lisp
+
+@noindent
+これは特殊形式@code{if}を使用します。これは、場合分析に正確に2つの
+場合がある場合に使用できる、制限された種類の条件です。@code{if}式の
+一般的な形式は次のとおりです。
+
+@lisp
+(if ⟨@var{predicate}⟩ ⟨@var{consequent}⟩ ⟨@var{alternative}⟩)
+@end lisp
+
+@noindent
+@code{if}式を評価するために、インタープリタは式の@code{⟨}@var{predicate}@code{⟩}
+部分を評価することから始めます。@code{⟨}@var{predicate}@code{⟩}が真の値に
+評価される場合、インタープリタは@code{⟨}@var{consequent}@code{⟩}を評価し、
+その値を返します。そうでなければ、@code{⟨}@var{alternative}@code{⟩}を評価し、
+その値を返します。@footnote{@code{if}と@code{cond}の間の小さな違いは、
+各@code{cond}節の@code{⟨}@var{e}@code{⟩}部分が式の並びにできることです。
+対応する@code{⟨}@var{p}@code{⟩}が真であることが判明した場合、式@code{⟨}@var{e}@code{⟩}は
+並びの順に評価され、並びの最後の式の値が@code{cond}の値として返されます。
+しかし、@code{if}式では、@code{⟨}@var{consequent}@code{⟩}と
+@code{⟨}@var{alternative}@code{⟩}は単一の式でなければなりません。}
+
+@code{<}、@code{=}、@code{>}などのプリミティブ述語に加えて、複合述語を
+構築できる論理合成演算があります。最も頻繁に使用される3つは次のとおりです。
+
+@itemize @bullet
+
+@item
+@code{(and ⟨@var{e₁}⟩ @r{…} ⟨@var{eₙ}⟩)}
+
+インタープリタは、式@code{⟨}@var{e}@code{⟩}を左から右の順に1つずつ評価します。
+いずれかの@code{⟨}@var{e}@code{⟩}が偽に評価される場合、@code{and}式の値は偽であり、
+残りの@code{⟨}@var{e}@code{⟩}は評価されません。すべての@code{⟨}@var{e}@code{⟩}が
+真の値に評価される場合、@code{and}式の値は最後のものの値です。
+
+@item
+@code{(or ⟨@var{e₁}⟩ @r{…} ⟨@var{eₙ}⟩)}
+
+インタープリタは、式@code{⟨}@var{e}@code{⟩}を左から右の順に1つずつ評価します。
+いずれかの@code{⟨}@var{e}@code{⟩}が真の値に評価される場合、その値が@code{or}式の
+値として返され、残りの@code{⟨}@var{e}@code{⟩}は評価されません。すべての
+@code{⟨}@var{e}@code{⟩}が偽に評価される場合、@code{or}式の値は偽です。
+
+@item
+@code{(not ⟨@var{e}⟩)}
+
+@code{not}式の値は、式@code{⟨}@var{e}@code{⟩}が偽に評価される場合は真であり、
+そうでなければ偽です。
+
+@end itemize
+
+@noindent
+@code{and}と@code{or}は特殊形式であり、手続きではないことに注意してください。
+なぜなら、部分式が必ずしもすべて評価されるわけではないからです。@code{Not}は
+通常の手続きです。
+
+これらがどのように使用されるかの例として、数@math{x}が範囲@math{5 < x < 10}内に
+あるという条件は、次のように表現できます。
+
+@lisp
+(and (> x 5) (< x 10))
+@end lisp

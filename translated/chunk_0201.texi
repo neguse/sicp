@@ -1,0 +1,72 @@
+        (stream-enumerate-interval
+         10002
+         1000000)))
+@end lisp
+
+@noindent
+@code{Stream-filter} は今、このストリームの @code{stream-car}、10,001 を見て、これも素数ではないことがわかり、別の @code{stream-cdr} を強制します。@code{stream-enumerate-interval} が素数 10,007 を生成するまでこれが続き、その時点で @code{stream-filter} はその定義に従って次を返します
+
+@lisp
+(cons-stream
+ (stream-car stream)
+ (stream-filter pred (stream-cdr stream)))
+@end lisp
+
+@noindent
+この場合は次になります
+
+@lisp
+(cons 10007
+      (delay
+        (stream-filter
+         prime?
+         (cons 10008
+               (delay
+                 (stream-enumerate-interval
+                  10009 1000000))))))
+@end lisp
+
+@noindent
+この結果は、元の式の @code{stream-cdr} に渡されます。これにより遅延 @code{stream-filter} が強制され、次の素数である 10,009 が見つかるまで遅延 @code{stream-enumerate-interval} を強制し続けます。最終的に、元の式の @code{stream-car} に渡される結果は次のとおりです
+
+@lisp
+(cons 10009
+      (delay
+        (stream-filter
+         prime?
+         (cons 10010
+               (delay
+                 (stream-enumerate-interval
+                  10011 1000000))))))
+@end lisp
+
+@noindent
+@code{Stream-car} は 10,009 を返し、計算は完了です。2 番目の素数を見つけるために必要な数の整数のみが素数性についてテストされ、区間は素数フィルタに供給するために必要な範囲のみが列挙されました。
+
+一般に、遅延評価を「需要駆動型」プログラミングと考えることができます。これにより、ストリームプロセスの各段階は、次の段階を満たすのに十分な程度だけアクティブ化されます。私たちが行ったことは、計算内のイベントの実際の順序を手続きの見かけの構造から切り離すことです。ストリームが「すべて一度に」存在するかのようにプログラムを書きますが、実際には計算は従来のプログラミングスタイルと同様に段階的に実行されます。
+
+@subsubheading @code{delay} と @code{force} の実装
+
+@code{delay} と @code{force} は神秘的な操作のように見えるかもしれませんが、その実装は実際には非常に単純です。@code{Delay} は、後で要求に応じて評価できるように式をパッケージ化する必要があります。式を手続きの本体として扱うことで、これを簡単に達成できます。@code{Delay} は次のような特殊形式にすることができます
+
+@lisp
+(delay ⟨@var{exp}⟩)
+@end lisp
+
+@noindent
+これは次の構文糖衣です
+
+@lisp
+(lambda () ⟨@var{exp}⟩)
+@end lisp
+
+@noindent
+@code{Force} は @code{delay} によって生成された(引数なしの)手続きを単に呼び出すので、@code{force} を手続きとして実装できます:
+
+@lisp
+(define (force delayed-object)
+  (delayed-object))
+@end lisp
+
+@noindent
+この実装は、@code{delay} と @code{force} が宣伝どおりに機能するのに十分ですが、含めることができる重要な最適化があります。多くのアプリケーションでは、同じ遅延オブジェクトを何度も強制することになります。これは、ストリームを含む再帰プログラムで深刻な非効率性につながる可能性があります。(@ref{練習問題 3.57} を参照してください。)解決策は、遅延オブジェクトを構築して、最初に強制されたときに計算される値を格納するようにすることです。後続の強制は、計算を繰り返すことなく、格納された値を単に返します。言い換えれば、@code{delay} を @ref{練習問題 3.27} で説明されているものと同様の特別な目的のメモ化

@@ -1,0 +1,63 @@
+
+@example
+(stream-car (cons-stream x y)) = x
+(stream-cdr (cons-stream x y)) = y
+@end example
+
+@noindent
+@code{cons-stream} 操作の結果にはなり得ない識別可能なオブジェクト @code{the-empty-stream} があり、述語 @code{stream-null?} で識別できます。@footnote{@abbr{MIT} 実装では、@code{the-empty-stream} は空リスト @code{'()} と同じであり、@code{stream-null?} は @code{null?} と同じです。}したがって、シーケンスで配置された集約データを表すために、リストを作成して使用できるのとまったく同じ方法でストリームを作成して使用できます。特に、@ref{第 2 章} のリスト操作のストリーム類似物を構築できます。例えば、@code{list-ref}、@code{map}、@code{for-each} などです:@footnote{これは気になるはずです。ストリームとリストに対して非常に類似した手続きを定義しているという事実は、基礎となる抽象化を見逃していることを示しています。残念ながら、この抽象化を活用するには、現在よりも評価プロセスをより細かく制御する必要があります。この点については、@ref{3.5.4} の最後でさらに議論します。@ref{4.2} では、リストとストリームを統合するフレームワークを開発します。}
+
+@lisp
+(define (stream-ref s n)
+  (if (= n 0)
+      (stream-car s)
+      (stream-ref (stream-cdr s) (- n 1))))
+
+(define (stream-map proc s)
+  (if (stream-null? s)
+      the-empty-stream
+      (cons-stream
+       (proc (stream-car s))
+       (stream-map proc (stream-cdr s)))))
+
+(define (stream-for-each proc s)
+  (if (stream-null? s)
+      'done
+      (begin
+        (proc (stream-car s))
+        (stream-for-each proc
+                         (stream-cdr s)))))
+@end lisp
+
+@noindent
+@code{Stream-for-each} は、ストリームを表示するのに役立ちます:
+
+@lisp
+(define (display-stream s)
+  (stream-for-each display-line s))
+
+(define (display-line x)
+  (newline)
+  (display x))
+@end lisp
+
+@noindent
+ストリームの構築をその使用と自動的かつ透過的にインターリーブするようにストリーム実装を作成するために、ストリームの @code{cdr} が @code{cons-stream} によってストリームが構築されるときではなく、@code{stream-cdr} 手続きによってアクセスされるときに評価されるように配置します。この実装の選択は、@ref{2.1.2} の有理数に関する議論を思い出させます。そこでは、分子と分母を最小項に削減する操作を構築時または選択時のいずれかで実行するように有理数を実装することを選択できることを見ました。2 つの有理数実装は同じデータ抽象化を生成しますが、選択は効率に影響を与えます。ストリームと通常のリストの間にも同様の関係があります。データ抽象化として、ストリームはリストと同じです。違いは、要素が評価される時刻です。通常のリストでは、@code{car} と @code{cdr} の両方が構築時に評価されます。ストリームでは、@code{cdr} が選択時に評価されます。
+
+ストリームの実装は、@code{delay} と呼ばれる特殊形式に基づいています。@code{(delay ⟨@var{exp}⟩)} を評価しても式 @code{⟨}@var{exp}@code{⟩} は評価されませんが、将来のある時点で @code{⟨}@var{exp}@code{⟩} を評価する「約束」と考えることができる、いわゆる@newterm{遅延オブジェクト}を返します。@code{delay} の伴侶として、引数として遅延オブジェクトを取り、評価を実行する @code{force} という手続きがあります---事実上、@code{delay} にその約束を果たすように強制します。@code{delay} と @code{force} をどのように実装できるかは以下で見ますが、まずこれらを使用してストリームを構築しましょう。
+
+@code{Cons-stream} は特殊形式として定義されているため
+
+@lisp
+(cons-stream ⟨@var{a}⟩ ⟨@var{b}⟩)
+@end lisp
+
+@noindent
+は次と等価です
+
+@lisp
+(cons ⟨@var{a}⟩ (delay ⟨@var{b}⟩))
+@end lisp
+
+@noindent
+これが意味することは、ペアを使用してストリームを構築することです。しかし、

@@ -1,0 +1,56 @@
+リソースを安全に共有できるようにするメカニズムを配置する一般的な問題は、相互排除問題と呼ばれます。私たちの mutex は、アイントホーフェン工科大学で開発され、大学のオランダ語の頭字語にちなんで命名された「THE」マルチプログラミングシステムで導入された@newterm{semaphore}メカニズムの単純な変形です(@ref{練習問題 3.47} を参照)(@ref{Dijkstra 1968a})。獲得および解放操作は元々、鉄道システムで使用される信号機を参照して、オランダ語の @emph{passeren}(通過する)と @emph{vrijgeven}(解放する)から P と V と呼ばれていました。Dijkstra の古典的な説明(@ref{1968b})は、並行性制御の問題を明確に提示した最初のものの 1 つであり、さまざまな並行性問題を処理するためにセマフォを使用する方法を示しました。}私たちの実装では、各シリアライザには関連する mutex があります。手続き @code{p} が与えられると、シリアライザは mutex を獲得し、@code{p} を実行し、次に mutex を解放する手続きを返します。これにより、シリアライザによって生成された手続きの 1 つのみが一度に実行できることが保証されます。これは、保証する必要があるシリアル化プロパティです。
+
+@lisp
+(define (make-serializer)
+  (let ((mutex (make-mutex)))
+    (lambda (p)
+      (define (serialized-p . args)
+        (mutex 'acquire)
+        (let ((val (apply p args)))
+          (mutex 'release)
+          val))
+      serialized-p)))
+@end lisp
+
+@noindent
+mutex は、真または偽の値を保持できる可変オブジェクト(ここでは 1 要素リストを使用します。これを@newterm{セル}と呼びます)です。値が偽の場合、mutex は獲得可能です。値が真の場合、mutex は利用できず、mutex を獲得しようとするプロセスは待機する必要があります。
+
+mutex コンストラクタ @code{make-mutex} は、セルの内容を偽に初期化することから始まります。mutex を獲得するには、セルをテストします。mutex が利用可能な場合、セルの内容を真に設定して進行します。そうでない場合、mutex が利用可能になるまで、獲得を繰り返し試みるループで待機します。@footnote{ほとんどのタイムシェアリングオペレーティングシステムでは、mutex によってブロックされたプロセスは、上記のように「ビジーウェイト」で時間を浪費しません。代わりに、システムは最初のプロセスが待機している間に別のプロセスを実行するようにスケジュールし、mutex が利用可能になるとブロックされたプロセスが起動されます。}mutex を解放するには、セルの内容を偽に設定します。
+
+@lisp
+(define (make-mutex)
+  (let ((cell (list false)))
+    (define (the-mutex m)
+      (cond ((eq? m 'acquire)
+             (if (test-and-set! cell)
+                 (the-mutex 'acquire))) @r{; リトライ}
+            ((eq? m 'release) (clear! cell))))
+    the-mutex))
+(define (clear! cell) (set-car! cell false))
+@end lisp
+
+@noindent
+@code{Test-and-set!} はセルをテストし、テストの結果を返します。さらに、テストが偽だった場合、@code{test-and-set!} は偽を返す前にセルの内容を真に設定します。この動作を次の手続きとして表現できます:
+
+@lisp
+(define (test-and-set! cell)
+  (if (car cell)
+      true
+      (begin (set-car! cell true)
+             false)))
+@end lisp
+
+@noindent
+しかし、この @code{test-and-set!} の実装は、そのままでは十分ではありません。ここには重要な微妙な点があります。これは、並行性制御がシステムに入る本質的な場所です:@code{test-and-set!} 操作は@newterm{アトミック}に実行される必要があります。つまり、プロセスがセルをテストして偽であることがわかったら、他のプロセスがセルをテストできる前にセルの内容が実際に真に設定されることを保証する必要があります。この保証をしない場合、mutex は @ref{図 3.29} の銀行口座の失敗と同様の方法で失敗する可能性があります。(@ref{練習問題 3.46} を参照してください。)
+
+@code{test-and-set!} の実際の実装は、システムが並行プロセスをどのように実行するかの詳細に依存します。例えば、プロセスを短時間実行してから中断して次のプロセスに移動するタイムスライシングメカニズムを使用して、逐次プロセッサ上で並行プロセスを実行している場合があります。その場合、@code{test-and-set!} は、テストと設定中にタイムスライシングを無効にすることで機能できます。@footnote{単一プロセッサ用の @abbr{MIT} Scheme では、タイムスライシングモデルを使用して、@code{test-and-set!} を次のように実装できます:
+
+@lisp
+(define (test-and-set! cell)
+  (without-interrupts
+   (lambda ()
+     (if (car cell)
+         true
+         (begin (set-car! cell true)
+                false)))))
+@end lisp

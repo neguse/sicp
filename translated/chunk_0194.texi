@@ -1,0 +1,62 @@
+これは安全な変更ですか? 特に、この 2 つのバージョンの @code{make-account} によって許可される並行性に違いはありますか?
+@end quotation
+
+@subsubheading 複数の共有リソースを使用することの複雑さ
+
+シリアライザは、並行プログラムの複雑さを分離して慎重に(そしてうまくいけば)正しく扱えるようにする強力な抽象化を提供します。しかし、単一の共有リソース(単一の銀行口座など)のみがある場合、シリアライザの使用は比較的簡単ですが、複数の共有リソースがある場合、並行プログラミングは危険なほど困難になる可能性があります。
+
+発生する可能性のある困難の 1 つを説明するために、2 つの銀行口座の残高を交換したいとします。各口座にアクセスして残高を見つけ、残高の差を計算し、1 つの口座からこの差を引き出し、もう 1 つの口座に預金します。これを次のように実装できます:@footnote{@code{deposit} メッセージが負の金額を受け入れるという事実を利用して @code{exchange} を簡略化しました。(これは私たちの銀行システムの深刻なバグです!)}
+
+@lisp
+(define (exchange account1 account2)
+  (let ((difference (- (account1 'balance)
+                       (account2 'balance))))
+    ((account1 'withdraw) difference)
+    ((account2 'deposit) difference)))
+@end lisp
+
+@noindent
+この手続きは、単一のプロセスのみが交換を実行しようとしている場合にうまく機能します。しかし、Peter と Paul の両方が口座 @math{{a1}}、@math{{a2}}、@math{{a3}} にアクセスでき、Peter が @math{{a1}} と @math{{a2}} を交換し、Paul が同時に @math{{a1}} と @math{{a3}} を交換するとします。個々の口座の口座預金と引き出しがシリアル化されている場合でも(このセクションの上記で示した @code{make-account} 手続きのように)、@code{exchange} は依然として誤った結果を生成する可能性があります。例えば、Peter は @math{{a1}} と @math{{a2}} の残高の差を計算するかもしれませんが、Peter が交換を完了する前に Paul が @math{{a1}} の残高を変更するかもしれません。@footnote{口座残高が $10、$20、$30 から始まる場合、任意の数の並行交換の後、残高は依然として何らかの順序で $10、$20、$30 であるべきです。個々の口座への預金をシリアル化するだけでは、これを保証するのに十分ではありません。@ref{練習問題 3.43} を参照してください。}正しい動作のためには、@code{exchange} 手続きが交換全体の間、口座への他の並行アクセスをロックアウトするように手配する必要があります。
+
+これを達成する 1 つの方法は、両方の口座のシリアライザを使用して @code{exchange} 手続き全体をシリアル化することです。これを行うために、口座のシリアライザへのアクセスを手配します。シリアライザを公開することで、銀行口座オブジェクトのモジュール性を意図的に壊していることに注意してください。次のバージョンの @code{make-account} は、@ref{3.1.1} で与えられた元のバージョンと同じですが、残高変数を保護するためにシリアライザが提供され、シリアライザはメッセージパッシングを介してエクスポートされます:
+
+@lisp
+(define (make-account-and-serializer balance)
+  (define (withdraw amount)
+    (if (>= balance amount)
+        (begin
+          (set! balance (- balance amount))
+          balance)
+        "Insufficient funds"))
+  (define (deposit amount)
+    (set! balance (+ balance amount))
+    balance)
+  (let ((balance-serializer
+         (make-serializer)))
+    (define (dispatch m)
+      (cond ((eq? m 'withdraw) withdraw)
+            ((eq? m 'deposit) deposit)
+            ((eq? m 'balance) balance)
+            ((eq? m 'serializer)
+             balance-serializer)
+            (else (error "Unknown request:
+                          MAKE-ACCOUNT"
+                         m))))
+    dispatch))
+@end lisp
+
+@noindent
+これを使用して、シリアル化された預金と引き出しを行うことができます。しかし、以前のシリアル化された口座とは異なり、銀行口座オブジェクトの各ユーザーがシリアル化を明示的に管理する責任があります。例えば次のようにします:@footnote{@ref{練習問題 3.45} は、預金と引き出しが口座によって自動的にシリアル化されなくなった理由を調査します。}
+
+@lisp
+(define (deposit account amount)
+  (let ((s (account 'serializer))
+        (d (account 'deposit)))
+    ((s d) amount)))
+@end lisp
+
+@noindent
+この方法でシリアライザをエクスポートすることで、シリアル化された交換プログラムを実装するのに十分な柔軟性が得られます。元の @code{exchange} 手続きを両方の口座のシリアライザでシリアル化するだけです:
+
+@lisp
+(define (serialized-exchange account1 account2)

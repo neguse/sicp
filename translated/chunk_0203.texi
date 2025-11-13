@@ -1,0 +1,21 @@
+  (set! sum (+ x sum))
+  sum)
+
+(define seq
+  (stream-map
+   accum
+   (stream-enumerate-interval 1 20)))
+
+(define y (stream-filter even? seq))
+
+(define z
+  (stream-filter
+   (lambda (x) (= (remainder x 5) 0))
+   seq))
+
+(stream-ref y 7)
+(display-stream z)
+@end lisp
+
+メモ化のない遅延評価を使用する(元の)@code{delay} を使用する場合と、本文で説明されているメモ化された @code{delay} を使用する場合の @code{sum} の値と印刷される応答は何ですか?メモ化のない遅延評価がストリームフレームワークの目的を損なう理由を説明してください。
+@end quotation

@@ -1,0 +1,69 @@
+  (let ((serializer1 (account1 'serializer))
+        (serializer2 (account2 'serializer)))
+    ((serializer1 (serializer2 exchange))
+     account1
+     account2)))
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 3.43}練習問題 3.43:} 3 つの口座の残高が $10、$20、$30 から始まり、複数のプロセスが実行されて口座の残高を交換するとします。プロセスが逐次的に実行される場合、任意の数の並行交換の後、口座残高は何らかの順序で $10、$20、$30 であるべきであることを論じてください。@ref{図 3.29} のようなタイミング図を描いて、このセクションの口座交換プログラムの最初のバージョンを使用して交換が実装された場合に、この条件がどのように違反される可能性があるかを示してください。一方、この @code{exchange} プログラムを使用しても、口座の残高の合計は保持されることを論じてください。個々の口座でトランザクションをシリアル化しなかった場合、この条件さえも違反されることを示すタイミング図を描いてください。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.44}練習問題 3.44:} ある口座から別の口座に金額を転送する問題を考えてください。Ben Bitdiddle は、複数の人が複数の口座間でお金を並行して転送している場合でも、例えば上記のテキストの @code{make-account} バージョンなど、預金と引き出しトランザクションをシリアル化する任意の口座メカニズムを使用して、次の手続きでこれを実現できると主張しています。
+
+@lisp
+(define
+  (transfer from-account to-account amount)
+  ((from-account 'withdraw) amount)
+  ((to-account 'deposit) amount))
+@end lisp
+
+Louis Reasoner は、ここに問題があり、交換問題を扱うために必要なもののような、より洗練された方法を使用する必要があると主張しています。Louis は正しいですか? そうでない場合、転送問題と交換問題の本質的な違いは何ですか? (@code{from-account} の残高が少なくとも @code{amount} であると仮定する必要があります。)
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.45}練習問題 3.45:} Louis Reasoner は、預金と引き出しが自動的にシリアル化されなくなったため、銀行口座システムが不必要に複雑でエラーが発生しやすくなったと考えています。彼は、@code{make-account-and-serializer} が、@code{make-account} が行ったように口座と預金をシリアル化するために使用する(代わりに)のではなく、(加えて)(@code{serialized-exchange} などの手続きで使用するために)シリアライザをエクスポートすべきだったと提案しています。彼は口座を次のように再定義することを提案しています:
+
+@lisp
+(define
+  (make-account-and-serializer balance)
+  (define (withdraw amount)
+    (if (>= balance amount)
+        (begin (set! balance
+                     (- balance amount))
+               balance)
+        "Insufficient funds"))
+  (define (deposit amount)
+    (set! balance (+ balance amount))
+    balance)
+  (let ((balance-serializer
+         (make-serializer)))
+    (define (dispatch m)
+      (cond ((eq? m 'withdraw)
+             (balance-serializer withdraw))
+            ((eq? m 'deposit)
+             (balance-serializer deposit))
+            ((eq? m 'balance)
+             balance)
+            ((eq? m 'serializer)
+             balance-serializer)
+            (else (error "Unknown request:
+                          MAKE-ACCOUNT"
+                         m))))
+    dispatch))
+@end lisp
+
+次に、元の @code{make-account} と同様に預金が処理されます:
+
+@lisp
+(define (deposit account amount)
+  ((account 'deposit) amount))
+@end lisp
+
+Louis の推論の誤りを説明してください。特に、@code{serialized-exchange} が呼び出されたときに何が起こるかを考えてください。
+@end quotation
+
+@subsubheading シリアライザの実装
+
+@newterm{mutex} と呼ばれるより基本的な同期メカニズムの観点からシリアライザを実装します。mutex は、2 つの操作をサポートするオブジェクトです---mutex は@newterm{獲得}でき、mutex は@newterm{解放}できます。mutex が獲得されると、mutex が解放されるまで、その mutex に対する他の獲得操作は進行できません。@footnote{「mutex」という用語は@newterm{相互排除}の略語です。並行プロセスが

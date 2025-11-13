@@ -1,0 +1,62 @@
+
+@lisp
+(define (div-interval x y)
+  (mul-interval x
+                (make-interval
+                 (/ 1.0 (upper-bound y))
+                 (/ 1.0 (lower-bound y)))))
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 2.7}練習問題 2.7:} Alyssaのプログラムは、区間抽象化の実装を指定していないため不完全です。区間コンストラクタの定義を以下に示します：
+
+@lisp
+(define (make-interval a b) (cons a b))
+@end lisp
+
+実装を完成させるために、セレクタ@code{upper-bound}と@code{lower-bound}を定義してください。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.8}練習問題 2.8:} Alyssaと同様の推論を使用して、2つの区間の差がどのように計算されるかを説明してください。@code{sub-interval}と呼ばれる対応する減算手続きを定義してください。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.9}練習問題 2.9:} 区間の@newterm{幅}は、上限と下限の差の半分です。幅は、区間で指定された数の不確実性の尺度です。いくつかの算術演算では、2つの区間を組み合わせた結果の幅は引数区間の幅だけの関数ですが、他の演算では、組み合わせの幅は引数区間の幅の関数ではありません。2つの区間の和（または差）の幅が、加算（または減算）される区間の幅だけの関数であることを示してください。これが乗算または除算には当てはまらないことを示す例を挙げてください。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.10}練習問題 2.10:} 専門システムプログラマーのBen Bitdiddleは、Alyssaの肩越しに覗き込み、零をまたぐ区間で除算することが何を意味するのかが明確でないとコメントします。この条件をチェックし、それが発生した場合にエラーを通知するようにAlyssaのコードを変更してください。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.11}練習問題 2.11:} ついでに、Benはまた謎めいたコメントをします：「区間の端点の符号をテストすることで、@code{mul-interval}を9つのケースに分割することができ、そのうち2回以上の乗算を必要とするのは1つだけです。」Benの提案を使用してこの手続きを書き直してください。
+
+プログラムをデバッグした後、Alyssaはそれを潜在的なユーザーに見せますが、彼女のプログラムが間違った問題を解決していると不満を言います。彼は、中心値と加法的許容誤差として表現された数を扱えるプログラムを望んでいます。例えば、[3.35, 3.65]ではなく3.5 @math{\pm} 0.15のような区間で作業したいのです。Alyssaは机に戻り、代替コンストラクタと代替セレクタを提供することでこの問題を修正します：
+
+@lisp
+(define (make-center-width c w)
+  (make-interval (- c w) (+ c w)))
+
+(define (center i)
+  (/ (+ (lower-bound i)
+        (upper-bound i))
+     2))
+
+(define (width i)
+  (/ (- (upper-bound i)
+        (lower-bound i))
+     2))
+@end lisp
+
+残念ながら、Alyssaのユーザーのほとんどは技術者です。実際の工学的状況では、通常、区間の幅と区間の中点の比として測定されるわずかな不確実性を伴う測定が含まれます。技術者は、通常、前述の抵抗器仕様のように、デバイスのパラメータにパーセント許容誤差を指定します。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.12}練習問題 2.12:} 中心とパーセント許容誤差を受け取り、望ましい区間を生成するコンストラクタ@code{make-center-percent}を定義してください。与えられた区間のパーセント許容誤差を生成するセレクタ@code{percent}も定義する必要があります。@code{center}セレクタは上記で示したものと同じです。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.13}練習問題 2.13:} 小さなパーセント許容誤差の仮定の下で、2つの区間の積の近似パーセント許容誤差を因子の許容誤差の観点で表す単純な式があることを示してください。すべての数が正であると仮定することで問題を簡略化できます。
+
+かなりの作業の後、Alyssa P. Hackerは完成したシステムを提供します。数年後、彼女がそれについてすべて忘れた後、怒り狂ったユーザーLem E. Tweakitから切羽詰まった電話を受けます。Lemは次のことに気づいたようです：

@@ -1,0 +1,73 @@
+この記法を使用して、1つ以上の整数を受け取り、最初の引数と同じ偶奇パリティを持つすべての引数のリストを返す手続き@code{same-parity}を書いてください。例えば、
+
+@lisp
+(same-parity 1 2 3 4 5 6 7)
+@i{(1 3 5 7)}
+
+(same-parity 2 3 4 5 6 7)
+@i{(2 4 6)}
+@end lisp
+@end quotation
+
+@subsubheading リストのマッピング
+
+非常に有用な演算の1つは、リストの各要素に何らかの変換を適用し、結果のリストを生成することです。例えば、次の手続きは、リスト内の各数を与えられた係数でスケールします：
+
+@lisp
+(define (scale-list items factor)
+  (if (null? items)
+      nil
+      (cons (* (car items) factor)
+            (scale-list (cdr items)
+                        factor))))
+
+(scale-list (list 1 2 3 4 5) 10)
+@i{(10 20 30 40 50)}
+@end lisp
+
+@noindent
+@ref{1.3}と同様に、この一般的な考え方を抽象化し、高階手続きとして表現される共通パターンとして捉えることができます。ここでの高階手続きは@code{map}と呼ばれます。@code{Map}は、1つの引数の手続きとリストを引数として受け取り、手続きをリストの各要素に適用して生成された結果のリストを返します：@footnote{@anchor{Footnote 78}
+Schemeは標準で、ここで説明したものよりも汎用的な@code{map}手続きを提供します。このより汎用的な@code{map}は、@math{n}個の引数の手続きと@math{n}個のリストを受け取り、すべてのリストの最初の要素、すべてのリストの2番目の要素、というように手続きを適用し、結果のリストを返します。例えば：
+
+@lisp
+(map +
+     (list 1 2 3)
+     (list 40 50 60)
+     (list 700 800 900))
+@i{(741 852 963)}
+
+(map (lambda (x y) (+ x (* 2 y)))
+     (list 1 2 3)
+     (list 4 5 6))
+@i{(9 12 15)}
+@end lisp
+}
+
+@lisp
+(define (map proc items)
+  (if (null? items)
+      nil
+      (cons (proc (car items))
+            (map proc (cdr items)))))
+
+(map abs (list -10 2.5 -11.6 17))
+@i{(10 2.5 11.6 17)}
+
+(map (lambda (x) (* x x)) (list 1 2 3 4))
+@i{(1 4 9 16)}
+@end lisp
+
+@noindent
+これで、@code{map}の観点で@code{scale-list}の新しい定義を与えることができます：
+
+@lisp
+(define (scale-list items factor)
+  (map (lambda (x) (* x factor))
+       items))
+@end lisp
+
+@noindent
+@code{Map}は、共通パターンを捉えるだけでなく、リストを扱う際のより高いレベルの抽象化を確立するため、重要な構造です。@code{scale-list}の元の定義では、プログラムの再帰構造がリストの要素ごとの処理に注意を引きます。@code{map}の観点で@code{scale-list}を定義すると、その詳細レベルが抑制され、スケーリングが要素のリストを結果のリストに変換することが強調されます。2つの定義の違いは、コンピュータが異なるプロセスを実行しているということではなく（実行していません）、プロセスについて異なる方法で考えるということです。実際、@code{map}は、リストを変換する手続きの実装と、リストの要素がどのように抽出され結合されるかの詳細を分離する抽象化障壁を確立するのに役立ちます。@ref{Figure 2.1}に示されている障壁と同様に、この抽象化により、列を列に変換する演算の概念的枠組みを保持しながら、列がどのように実装されるかの低レベルの詳細を変更する柔軟性が得られます。@ref{2.2.3}節では、プログラムを編成するための枠組みとしての列のこの使用をさらに拡張します。
+
+@quotation
+@strong{@anchor{Exercise 2.21}練習問題 2.21:} 手続き@code{square-list}は

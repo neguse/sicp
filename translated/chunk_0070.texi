@@ -1,0 +1,72 @@
+
+@lisp
+(cadr ⟨@var{arg}⟩) = (car (cdr ⟨@var{arg}⟩))
+@end lisp
+
+そのようなすべての手続きの名前は@code{c}で始まり@code{r}で終わります。それらの間の各@code{a}は@code{car}演算を表し、各@code{d}は@code{cdr}演算を表し、名前に現れるのと同じ順序で適用されます。@code{car}と@code{cdr}という名前は、@code{cadr}のような単純な組み合わせが発音可能であるため存続しています。}コンストラクタ@code{cons}は、元のものと同じですが、先頭に追加の項目があるリストを作ります。
+
+@lisp
+(car one-through-four)
+@i{1}
+
+(cdr one-through-four)
+@i{(2 3 4)}
+
+(car (cdr one-through-four))
+@i{2}
+
+(cons 10 one-through-four)
+@i{(10 1 2 3 4)}
+
+(cons 5 one-through-four)
+@i{(5 1 2 3 4)}
+@end lisp
+
+@noindent
+ペアの連鎖を終了するために使用される@code{nil}の値は、要素のない列、つまり@newterm{空リスト}と考えることができます。@newterm{nil}という言葉は、「無」を意味するラテン語@emph{nihil}の短縮形です。@footnote{Lisp方言の標準化において、文字通り無についての議論にどれだけのエネルギーが費やされたかは驚くべきことです：@code{nil}は普通の名前であるべきか？@code{nil}の値は記号であるべきか？リストであるべきか？ペアであるべきか？Schemeでは、@code{nil}は普通の名前であり、このセクションではリスト終了マーカーの値を持つ変数として使用します（@code{true}が真の値を持つ普通の変数であるのと同様です）。Common Lispを含む他のLisp方言は、@code{nil}を特別な記号として扱います。この本の著者は、あまりにも多くの言語標準化の争いに耐えてきたため、この問題全体を避けたいと考えています。@ref{2.3}で引用を導入したら、空リストを@code{'()}と表記し、変数@code{nil}を完全に廃止します。}
+
+@subsubheading リスト演算
+
+要素の列をリストとして表現するためのペアの使用には、リストを順次「@code{cdr}で下る」ことでリストを操作するための従来のプログラミング技法が付随します。例えば、手続き@code{list-ref}は、リストと数@math{n}を引数として受け取り、リストの@math{n^{\text{th}}}番目の項目を返します。リストの要素を0から番号付けするのが慣習です。@code{list-ref}を計算する方法は次のとおりです：
+
+@itemize @bullet
+
+@item
+@math{{n = 0}}の場合、@code{list-ref}はリストの@code{car}を返すべきです。
+
+@item
+そうでない場合、@code{list-ref}はリストの@code{cdr}の@math{{(n - 1)}}番目の項目を返すべきです。
+
+@end itemize
+
+@lisp
+(define (list-ref items n)
+  (if (= n 0)
+      (car items)
+      (list-ref (cdr items)
+                (- n 1))))
+
+(define squares
+  (list 1 4 9 16 25))
+
+(list-ref squares 3)
+@i{16}
+@end lisp
+
+@noindent
+リスト全体を@code{cdr}で下ることがよくあります。これを支援するために、Schemeには、引数が空リストかどうかをテストするプリミティブ述語@code{null?}が含まれています。手続き@code{length}は、リスト内の項目数を返しますが、この典型的な使用パターンを示しています：
+
+@lisp
+(define (length items)
+  (if (null? items)
+      0
+      (+ 1 (length (cdr items)))))
+
+(define odds
+  (list 1 3 5 7))
+
+(length odds)
+@i{4}
+@end lisp
+
+@noindent

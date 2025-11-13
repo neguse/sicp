@@ -1,0 +1,79 @@
+（これは5種類の米国硬貨があることを知っています）。両替に使用する硬貨のリストを提供できるようにする方が良いでしょう。
+
+手続き@code{cc}を書き直して、第2引数が使用する硬貨を指定する整数ではなく、使用する硬貨の値のリストになるようにします。そうすれば、各種類の通貨を定義するリストを持つことができます：
+
+@lisp
+(define us-coins
+  (list 50 25 10 5 1))
+
+(define uk-coins
+  (list 100 50 20 10 5 2 1 0.5))
+@end lisp
+
+そして、@code{cc}を次のように呼び出すことができます：
+
+@lisp
+(cc 100 us-coins)
+@i{292}
+@end lisp
+
+これを行うには、プログラム@code{cc}を多少変更する必要があります。依然として同じ形式ですが、次のように第2引数に異なる方法でアクセスします：
+
+@lisp
+(define (cc amount coin-values)
+  (cond ((= amount 0)
+         1)
+        ((or (< amount 0)
+             (no-more? coin-values))
+         0)
+        (else
+         (+ (cc
+             amount
+             (except-first-denomination
+              coin-values))
+            (cc
+             (- amount
+                (first-denomination
+                 coin-values))
+             coin-values)))))
+@end lisp
+
+手続き@code{first-denomination}、@code{except-first-denomination}、@code{no-more?}をリスト構造のプリミティブ演算の観点で定義してください。リスト@code{coin-values}の順序は@code{cc}によって生成される答えに影響しますか？なぜそうか、またはそうでないか？
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.20}練習問題 2.20:} 手続き@code{+}、@code{*}、@code{list}は任意の数の引数を受け取ります。そのような手続きを定義する1つの方法は、@newterm{ドット付き末尾記法}で@code{define}を使用することです。手続き定義において、最後のパラメータ名の前にドットがあるパラメータリストは、手続きが呼び出されたときに、初期パラメータ（ある場合）が通常どおり初期引数を値として持ち、最後のパラメータの値は残りの引数の@newterm{リスト}になることを示します。例えば、次の定義が与えられた場合：
+
+@lisp
+(define (f x y . z) ⟨@var{body}⟩)
+@end lisp
+
+@noindent
+手続き@code{f}は2つ以上の引数で呼び出すことができます。次を評価した場合：
+
+@lisp
+(f 1 2 3 4 5 6)
+@end lisp
+
+@noindent
+@code{f}の本体では、@code{x}は1、@code{y}は2、@code{z}はリスト@code{(3 4 5 6)}になります。次の定義が与えられた場合：
+
+@lisp
+(define (g . w) ⟨@var{body}⟩)
+@end lisp
+
+@noindent
+手続き@code{g}は0個以上の引数で呼び出すことができます。次を評価した場合：
+
+@lisp
+(g 1 2 3 4 5 6)
+@end lisp
+
+@noindent
+@code{g}の本体では、@code{w}はリスト@code{(1 2 3 4 5 6)}になります。@footnote{@code{lambda}を使用して@code{f}と@code{g}を定義するには、次のように書きます：
+
+@lisp
+(define f (lambda (x y . z) ⟨@var{body}⟩))
+(define g (lambda w ⟨@var{body}⟩))
+@end lisp
+}

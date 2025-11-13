@@ -1,0 +1,75 @@
+並列抵抗の式は、代数的に等価な2つの方法で書くことができます：
+@ifinfo
+
+@example
+ R_1 R_2
+---------
+R_1 + R_2
+@end example
+
+@end ifinfo
+@tex
+\[ % :33:
+  {R_1 R_2 \over R_1 + R_2}  \]
+@end tex
+@noindent
+および
+@ifinfo
+
+@example
+      1
+-------------
+1/R_1 + 1/R_2
+@end example
+
+@end ifinfo
+@tex
+\[ % :34:
+  {{1 \over 1 / R_1 + 1 / R_2}.}  \]
+@end tex
+彼は次の2つのプログラムを書きました。それぞれが並列抵抗の式を異なる方法で計算します：
+
+@lisp
+(define (par1 r1 r2)
+  (div-interval
+   (mul-interval r1 r2)
+   (add-interval r1 r2)))
+
+(define (par2 r1 r2)
+  (let ((one (make-interval 1 1)))
+    (div-interval
+     one
+     (add-interval
+      (div-interval one r1)
+      (div-interval one r2)))))
+@end lisp
+
+LemはAlyssaのプログラムが2つの計算方法で異なる答えを与えると不満を言います。これは深刻な不満です。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.14}練習問題 2.14:} Lemが正しいことを実証してください。さまざまな算術式でシステムの振る舞いを調査してください。いくつかの区間@math{A}と@math{B}を作成し、それらを式@math{{A / A}}と@math{{A / B}}の計算に使用してください。幅が中心値の小さなパーセンテージである区間を使用すると、最も洞察が得られます。計算結果を中心パーセント形式で調べてください（@ref{Exercise 2.12}参照）。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.15}練習問題 2.15:} 別のユーザーEva Lu Atorも、代数的に等価だが異なる式によって計算される異なる区間に気づいています。彼女は、Alyssaのシステムを使用して区間で計算する式は、不確実な数を表す変数が繰り返されないような形式で書くことができれば、より厳密な誤差境界を生成すると言います。したがって、彼女は、@code{par2}は並列抵抗のための@code{par1}よりも「優れた」プログラムであると言います。彼女は正しいですか？なぜですか？
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.16}練習問題 2.16:} 一般に、等価な代数式が異なる答えにつながる理由を説明してください。この欠点のない区間算術パッケージを考案できますか、それともこのタスクは不可能ですか？（警告：この問題は非常に難しいです。）
+@end quotation
+
+
+@node	2.2, 2.3, 2.1, Chapter 2
+@section 階層的データと閉包性
+
+見てきたように、ペアは複合データオブジェクトを構築するために使用できるプリミティブな「接着剤」を提供します。@ref{Figure 2.2}は、ペアを視覚化する標準的な方法を示しています---この場合、@code{(cons 1 2)}によって形成されたペアです。@newterm{ボックスとポインタ記法}と呼ばれるこの表現では、各オブジェクトはボックスへの@newterm{ポインタ}として示されます。プリミティブオブジェクトのボックスには、オブジェクトの表現が含まれています。例えば、数のボックスには数字が含まれています。ペアのボックスは実際には二重ボックスであり、左の部分にはペアの@code{car}（へのポインタ）が含まれ、右の部分には@code{cdr}が含まれています。
+
+@float
+@anchor{Figure 2.2}
+@ifinfo
+@quotation
+@strong{図 2.2:} @code{(cons 1 2)}のボックスとポインタ表現。
+
+@example
+     +---+---+     +---+

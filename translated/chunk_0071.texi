@@ -1,0 +1,85 @@
+@code{length}手続きは、単純な再帰的計画を実装します。縮小ステップは次のとおりです：
+
+@itemize @bullet
+
+@item
+任意のリストの@code{length}は、リストの@code{cdr}の@code{length}に1を加えたものです。
+
+@end itemize
+
+@noindent
+これは、基底ケースに達するまで連続的に適用されます：
+
+@itemize @bullet
+
+@item
+空リストの@code{length}は0です。
+
+@end itemize
+
+@noindent
+@code{length}を反復的なスタイルで計算することもできます：
+
+@lisp
+(define (length items)
+  (define (length-iter a count)
+    (if (null? a)
+        count
+        (length-iter (cdr a)
+                     (+ 1 count))))
+  (length-iter items 0))
+@end lisp
+
+@noindent
+別の従来のプログラミング技法は、手続き@code{append}のように、リストを@code{cdr}で下りながら答えのリストを「@code{cons}で上げる」ことです。この手続きは、2つのリストを引数として受け取り、それらの要素を組み合わせて新しいリストを作ります：
+
+@lisp
+(append squares odds)
+@i{(1 4 9 16 25 1 3 5 7)}
+
+(append odds squares)
+@i{(1 3 5 7 1 4 9 16 25)}
+@end lisp
+
+@noindent
+@code{Append}も再帰的計画を使用して実装されます。リスト@code{list1}と@code{list2}を@code{append}するには、次のようにします：
+
+@itemize @bullet
+
+@item
+@code{list1}が空リストの場合、結果は単に@code{list2}です。
+
+@item
+そうでない場合、@code{list1}の@code{cdr}と@code{list2}を@code{append}し、@code{list1}の@code{car}を結果に@code{cons}します：
+
+@end itemize
+
+@lisp
+(define (append list1 list2)
+  (if (null? list1)
+      list2
+      (cons (car list1)
+            (append (cdr list1)
+                    list2))))
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 2.17}練習問題 2.17:} 与えられた（空でない）リストの最後の要素のみを含むリストを返す手続き@code{last-pair}を定義してください：
+
+@lisp
+(last-pair (list 23 72 149 34))
+@i{(34)}
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.18}練習問題 2.18:} リストを引数として受け取り、同じ要素を逆順に持つリストを返す手続き@code{reverse}を定義してください：
+
+@lisp
+(reverse (list 1 4 9 16 25))
+@i{(25 16 9 4 1)}
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.19}練習問題 2.19:} @ref{1.2.2}の両替カウントプログラムを考えてください。例えば、イギリスポンドを両替する方法の数を計算できるように、プログラムで使用される通貨を簡単に変更できるようにすると良いでしょう。プログラムが書かれているように、通貨の知識は、手続き@code{first-denomination}と手続き@code{count-change}に部分的に分散されています

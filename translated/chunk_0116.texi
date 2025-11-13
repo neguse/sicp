@@ -1,0 +1,68 @@
+@node	2.4.2, 2.4.3, 2.4.1, 2.4
+@subsection タグ付きデータ
+
+データ抽象を見る1つの方法は、「最小限のコミットメントの原則」の応用としてです。@ref{2.4.1}で複素数システムを実装する際、Ben の直交表現または Alyssa の極表現のどちらかを使用できます。セレクタとコンストラクタによって形成される抽象バリアにより、データオブジェクトの具体的な表現の選択を可能な限り最後の瞬間まで延期し、システム設計の最大の柔軟性を保持できます。
+
+最小限のコミットメントの原則は、さらに極端なレベルまで実行できます。望むならば、セレクタとコンストラクタを設計した@emph{後}でも表現の曖昧さを維持し、Ben の表現@emph{と} Alyssa の表現の@emph{両方}を使用することを選択できます。ただし、両方の表現が単一のシステムに含まれている場合、極形式のデータを直交形式のデータと区別する何らかの方法が必要になります。そうでなければ、たとえばペア(3, 4)の@code{magnitude}を見つけるように求められた場合、5と答えるべきか(数を直交形式として解釈)、3と答えるべきか(数を極形式として解釈)がわかりません。この区別を達成する簡単な方法は、@newterm{型タグ}---記号@code{rectangular}または@code{polar}---を各複素数の一部として含めることです。そうすれば、複素数を操作する必要があるときに、タグを使用してどのセレクタを適用するかを決定できます。
+
+タグ付きデータを操作するために、データオブジェクトからタグと実際の内容(複素数の場合は極座標または直交座標)を抽出する手続き@code{type-tag}と@code{contents}があると仮定します。また、タグと内容を取り、タグ付きデータオブジェクトを生成する手続き@code{attach-tag}も仮定します。これを実装する簡単な方法は、通常のリスト構造を使用することです：
+
+@lisp
+(define (attach-tag type-tag contents)
+  (cons type-tag contents))
+
+(define (type-tag datum)
+  (if (pair? datum)
+      (car datum)
+      (error "Bad tagged datum:
+              TYPE-TAG" datum)))
+
+(define (contents datum)
+  (if (pair? datum)
+      (cdr datum)
+      (error "Bad tagged datum:
+              CONTENTS" datum)))
+@end lisp
+
+@noindent
+これらの手続きを使用して、直交数と極数をそれぞれ認識する述語@code{rectangular?}と@code{polar?}を定義できます：
+
+@lisp
+(define (rectangular? z)
+  (eq? (type-tag z) 'rectangular))
+
+(define (polar? z)
+  (eq? (type-tag z) 'polar))
+@end lisp
+
+@noindent
+型タグにより、Ben と Alyssa は、2つの異なる表現が同じシステム内で共存できるようにコードを変更できるようになりました。Ben が複素数を構築するたびに、彼はそれを rectangular としてタグ付けします。Alyssa が複素数を構築するたびに、彼女はそれを polar としてタグ付けします。さらに、Ben と Alyssa は、手続きの名前が競合しないことを確認する必要があります。これを行う1つの方法は、Ben が各表現手続きの名前に接尾辞@code{rectangular}を追加し、Alyssa が彼女の名前に@code{polar}を追加することです。@ref{2.4.1}からの Ben の改訂された直交表現は次のとおりです：
+
+@lisp
+(define (real-part-rectangular z) (car z))
+(define (imag-part-rectangular z) (cdr z))
+
+(define (magnitude-rectangular z)
+  (sqrt (+ (square (real-part-rectangular z))
+           (square (imag-part-rectangular z)))))
+
+(define (angle-rectangular z)
+  (atan (imag-part-rectangular z)
+        (real-part-rectangular z)))
+
+(define (make-from-real-imag-rectangular x y)
+  (attach-tag 'rectangular (cons x y)))
+
+(define (make-from-mag-ang-rectangular r a)
+  (attach-tag
+   'rectangular
+   (cons (* r (cos a)) (* r (sin a)))))
+@end lisp
+
+@noindent
+そしてこれが Alyssa の改訂された極表現です：
+
+@lisp
+(define (real-part-polar z)
+  (* (magnitude-polar z)
+     (cos (angle-polar z))))

@@ -1,0 +1,63 @@
+3つの戦略---明示的ディスパッチを持つ汎用操作、データ主導スタイル、メッセージパッシングスタイル---のそれぞれについて、新しい型または新しい操作を追加するためにシステムに加える必要がある変更を説明しなさい。新しい型を頻繁に追加する必要があるシステムには、どの組織が最も適切ですか？新しい操作を頻繁に追加する必要があるシステムには、どれが最も適切ですか？
+@end quotation
+
+@node	2.5, Chapter 3, 2.4, Chapter 2
+@section 汎用操作を持つシステム
+
+前のセクションでは、データオブジェクトを複数の方法で表現できるシステムを設計する方法を見ました。重要なアイデアは、データ操作を指定するコードを、汎用インターフェース手続きによって複数の表現にリンクすることです。次に、異なる表現にわたって汎用である操作を定義するだけでなく、異なる種類の引数にわたって汎用である操作を定義するために、この同じアイデアをどのように使用するかを見ていきます。いくつかの異なる算術演算のパッケージをすでに見てきました：言語に組み込まれた基本算術(@code{+}、@code{-}、@code{*}、@code{/})、@ref{2.1.1}の有理数算術(@code{add-rat}、@code{sub-rat}、@code{mul-rat}、@code{div-rat})、および@ref{2.4.3}で実装した複素数算術です。次に、データ主導技法を使用して、すでに構築したすべての算術パッケージを組み込んだ算術演算のパッケージを構築します。
+
+@ref{Figure 2.23}は、構築するシステムの構造を示しています。抽象バリアに注目してください。「数」を使用する人の観点から見ると、提供される数に対して操作する単一の手続き@code{add}があります。@code{Add}は、数を使用するプログラムによって、個別の通常算術、有理算術、複素算術パッケージに均一にアクセスできるようにする汎用インターフェースの一部です。個々の算術パッケージ(複素パッケージなど)は、異なる表現(直交や極など)用に設計されたパッケージを組み合わせる汎用手続き(@code{add-complex}など)を通じてアクセスできます。さらに、システムの構造は追加的であるため、個々の算術パッケージを別々に設計し、それらを組み合わせて汎用算術システムを作成できます。
+
+@float
+@anchor{Figure 2.23}
+@ifinfo
+@quotation
+@strong{図 2.23:} 汎用算術システム。
+
+@example
+                        Programs that use numbers
+                           +-----------------+
+---------------------------| add sub mul div |-------------------
+                           +-----------------+
+                        Generic arithmetic package
+ +-----------------+   +-------------------------+
+ | add-rat sub-rat |   | add-complex sub-complex |   +---------+
+-|                 |-+-|                         |-+-| + - * / |-
+ | mul-rat div-rat | | | mul-complex div-complex | | +---------+
+ +-----------------+ | +-------------------------+ |
+      Rational       |     Complex artithmetic     |   Ordinary
+     arithmetic      +--------------+--------------+  arithmetic
+                     | Rectangular  |     Polar    |
+---------------------+--------------+--------------+-------------
+             List structure and primitive machine arithmetic
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap2/Fig2.23b,138mm,,,.std.svg}
+@caption{@strong{図 2.23:} 汎用算術システム。}
+@end iftex
+@end float
+
+@menu
+* 2.5.1::            Generic Arithmetic Operations
+* 2.5.2::            Combining Data of Different Types
+* 2.5.3::            Example: Symbolic Algebra
+@end menu
+
+@node	2.5.1, 2.5.2, 2.5, 2.5
+@subsection 汎用算術演算
+
+汎用算術演算を設計するタスクは、汎用複素数演算を設計するタスクに類似しています。たとえば、通常の数に対しては通常の基本加算@code{+}のように動作し、有理数に対しては@code{add-rat}のように動作し、複素数に対しては@code{add-complex}のように動作する汎用加算手続き@code{add}が必要です。@code{add}およびその他の汎用算術演算を実装するには、@ref{2.4.3}で複素数の汎用セレクタを実装するために使用したのと同じ戦略に従います。各種類の数に型タグを付け、汎用手続きがその引数のデータ型に応じて適切なパッケージにディスパッチするようにします。
+
+汎用算術手続きは次のように定義されます：
+
+@lisp
+(define (add x y) (apply-generic 'add x y))
+(define (sub x y) (apply-generic 'sub x y))
+(define (mul x y) (apply-generic 'mul x y))
+(define (div x y) (apply-generic 'div x y))
+@end lisp
+
+@noindent
+まず、@newterm{通常の}数を処理するためのパッケージをインストールすることから始めます。つまり、

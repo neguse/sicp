@@ -1,0 +1,82 @@
+Alyssa の極パッケージは類似しています：
+
+@lisp
+(define (install-polar-package)
+  @r{;; internal procedures}
+  (define (magnitude z) (car z))
+  (define (angle z) (cdr z))
+  (define (make-from-mag-ang r a) (cons r a))
+  (define (real-part z)
+    (* (magnitude z) (cos (angle z))))
+  (define (imag-part z)
+    (* (magnitude z) (sin (angle z))))
+  (define (make-from-real-imag x y)
+    (cons (sqrt (+ (square x) (square y)))
+          (atan y x)))
+  @r{;; interface to the rest of the system}
+  (define (tag x) (attach-tag 'polar x))
+  (put 'real-part '(polar) real-part)
+  (put 'imag-part '(polar) imag-part)
+  (put 'magnitude '(polar) magnitude)
+  (put 'angle '(polar) angle)
+  (put 'make-from-real-imag 'polar
+       (lambda (x y)
+         (tag (make-from-real-imag x y))))
+  (put 'make-from-mag-ang 'polar
+       (lambda (r a)
+         (tag (make-from-mag-ang r a))))
+  'done)
+@end lisp
+
+@noindent
+Ben と Alyssa の両方が、互いの手続きと同じ名前で定義された元の手続きを使用しているにもかかわらず(たとえば、@code{real-part})、これらの定義は異なる手続きの内部にあるため(@ref{1.1.8}を参照)、名前の競合はありません。
+
+複素算術セレクタは、@code{apply-generic}と呼ばれる一般的な「操作」手続きを使用してテーブルにアクセスします。これは、汎用操作をいくつかの引数に適用します。@code{Apply-generic}は、操作の名前と引数の型の下でテーブルを検索し、1つが存在する場合は結果の手続きを適用します：@footnote{@code{Apply-generic}は、@ref{Exercise 2.20}で説明されているドット付き末尾記法を使用します。異なる汎用操作は異なる数の引数を取る可能性があるからです。@code{apply-generic}では、@code{op}は@code{apply-generic}への最初の引数の値を持ち、@code{args}は残りの引数のリストの値を持ちます。
+
+@code{Apply-generic}は、2つの引数、手続きとリストを取る基本手続き@code{apply}も使用します。@code{Apply}は、リスト内の要素を引数として使用して手続きを適用します。たとえば、
+
+@lisp
+(apply + (list 1 2 3 4))
+@end lisp
+
+@noindent
+は10を返します。}
+
+@lisp
+(define (apply-generic op . args)
+  (let ((type-tags (map type-tag args)))
+    (let ((proc (get op type-tags)))
+      (if proc
+          (apply proc (map contents args))
+          (error
+            "No method for these types:
+             APPLY-GENERIC"
+            (list op type-tags))))))
+@end lisp
+
+@noindent
+@code{apply-generic}を使用して、汎用セレクタを次のように定義できます：
+
+@lisp
+(define (real-part z)
+  (apply-generic 'real-part z))
+(define (imag-part z)
+  (apply-generic 'imag-part z))
+(define (magnitude z)
+  (apply-generic 'magnitude z))
+(define (angle z)
+  (apply-generic 'angle z))
+@end lisp
+
+@noindent
+新しい表現がシステムに追加されても、これらはまったく変更されないことに注意してください。
+
+また、実部と虚部から、および大きさと角度から複素数を作成するパッケージ外のプログラムで使用されるコンストラクタをテーブルから抽出することもできます。@ref{2.4.2}のように、実部と虚部がある場合は常に直交数を構築し、大きさと角度がある場合は常に極数を構築します：
+
+@lisp
+(define (make-from-real-imag x y)
+  ((get 'make-from-real-imag
+        'rectangular)
+   x y))
+
+(define (make-from-mag-ang r a)

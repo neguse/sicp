@@ -1,0 +1,80 @@
+
+(define (imag-part-polar z)
+  (* (magnitude-polar z)
+     (sin (angle-polar z))))
+
+(define (magnitude-polar z) (car z))
+(define (angle-polar z) (cdr z))
+
+(define (make-from-real-imag-polar x y)
+  (attach-tag
+   'polar
+   (cons (sqrt (+ (square x) (square y)))
+         (atan y x))))
+
+(define (make-from-mag-ang-polar r a)
+  (attach-tag 'polar (cons r a)))
+@end lisp
+
+@noindent
+各汎用セレクタは、引数のタグをチェックし、そのタイプのデータを処理するための適切な手続きを呼び出す手続きとして実装されます。たとえば、複素数の実部を取得するために、@code{real-part}はタグを調べて、Ben の@code{real-part-rectangular}または Alyssa の@code{real-part-polar}のどちらを使用するかを決定します。どちらの場合も、@code{contents}を使用して、タグのない生のデータを抽出し、必要に応じてこれを直交または極手続きに送信します：
+
+@lisp
+(define (real-part z)
+  (cond ((rectangular? z)
+         (real-part-rectangular (contents z)))
+        ((polar? z)
+         (real-part-polar (contents z)))
+        (else (error "Unknown type:
+               REAL-PART" z))))
+
+(define (imag-part z)
+  (cond ((rectangular? z)
+         (imag-part-rectangular (contents z)))
+        ((polar? z)
+         (imag-part-polar (contents z)))
+        (else (error "Unknown type:
+               IMAG-PART" z))))
+
+(define (magnitude z)
+  (cond ((rectangular? z)
+         (magnitude-rectangular (contents z)))
+        ((polar? z)
+         (magnitude-polar (contents z)))
+        (else (error "Unknown type:
+               MAGNITUDE" z))))
+
+(define (angle z)
+  (cond ((rectangular? z)
+         (angle-rectangular (contents z)))
+        ((polar? z)
+         (angle-polar (contents z)))
+        (else (error "Unknown type:
+               ANGLE" z))))
+@end lisp
+
+@noindent
+複素数算術操作を実装するために、@ref{2.4.1}の同じ手続き@code{add-complex}、@code{sub-complex}、@code{mul-complex}、@code{div-complex}を使用できます。これらが呼び出すセレクタは汎用であり、どちらの表現でも機能するからです。たとえば、手続き@code{add-complex}は引き続き
+
+@lisp
+(define (add-complex z1 z2)
+  (make-from-real-imag
+   (+ (real-part z1) (real-part z2))
+   (+ (imag-part z1) (imag-part z2))))
+@end lisp
+
+@noindent
+最後に、Ben の表現または Alyssa の表現のどちらを使用して複素数を構築するかを選択する必要があります。合理的な選択の1つは、実部と虚部がある場合は常に直交数を構築し、大きさと角度がある場合は常に極数を構築することです：
+
+@lisp
+(define (make-from-real-imag x y)
+  (make-from-real-imag-rectangular x y))
+
+(define (make-from-mag-ang r a)
+  (make-from-mag-ang-polar r a))
+@end lisp
+
+@noindent
+結果として得られる複素数システムは、@ref{Figure 2.21}に示す構造を持ちます。システムは、複素数算術操作、Alyssa の極実装、Ben の直交実装という3つの比較的独立した部分に分解されています。極実装と直交実装は、Ben と Alyssa が別々に作業して書くことができ、これらの両方は、抽象コンストラクタ/セレクタインターフェースの観点から複素算術手続きを実装する第三のプログラマによって基礎となる表現として使用できます。
+
+@float

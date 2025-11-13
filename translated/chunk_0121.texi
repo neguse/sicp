@@ -1,0 +1,131 @@
+  ((get 'make-from-mag-ang
+        'polar)
+   r a))
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 2.73}練習問題 2.73:} @ref{2.3.2}は記号微分を実行するプログラムを記述しました：
+
+@lisp
+(define (deriv exp var)
+  (cond ((number? exp) 0)
+        ((variable? exp)
+         (if (same-variable? exp var) 1 0))
+        ((sum? exp)
+         (make-sum (deriv (addend exp) var)
+                   (deriv (augend exp) var)))
+        ((product? exp)
+         (make-sum
+           (make-product
+            (multiplier exp)
+            (deriv (multiplicand exp) var))
+           (make-product
+            (deriv (multiplier exp) var)
+            (multiplicand exp))))
+        ⟨@var{more rules can be added here}⟩
+        (else (error "unknown expression type:
+                      DERIV" exp))))
+@end lisp
+
+このプログラムは、微分される式の型に対するディスパッチを実行していると見なすことができます。この状況では、データの「型タグ」は代数演算子記号(たとえば@code{+})であり、実行される操作は@code{deriv}です。基本的な微分手続きを次のように書き直すことで、このプログラムをデータ主導スタイルに変換できます。
+
+@lisp
+(define (deriv exp var)
+   (cond ((number? exp) 0)
+         ((variable? exp)
+           (if (same-variable? exp var)
+               1
+               0))
+         (else ((get 'deriv (operator exp))
+                (operands exp)
+                var))))
+
+(define (operator exp) (car exp))
+(define (operands exp) (cdr exp))
+@end lisp
+
+@enumerate a
+
+@item
+上記で何が行われたかを説明しなさい。述語@code{number?}と@code{variable?}をデータ主導ディスパッチに同化できないのはなぜですか？
+
+@item
+合計と積の微分のための手続きと、上記のプログラムで使用されるテーブルにそれらをインストールするために必要な補助コードを書きなさい。
+
+@item
+べき乗のルール(@ref{Exercise 2.56})など、好きな追加の微分ルールを選択し、このデータ主導システムにインストールしなさい。
+
+@item
+この単純な代数操作機では、式の型はそれをまとめる代数演算子です。しかし、@code{deriv}のディスパッチ行が次のようになるように、手続きを逆の方法でインデックス付けしたとします
+
+@lisp
+((get (operator exp) 'deriv)
+ (operands exp) var)
+@end lisp
+
+@noindent
+微分システムに必要な対応する変更は何ですか？
+
+@end enumerate
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.74}練習問題 2.74:} Insatiable Enterprises, Inc. は、世界中に散在する多数の独立した部門で構成される非常に分散化されたコングロマリット企業です。同社のコンピュータ施設は、巧妙なネットワークインターフェーススキームによって相互接続されたばかりで、ネットワーク全体がどのユーザーにも単一のコンピュータとして見えるようになっています。Insatiable の社長は、部門ファイルから管理情報を抽出するネットワークの能力を活用する最初の試みで、すべての部門ファイルが Scheme のデータ構造として実装されているにもかかわらず、使用される特定のデータ構造が部門によって異なることを発見して落胆しています。部門マネージャーの会議が急遽召集され、本社のニーズを満たしながら部門の既存の自律性を保持するファイルを統合する戦略を探します。
+
+データ主導プログラミングでそのような戦略をどのように実装できるかを示しなさい。例として、各部門の人事記録が、従業員の名前をキーとするレコードの集合を含む単一のファイルで構成されていると仮定します。集合の構造は部門によって異なります。さらに、各従業員のレコードは、@code{address}や@code{salary}などの識別子の下にキー付けされた情報を含む(部門によって異なる構造の)集合そのものです。特に：
+
+@enumerate a
+
+@item
+本社のために、指定された人事ファイルから指定された従業員のレコードを取得する@code{get-record}手続きを実装しなさい。この手続きは、どの部門のファイルにも適用できる必要があります。個々の部門のファイルをどのように構造化すべきかを説明しなさい。特に、どのような型情報を提供する必要がありますか？
+
+@item
+本社のために、どの部門の人事ファイルからでも指定された従業員のレコードから給与情報を返す@code{get-salary}手続きを実装しなさい。この操作を機能させるために、レコードをどのように構造化すべきですか？
+
+@item
+本社のために、@code{find-employee-record}手続きを実装しなさい。これは、指定された従業員のレコードをすべての部門のファイルで検索し、レコードを返す必要があります。この手続きが引数として従業員の名前とすべての部門のファイルのリストを取ると仮定します。
+
+@item
+Insatiable が新しい会社を買収したとき、新しい人事情報を中央システムに組み込むためにどのような変更を行う必要がありますか？
+
+@end enumerate
+@end quotation
+
+@subsubheading メッセージパッシング
+
+データ主導プログラミングの重要なアイデアは、@ref{Figure 2.22}のテーブルなど、操作と型のテーブルを明示的に扱うことで、プログラムで汎用操作を処理することです。@ref{2.4.2}で使用したプログラミングのスタイルは、各操作が独自のディスパッチを処理するようにすることで、型に対する必要なディスパッチを組織化しました。実質的に、これは操作と型のテーブルを行に分解し、各汎用操作手続きがテーブルの行を表します。
+
+別の実装戦略は、テーブルを列に分解し、データ型にディスパッチする「インテリジェントな操作」を使用する代わりに、操作名にディスパッチする「インテリジェントなデータオブジェクト」を扱うことです。これは、直交数などのデータオブジェクトを、必要な操作名を入力として取り、指示された操作を実行する手続きとして表現するように配置することで実現できます。そのような規律では、@code{make-from-real-imag}は次のように書くことができます
+
+@lisp
+(define (make-from-real-imag x y)
+  (define (dispatch op)
+    (cond ((eq? op 'real-part) x)
+          ((eq? op 'imag-part) y)
+          ((eq? op 'magnitude)
+           (sqrt (+ (square x) (square y))))
+          ((eq? op 'angle) (atan y x))
+          (else
+           (error "Unknown op:
+            MAKE-FROM-REAL-IMAG" op))))
+  dispatch)
+@end lisp
+
+@noindent
+引数に汎用操作を適用する対応する@code{apply-generic}手続きは、操作の名前をデータオブジェクトに単に供給し、オブジェクトに作業をさせます：@footnote{この組織の1つの制限は、1つの引数の汎用手続きのみを許可することです。}
+
+@lisp
+(define (apply-generic op arg) (arg op))
+@end lisp
+
+@noindent
+@code{make-from-real-imag}によって返される値は手続き---内部@code{dispatch}手続き---であることに注意してください。これは、@code{apply-generic}が操作の実行を要求したときに呼び出される手続きです。
+
+このプログラミングスタイルは@newterm{メッセージパッシング}と呼ばれます。この名前は、データオブジェクトが要求された操作名を「メッセージ」として受け取るエンティティであるというイメージに由来します。@ref{2.1.3}で、データオブジェクトなしで手続きのみで@code{cons}、@code{car}、@code{cdr}を定義する方法を見たとき、メッセージパッシングの例をすでに見ました。ここでは、メッセージパッシングが数学的なトリックではなく、汎用操作を持つシステムを組織化するための有用な技法であることがわかります。この章の残りの部分では、メッセージパッシングではなくデータ主導プログラミングを使用して汎用算術操作を議論し続けます。@ref{Chapter 3}では、メッセージパッシングに戻り、それがシミュレーションプログラムを構造化するための強力なツールになり得ることを見ていきます。
+
+@quotation
+@strong{@anchor{Exercise 2.75}練習問題 2.75:} メッセージパッシングスタイルでコンストラクタ@code{make-from-mag-ang}を実装しなさい。この手続きは、上で示した@code{make-from-real-imag}手続きに類似している必要があります。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.76}練習問題 2.76:} 汎用操作を持つ大規模なシステムが進化するにつれて、新しい型のデータオブジェクトまたは新しい操作が必要になる場合があります。

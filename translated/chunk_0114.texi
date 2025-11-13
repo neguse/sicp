@@ -1,0 +1,75 @@
+    |          r __--         .
+    |        __--             .
+    |    __-- \               .
+    |__--    A |              .
+----+----------+-------------------> Real
+                              x
+@end example
+@end ifinfo
+@iftex
+@image{fig/chap2/Fig2.20,147mm,,,.std.svg}
+@caption{@strong{図 2.20:} 平面上の点としての複素数。}
+@end iftex
+@end float
+
+@noindent
+複素数を乗算する場合、複素数を極形式、つまり大きさと角度として表現する(@ref{Figure 2.20}の@math{r}と@math{A})ことで考える方が自然です。2つの複素数の積は、一方の複素数を他方の長さで引き伸ばし、次にそれを他方の角度だけ回転させることによって得られるベクトルです：
+@ifinfo
+
+@example
+Magnitude(z_1 * z_2) = Magnitude(z_1) * Magnitude(z_2)
+
+Angle(z_1 * z_2) = Angle(z_1) + Angle(z_2)
+@end example
+
+@end ifinfo
+@tex
+\[ % :47:
+\begin{eqnarray}
+  \text{Magnitude} (z_1 \cdot z_2)  &=&
+    \text{Magnitude} (z_1) \cdot \text{Magnitude} (z_2), \\
+  \text{Angle} (z_1 \cdot z_2)      &=&
+    \text{Angle} (z_1) + \text{Angle} (z_2).
+\end{eqnarray}
+\]
+@end tex
+
+@noindent
+したがって、複素数には、異なる操作に適した2つの異なる表現があります。しかし、複素数を使用するプログラムを書く人の観点から見ると、データ抽象の原則は、複素数を操作するすべての操作が、コンピュータがどの表現を使用するかに関係なく利用可能であるべきだと示唆しています。たとえば、直交座標で指定された複素数の大きさを見つけることができると便利な場合がよくあります。同様に、極座標で指定された複素数の実部を決定できると便利な場合がよくあります。
+
+そのようなシステムを設計するために、@ref{2.1.1}で有理数パッケージの設計に従ったのと同じデータ抽象戦略に従うことができます。複素数に対する操作が、@code{real-part}、@code{imag-part}、@code{magnitude}、@code{angle}という4つのセレクタの観点から実装されていると仮定します。また、複素数を構築するための2つの手続きがあると仮定します：@code{make-from-real-imag}は指定された実部と虚部を持つ複素数を返し、@code{make-from-mag-ang}は指定された大きさと角度を持つ複素数を返します。これらの手続きには、任意の複素数@code{z}に対して、次の両方
+
+@lisp
+(make-from-real-imag (real-part z)
+                     (imag-part z))
+@end lisp
+
+@noindent
+と
+
+@lisp
+(make-from-mag-ang (magnitude z)
+                   (angle z))
+@end lisp
+
+@noindent
+が@code{z}に等しい複素数を生成するという性質があります。
+
+これらのコンストラクタとセレクタを使用して、@ref{2.1.1}で有理数に対して行ったのと同様に、コンストラクタとセレクタによって指定された「抽象データ」を使用して複素数の算術を実装できます。上記の式で示されているように、実部と虚部の観点から複素数の加算と減算を行い、大きさと角度の観点から複素数の乗算と除算を行うことができます：
+
+@lisp
+(define (add-complex z1 z2)
+  (make-from-real-imag
+   (+ (real-part z1) (real-part z2))
+   (+ (imag-part z1) (imag-part z2))))
+
+(define (sub-complex z1 z2)
+  (make-from-real-imag
+   (- (real-part z1) (real-part z2))
+   (- (imag-part z1) (imag-part z2))))
+
+(define (mul-complex z1 z2)
+  (make-from-mag-ang
+   (* (magnitude z1) (magnitude z2))
+   (+ (angle z1) (angle z2))))
+

@@ -1,0 +1,65 @@
+imag-part  | imag-part-polar | imag-part-rectangular
+magnitude  | magnitude-polar | magnitude-rectangular
+angle      | angle-polar     | angle-rectangular
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap2/Fig2.22,147mm,,,.std.svg}
+@caption{@strong{図 2.22:} 複素数システムの操作テーブル。}
+@end iftex
+@end float
+
+@noindent
+データ主導プログラミングは、そのようなテーブルを直接扱うようにプログラムを設計する技法です。以前、複素算術コードと2つの表現パッケージをインターフェースするメカニズムを、それぞれが型に対する明示的なディスパッチを実行する手続きの集合として実装しました。ここでは、操作名と引数型の組み合わせをテーブルで検索して適用する正しい手続きを見つけ、次にそれを引数の内容に適用する単一の手続きとしてインターフェースを実装します。これを行うと、システムに新しい表現パッケージを追加するために既存の手続きを変更する必要はありません；テーブルに新しいエントリを追加するだけで済みます。
+
+この計画を実装するには、操作と型のテーブルを操作するための2つの手続き、@code{put}と@code{get}があると仮定します：
+
+@itemize @bullet
+
+@item
+@code{(put ⟨@var{op}⟩ ⟨@var{type}⟩ ⟨@var{item}⟩)}は、@code{⟨}@var{op}@code{⟩}と@code{⟨}@var{type}@code{⟩}によってインデックス付けされた@code{⟨}@var{item}@code{⟩}をテーブルにインストールします。
+
+@item
+@code{(get ⟨@var{op}⟩ ⟨@var{type}⟩)}は、テーブル内の@code{⟨}@var{op}@code{⟩}、@code{⟨}@var{type}@code{⟩}エントリを検索し、そこで見つかった項目を返します。項目が見つからない場合、@code{get}は false を返します。
+
+@end itemize
+
+@noindent
+今のところ、@code{put}と@code{get}が言語に含まれていると仮定できます。@ref{Chapter 3}(@ref{3.3.3})では、これらやテーブルを操作するための他の操作を実装する方法を見ていきます。
+
+データ主導プログラミングが複素数システムでどのように使用できるかを次に示します。直交表現を開発した Ben は、元々行ったように彼のコードを実装します。彼は手続きの集合、または@newterm{パッケージ}を定義し、システムに直交数をどのように操作するかを指示するエントリをテーブルに追加することで、これらをシステムの残りの部分にインターフェースします。これは、次の手続きを呼び出すことによって達成されます：
+
+@lisp
+(define (install-rectangular-package)
+  @r{;; internal procedures}
+  (define (real-part z) (car z))
+  (define (imag-part z) (cdr z))
+  (define (make-from-real-imag x y)
+    (cons x y))
+  (define (magnitude z)
+    (sqrt (+ (square (real-part z))
+             (square (imag-part z)))))
+  (define (angle z)
+    (atan (imag-part z) (real-part z)))
+  (define (make-from-mag-ang r a)
+    (cons (* r (cos a)) (* r (sin a))))
+  @r{;; interface to the rest of the system}
+  (define (tag x)
+    (attach-tag 'rectangular x))
+  (put 'real-part '(rectangular) real-part)
+  (put 'imag-part '(rectangular) imag-part)
+  (put 'magnitude '(rectangular) magnitude)
+  (put 'angle '(rectangular) angle)
+  (put 'make-from-real-imag 'rectangular
+       (lambda (x y)
+         (tag (make-from-real-imag x y))))
+  (put 'make-from-mag-ang 'rectangular
+       (lambda (r a)
+         (tag (make-from-mag-ang r a))))
+  'done)
+@end lisp
+
+@noindent
+ここでの内部手続きは、Ben が孤立して作業していたときに書いた@ref{2.4.1}の同じ手続きであることに注意してください。システムの残りの部分にインターフェースするために変更する必要はありません。さらに、これらの手続き定義はインストール手続きの内部にあるため、Ben は直交パッケージ外の他の手続きとの名前の競合を心配する必要はありません。これらをシステムの残りの部分にインターフェースするために、Ben は操作名@code{real-part}と型@code{(rectangular)}の下に@code{real-part}手続きをインストールし、他のセレクタについても同様にします。@footnote{記号@code{rectangular}ではなくリスト@code{(rectangular)}を使用するのは、すべてが同じ型ではない複数の引数を持つ操作の可能性を許可するためです。}インターフェースは、外部システムで使用されるコンストラクタも定義します。@footnote{コンストラクタがインストールされる型はリストである必要はありません。コンストラクタは常に1つの特定の型のオブジェクトを作成するために使用されるからです。}これらは、タグを付けることを除いて、Ben が内部で定義したコンストラクタと同じです。
+

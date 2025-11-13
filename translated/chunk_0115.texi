@@ -1,0 +1,76 @@
+(define (div-complex z1 z2)
+  (make-from-mag-ang
+   (/ (magnitude z1) (magnitude z2))
+   (- (angle z1) (angle z2))))
+@end lisp
+
+@noindent
+複素数パッケージを完成させるには、表現を選択し、基本的な数と基本的なリスト構造の観点からコンストラクタとセレクタを実装する必要があります。これを行うには明白な2つの方法があります：複素数を「直交形式」でペア(実部、虚部)として表現するか、「極形式」でペア(大きさ、角度)として表現できます。どちらを選択すべきでしょうか？
+
+異なる選択を具体的にするために、Ben Bitdiddle と Alyssa P. Hacker という2人のプログラマが、独立して複素数システムの表現を設計していると想像してください。Ben は複素数を直交形式で表現することを選択します。この選択により、複素数の実部と虚部を選択することは簡単であり、指定された実部と虚部を持つ複素数を構築することも簡単です。大きさと角度を見つけるため、または指定された大きさと角度を持つ複素数を構築するために、彼は三角関数の関係を使用します
+
+@ifinfo
+
+@example
+                      __________
+x = r cos A     r = ./ x^2 + y^2
+
+y = r sin A     A = arctan(y,x)
+@end example
+
+@end ifinfo
+@tex
+\[ % :48:
+\begin{eqnarray}
+  x &=& r \cos A, \\
+  y &=& r \sin A, \\
+  r &=& \sqrt{x^2 + y^2,} \\
+  A &=& \arctan(y, x),
+\end{eqnarray}
+\]
+@end tex
+
+@noindent
+これは実部と虚部@math{{(x, y)}}を大きさと角度@math{{(r, A)}}に関連付けます。@footnote{ここで参照される逆正接関数は、Schemeの@code{atan}手続きによって計算され、2つの引数@math{y}と@math{x}を取り、その正接が@math{{y / x}}である角度を返すように定義されています。引数の符号が角度の象限を決定します。}したがって、Benの表現は次のセレクタとコンストラクタによって与えられます：
+
+@lisp
+(define (real-part z) (car z))
+(define (imag-part z) (cdr z))
+
+(define (magnitude z)
+  (sqrt (+ (square (real-part z))
+           (square (imag-part z)))))
+
+(define (angle z)
+  (atan (imag-part z) (real-part z)))
+
+(define (make-from-real-imag x y)
+  (cons x y))
+
+(define (make-from-mag-ang r a)
+  (cons (* r (cos a)) (* r (sin a))))
+@end lisp
+
+@noindent
+対照的に、Alyssa は複素数を極形式で表現することを選択します。彼女にとって、大きさと角度を選択することは簡単ですが、実部と虚部を取得するには三角関数の関係を使用する必要があります。Alyssa の表現は次のとおりです：
+
+@lisp
+(define (real-part z)
+  (* (magnitude z) (cos (angle z))))
+
+(define (imag-part z)
+  (* (magnitude z) (sin (angle z))))
+
+(define (magnitude z) (car z))
+(define (angle z) (cdr z))
+
+(define (make-from-real-imag x y)
+  (cons (sqrt (+ (square x) (square y)))
+        (atan y x)))
+
+(define (make-from-mag-ang r a)
+  (cons r a))
+@end lisp
+
+@noindent
+データ抽象の規律により、同じ@code{add-complex}、@code{sub-complex}、@code{mul-complex}、@code{div-complex}の実装が、Ben の表現または Alyssa の表現のどちらでも機能することが保証されます。

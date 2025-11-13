@@ -1,0 +1,82 @@
+     1→
+     2→@lisp
+     3→(address (Aull DeWitt)
+     4→         (Slumerville (Onion Square) 5))
+     5→(job (Aull DeWitt) (administration secretary))
+     6→(salary (Aull DeWitt) 25000)
+     7→(supervisor (Aull DeWitt) (Warbucks Oliver))
+     8→@end lisp
+     9→
+    10→@noindent
+    11→データベースには、他の種類の職務を保持している人々によってどの種類の職務が実行できるかに関するアサーションも含まれています。例えば、コンピュータウィザードはコンピュータプログラマーとコンピュータ技術者の両方の仕事ができます：
+    12→
+    13→@lisp
+    14→(can-do-job (computer wizard)
+    15→            (computer programmer))
+    16→
+    17→(can-do-job (computer wizard)
+    18→            (computer technician))
+    19→@end lisp
+    20→
+    21→@noindent
+    22→コンピュータプログラマーは研修生の代わりを務めることができます：
+    23→
+    24→@lisp
+    25→(can-do-job (computer programmer)
+    26→            (computer programmer trainee))
+    27→@end lisp
+    28→
+    29→@noindent
+    30→また、よく知られているように、
+    31→
+    32→@lisp
+    33→(can-do-job (administration secretary)
+    34→            (administration big wheel))
+    35→@end lisp
+    36→
+    37→@subsubheading 単純なクエリ
+    38→
+    39→クエリ言語により、ユーザーはシステムのプロンプトに応答してクエリを投げることによって、データベースから情報を取得できます。例えば、すべてのコンピュータプログラマーを見つけるには、次のように言うことができます
+    40→
+    41→@lisp
+    42→@i{;;; Query input:}
+    43→(job ?x (computer programmer))
+    44→@end lisp
+    45→
+    46→@noindent
+    47→システムは次の項目で応答します：
+    48→
+    49→@lisp
+    50→@i{;;; Query results:}
+    51→(job (Hacker Alyssa P) (computer programmer))
+    52→(job (Fect Cy D) (computer programmer))
+    53→@end lisp
+    54→
+    55→@noindent
+    56→入力クエリは、特定の@newterm{パターン}に一致するデータベース内のエントリを探していることを指定します。この例では、パターンは3つの項目からなるエントリを指定し、そのうち最初はリテラルシンボル@code{job}、2番目は何でもよく、3番目はリテラルリスト@code{(computer programmer)}です。一致するリストの2番目の項目になることができる「何でも」は、@newterm{パターン変数}@code{?x}によって指定されます。パターン変数の一般的な形式は、変数の名前と見なされるシンボルの前に疑問符が付いたものです。「何でも」を表すために単に@code{?}をパターンに入れるのではなく、パターン変数に名前を指定することが有用である理由は以下で説明します。システムは、指定されたパターンに一致するデータベース内のすべてのエントリを表示することによって、単純なクエリに応答します。
+    57→
+    58→パターンは複数の変数を持つことができます。例えば、クエリ
+    59→
+    60→@lisp
+    61→(address ?x ?y)
+    62→@end lisp
+    63→
+    64→@noindent
+    65→は、すべての従業員の住所をリストします。
+    66→
+    67→パターンは変数を持たない場合があり、その場合、クエリは単にそのパターンがデータベースのエントリであるかどうかを判定します。そうであれば、1つの一致があります。そうでなければ、一致はありません。
+    68→
+    69→同じパターン変数はクエリに複数回出現することができ、同じ「何でも」が各位置に出現しなければならないことを指定します。これが変数が名前を持つ理由です。例えば、
+    70→
+    71→@lisp
+    72→(supervisor ?x ?x)
+    73→@end lisp
+    74→
+    75→@noindent
+    76→は自分自身を監督するすべての人を見つけます（ただし、サンプルデータベースにはそのようなアサーションはありません）。
+    77→
+    78→クエリ
+    79→
+    80→@lisp
+    81→(job ?x (computer ?type))
+    82→

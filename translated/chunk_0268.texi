@@ -1,0 +1,83 @@
+     1→                 (succeed
+     2→                  'ok
+     3→                  (lambda ()    @r{; *2*}
+     4→                    (set-variable-value!
+     5→                     var
+     6→                     old-value
+     7→                     env)
+     8→                    (fail2)))))
+     9→               fail))))
+    10→@end lisp
+    11→
+    12→@subsubheading 手続き適用
+    13→
+    14→適用の実行手続きには、継続を管理する技術的な複雑さを除いて、新しいアイデアはありません。この複雑さは、オペランドを評価する際に成功継続と失敗継続を追跡する必要があるため、@code{analyze-application}で生じます。通常の評価器のような単純な@code{map}ではなく、オペランドのリストを評価するために手続き@code{get-args}を使用します。
+    15→
+    16→@lisp
+    17→(define (analyze-application exp)
+    18→  (let ((fproc (analyze (operator exp)))
+    19→        (aprocs (map analyze (operands exp))))
+    20→    (lambda (env succeed fail)
+    21→      (fproc env
+    22→             (lambda (proc fail2)
+    23→               (get-args
+    24→                aprocs
+    25→                env
+    26→                (lambda (args fail3)
+    27→                  (execute-application
+    28→                   proc args succeed fail3))
+    29→                fail2))
+    30→             fail))))
+    31→@end lisp
+    32→
+    33→@noindent
+    34→@code{get-args}では、@code{aproc}実行手続きのリストを@code{cdr}で下り、結果の@code{args}のリストを@code{cons}で上ることが、リスト内の各@code{aproc}を再帰的に@code{get-args}を呼び出す成功継続で呼び出すことによってどのように達成されるかに注意してください。@code{get-args}へのこれらの再帰呼び出しのそれぞれは、新しく取得された引数を累積された引数のリストに@code{cons}する値の成功継続を持っています：
+    35→
+    36→@lisp
+    37→(define (get-args aprocs env succeed fail)
+    38→  (if (null? aprocs)
+    39→      (succeed '() fail)
+    40→      ((car aprocs)
+    41→       env
+    42→       ;; @r{success continuation for this @code{aproc}}
+    43→       (lambda (arg fail2)
+    44→         (get-args
+    45→          (cdr aprocs)
+    46→          env
+    47→          ;; @r{success continuation for}
+    48→          ;; @r{recursive call to @code{get-args}}
+    49→          (lambda (args fail3)
+    50→            (succeed (cons arg args)
+    51→                     fail3))
+    52→          fail2))
+    53→       fail)))
+    54→@end lisp
+    55→
+    56→@noindent
+    57→@code{execute-application}によって実行される実際の手続き適用は、継続を管理する必要があることを除いて、通常の評価器と同じ方法で達成されます。
+    58→
+    59→@lisp
+    60→(define (execute-application
+    61→         proc args succeed fail)
+    62→  (cond ((primitive-procedure? proc)
+    63→         (succeed
+    64→          (apply-primitive-procedure
+    65→           proc args)
+    66→          fail))
+    67→        ((compound-procedure? proc)
+    68→         ((procedure-body proc)
+    69→          (extend-environment
+    70→           (procedure-parameters proc)
+    71→           args
+    72→           (procedure-environment proc))
+    73→          succeed
+    74→          fail))
+    75→        (else (error "Unknown procedure type:
+    76→                      EXECUTE-APPLICATION"
+    77→                     proc))))
+    78→@end lisp
+    79→
+    80→@subsubheading @code{amb}式の評価
+    81→
+    82→@code{amb}特殊形式は、非決定性言語の重要な要素です。ここでは、解釈プロセスの本質と継続を追跡する理由がわかります。@code{amb}の実行手続きは、@code{amb}式のすべての可能な値の実行手続きを循環するループ@code{try-next}を定義します。各実行手続きは、次のものを試す失敗継続で呼び出されます。試すべき代替案がもうない場合、@code{amb}式全体が失敗します。
+    83→

@@ -1,0 +1,88 @@
+     1→
+     2→@lisp
+     3→(define count 0)
+     4→(let ((x (an-element-of '(a b c)))
+     5→      (y (an-element-of '(a b c))))
+     6→  (permanent-set! count (+ count 1))
+     7→  (require (not (eq? x y)))
+     8→  (list x y count))
+     9→
+    10→@i{;;; Starting a new problem}
+    11→@i{;;; Amb-Eval value:}
+    12→@i{(a b 2)}
+    13→
+    14→@i{;;; Amb-Eval input:}
+    15→try-again
+    16→
+    17→@i{;;; Amb-Eval value:}
+    18→@i{(a c 3)}
+    19→@end lisp
+    20→
+    21→ここで@code{permanent-set!}の代わりに@code{set!}を使用していた場合、どのような値が表示されていたでしょうか？
+    22→@end quotation
+    23→
+    24→@quotation
+    25→@strong{@anchor{Exercise 4.52}Exercise 4.52:} ユーザーが式の失敗をキャッチできるようにする@code{if-fail}と呼ばれる新しい構成要素を実装してください。@code{if-fail}は2つの式を取ります。最初の式を通常どおり評価し、評価が成功すれば通常どおり戻ります。しかし、評価が失敗した場合、次の例のように2番目の式の値が返されます：
+    26→
+    27→@lisp
+    28→@i{;;; Amb-Eval input:}
+    29→(if-fail
+    30→ (let ((x (an-element-of '(1 3 5))))
+    31→   (require (even? x))
+    32→   x)
+    33→ 'all-odd)
+    34→
+    35→@i{;;; Starting a new problem}
+    36→@i{;;; Amb-Eval value:}
+    37→@i{all-odd}
+    38→
+    39→@i{;;; Amb-Eval input:}
+    40→(if-fail
+    41→ (let ((x (an-element-of '(1 3 5 8))))
+    42→   (require (even? x))
+    43→   x)
+    44→ 'all-odd)
+    45→
+    46→@i{;;; Starting a new problem}
+    47→@i{;;; Amb-Eval value:}
+    48→@i{8}
+    49→@end lisp
+    50→@end quotation
+    51→
+    52→@quotation
+    53→@strong{@anchor{Exercise 4.53}Exercise 4.53:} @ref{Exercise 4.51}で説明されている@code{permanent-set!}と@ref{Exercise 4.52}の@code{if-fail}を使って、次を評価した結果はどうなりますか
+    54→
+    55→@lisp
+    56→(let ((pairs '()))
+    57→  (if-fail
+    58→   (let ((p (prime-sum-pair
+    59→             '(1 3 5 8)
+    60→             '(20 35 110))))
+    61→     (permanent-set! pairs
+    62→                     (cons p pairs))
+    63→     (amb))
+    64→   pairs))
+    65→@end lisp
+    66→@end quotation
+    67→
+    68→@quotation
+    69→@strong{@anchor{Exercise 4.54}Exercise 4.54:} @code{require}が非決定性プログラムの一部としてユーザーによって定義される@code{amb}を使用する通常の手続きとして実装できることに気づいていなかったならば、特殊形式として実装する必要があったでしょう。これには構文手続きが必要になります
+    70→
+    71→@lisp
+    72→(define (require? exp)
+    73→  (tagged-list? exp 'require))
+    74→
+    75→(define (require-predicate exp)
+    76→  (cadr exp))
+    77→@end lisp
+    78→
+    79→@noindent
+    80→そして@code{analyze}のディスパッチに新しい節が必要です
+    81→
+    82→@lisp
+    83→((require? exp) (analyze-require exp))
+    84→@end lisp
+    85→
+    86→@noindent
+    87→さらに、@code{require}式を処理する手続き@code{analyze-require}が必要です。次の@code{analyze-require}の定義を完成させてください。
+    88→

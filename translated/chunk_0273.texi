@@ -1,0 +1,88 @@
+     1→この章で実装するクエリ言語は、この方法で使用されるように設計されています。
+     2→
+     3→クエリシステムが何を行うかを示すために、ボストン地域で繁栄しているハイテク企業Microshaftの人事記録データベースを管理するためにどのように使用できるかを示します。この言語は、人事情報へのパターン指向アクセスを提供し、論理的推論を行うために一般的なルールを活用することもできます。
+     4→
+     5→@subsubheading サンプルデータベース
+     6→
+     7→Microshaftの人事データベースには、会社の人事に関する@newterm{アサーション}が含まれています。常駐コンピュータウィザードであるBen Bitdiddleに関する情報は次のとおりです：
+     8→
+     9→@lisp
+    10→(address (Bitdiddle Ben)
+    11→         (Slumerville (Ridge Road) 10))
+    12→(job (Bitdiddle Ben) (computer wizard))
+    13→(salary (Bitdiddle Ben) 60000)
+    14→@end lisp
+    15→
+    16→@noindent
+    17→各アサーションは、要素自体がリストである可能性があるリスト（この場合は三つ組）です。
+    18→
+    19→常駐ウィザードとして、Benは会社のコンピュータ部門を担当しており、2人のプログラマーと1人の技術者を監督しています。彼らに関する情報は次のとおりです：
+    20→
+    21→@lisp
+    22→(address (Hacker Alyssa P)
+    23→         (Cambridge (Mass Ave) 78))
+    24→(job (Hacker Alyssa P) (computer programmer))
+    25→(salary (Hacker Alyssa P) 40000)
+    26→(supervisor (Hacker Alyssa P) (Bitdiddle Ben))
+    27→
+    28→(address (Fect Cy D)
+    29→         (Cambridge (Ames Street) 3))
+    30→(job (Fect Cy D) (computer programmer))
+    31→(salary (Fect Cy D) 35000)
+    32→(supervisor (Fect Cy D) (Bitdiddle Ben))
+    33→
+    34→(address (Tweakit Lem E)
+    35→         (Boston (Bay State Road) 22))
+    36→(job (Tweakit Lem E) (computer technician))
+    37→(salary (Tweakit Lem E) 25000)
+    38→(supervisor (Tweakit Lem E) (Bitdiddle Ben))
+    39→@end lisp
+    40→
+    41→@noindent
+    42→また、Alyssaによって監督されているプログラマー研修生もいます：
+    43→
+    44→@lisp
+    45→(address (Reasoner Louis)
+    46→         (Slumerville (Pine Tree Road) 80))
+    47→(job (Reasoner Louis)
+    48→     (computer programmer trainee))
+    49→(salary (Reasoner Louis) 30000)
+    50→(supervisor (Reasoner Louis)
+    51→            (Hacker Alyssa P))
+    52→@end lisp
+    53→
+    54→@noindent
+    55→これらの人々は全員、職務記述の最初の項目として@code{computer}という単語で示されるように、コンピュータ部門にいます。
+    56→
+    57→Benは高レベルの従業員です。彼の上司は会社の大物自身です：
+    58→
+    59→@lisp
+    60→(supervisor (Bitdiddle Ben) (Warbucks Oliver))
+    61→(address (Warbucks Oliver)
+    62→         (Swellesley (Top Heap Road)))
+    63→(job (Warbucks Oliver)
+    64→     (administration big wheel))
+    65→(salary (Warbucks Oliver) 150000)
+    66→@end lisp
+    67→
+    68→@noindent
+    69→Benが監督するコンピュータ部門の他に、会社には主任会計士と彼の助手からなる経理部門があります：
+    70→
+    71→@lisp
+    72→(address (Scrooge Eben)
+    73→         (Weston (Shady Lane) 10))
+    74→(job (Scrooge Eben)
+    75→     (accounting chief accountant))
+    76→(salary (Scrooge Eben) 75000)
+    77→(supervisor (Scrooge Eben) (Warbucks Oliver))
+    78→
+    79→(address (Cratchet Robert)
+    80→         (Allston (N Harvard Street) 16))
+    81→(job (Cratchet Robert) (accounting scrivener))
+    82→(salary (Cratchet Robert) 18000)
+    83→(supervisor (Cratchet Robert) (Scrooge Eben))
+    84→@end lisp
+    85→
+    86→@noindent
+    87→また、大物のための秘書もいます：
+    88→

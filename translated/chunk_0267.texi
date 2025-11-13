@@ -1,0 +1,74 @@
+     1→               (if (true? pred-value)
+     2→                   (cproc env succeed fail2)
+     3→                   (aproc env succeed fail2)))
+     4→             @r{;; failure continuation for}
+     5→             @r{;; evaluating the predicate}
+     6→             fail))))
+     7→@end lisp
+     8→
+     9→@noindent
+    10→シーケンスも、継続を渡すために必要なサブ手続き@code{sequentially}での操作を除いて、前の評価器と同じ方法で処理されます。すなわち、@code{a}を逐次的に実行してから@code{b}を実行するために、@code{b}を呼び出す成功継続で@code{a}を呼び出します。
+    11→
+    12→@lisp
+    13→(define (analyze-sequence exps)
+    14→  (define (sequentially a b)
+    15→    (lambda (env succeed fail)
+    16→      (a env
+    17→         @r{;; success continuation for calling @code{a}}
+    18→         (lambda (a-value fail2)
+    19→           (b env succeed fail2))
+    20→         @r{;; failure continuation for calling @code{a}}
+    21→         fail)))
+    22→  (define (loop first-proc rest-procs)
+    23→    (if (null? rest-procs)
+    24→        first-proc
+    25→        (loop (sequentially first-proc
+    26→                            (car rest-procs))
+    27→              (cdr rest-procs))))
+    28→  (let ((procs (map analyze exps)))
+    29→    (if (null? procs)
+    30→        (error "Empty sequence: ANALYZE"))
+    31→    (loop (car procs) (cdr procs))))
+    32→@end lisp
+    33→
+    34→@subsubheading 定義と代入
+    35→
+    36→定義は、実際に新しい変数を定義する前に定義値式を評価する必要があるため、継続を管理するためにある程度の手間がかかるもう1つのケースです。これを達成するために、定義値実行手続き@code{vproc}は、環境、成功継続、失敗継続で呼び出されます。@code{vproc}の実行が成功し、定義された変数の値@code{val}を取得すると、変数が定義され、成功が伝播されます：
+    37→
+    38→@lisp
+    39→(define (analyze-definition exp)
+    40→  (let ((var (definition-variable exp))
+    41→        (vproc (analyze
+    42→                (definition-value exp))))
+    43→    (lambda (env succeed fail)
+    44→      (vproc env
+    45→             (lambda (val fail2)
+    46→               (define-variable! var val env)
+    47→               (succeed 'ok fail2))
+    48→             fail))))
+    49→@end lisp
+    50→
+    51→@noindent
+    52→代入はより興味深いものです。これは、継続を単に渡すのではなく、実際に使用する最初の場所です。代入の実行手続きは、定義のものと同様に始まります。最初に変数に代入される新しい値を取得しようとします。@code{vproc}のこの評価が失敗すると、代入は失敗します。
+    53→
+    54→しかし、@code{vproc}が成功し、代入を行う場合、この計算の分岐が後で失敗する可能性を考慮する必要があります。その場合、代入からバックアウトする必要があります。したがって、バックトラッキングプロセスの一部として代入を元に戻すように手配する必要があります。@footnote{定義を元に戻すことについては心配しませんでした。内部定義はスキャンアウトされていると仮定できるためです（@ref{4.1.6}）。}
+    55→
+    56→これは、@code{vproc}に、新しい値を変数に代入し代入から続行する前に変数の古い値を保存する成功継続（以下の「*1*」のコメントでマークされています）を与えることによって達成されます。代入の値と共に渡される失敗継続（以下の「*2*」のコメントでマークされています）は、失敗を継続する前に変数の古い値を復元します。つまり、成功した代入は、後続の失敗を傍受する失敗継続を提供します。@code{fail2}を呼び出したであろう失敗は、代わりにこの手続きを呼び出して、実際に@code{fail2}を呼び出す前に代入を元に戻します。
+    57→
+    58→@lisp
+    59→(define (analyze-assignment exp)
+    60→  (let ((var (assignment-variable exp))
+    61→        (vproc (analyze
+    62→                (assignment-value exp))))
+    63→    (lambda (env succeed fail)
+    64→      (vproc env
+    65→             (lambda (val fail2)    @r{; *1*}
+    66→               (let ((old-value
+    67→                      (lookup-variable-value
+    68→                       var
+    69→                       env)))
+    70→                 (set-variable-value!
+    71→                  var
+    72→                  val
+    73→                  env)
+    74→

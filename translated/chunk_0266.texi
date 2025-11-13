@@ -1,0 +1,78 @@
+     1→継続：
+     2→
+     3→@lisp
+     4→(define (ambeval exp env succeed fail)
+     5→  ((analyze exp) env succeed fail))
+     6→@end lisp
+     7→
+     8→@noindent
+     9→成功継続は2つの引数の手続きです：取得したばかりの値と、その値が後続の失敗につながる場合に使用される別の失敗継続です。失敗継続は引数のない手続きです。したがって、実行手続きの一般的な形式は次のようになります
+    10→
+    11→@lisp
+    12→(lambda (env succeed fail)
+    13→  @r{;; @code{succeed} is @code{(lambda (value fail) @r{…})}}
+    14→  @r{;; @code{fail} is @code{(lambda () @r{…})}}
+    15→  @r{…})
+    16→@end lisp
+    17→
+    18→@noindent
+    19→例えば、次を実行すると
+    20→
+    21→@lisp
+    22→(ambeval ⟨@var{exp}⟩
+    23→         the-global-environment
+    24→         (lambda (value fail) value)
+    25→         (lambda () 'failed))
+    26→@end lisp
+    27→
+    28→@noindent
+    29→与えられた式を評価しようとし、式の値（評価が成功した場合）またはシンボル@code{failed}（評価が失敗した場合）のいずれかを返します。以下に示すドライバループでの@code{ambeval}の呼び出しは、ループを継続し@code{try-again}要求をサポートする、はるかに複雑な継続手続きを使用します。
+    30→
+    31→@code{amb}評価器の複雑さのほとんどは、実行手続きが互いに呼び出し合うときに継続を渡す仕組みから生じています。次のコードを読む際には、各実行手続きを@ref{4.1.7}で与えられた通常の評価器の対応する手続きと比較する必要があります。
+    32→
+    33→@subsubheading 単純な式
+    34→
+    35→最も単純な種類の式の実行手続きは、継続を管理する必要があることを除いて、通常の評価器のものと本質的に同じです。実行手続きは単に式の値で成功し、それらに渡された失敗継続を渡します。
+    36→
+    37→@lisp
+    38→(define (analyze-self-evaluating exp)
+    39→  (lambda (env succeed fail)
+    40→    (succeed exp fail)))
+    41→
+    42→(define (analyze-quoted exp)
+    43→  (let ((qval (text-of-quotation exp)))
+    44→    (lambda (env succeed fail)
+    45→      (succeed qval fail))))
+    46→
+    47→(define (analyze-variable exp)
+    48→  (lambda (env succeed fail)
+    49→    (succeed (lookup-variable-value exp env)
+    50→             fail)))
+    51→
+    52→(define (analyze-lambda exp)
+    53→  (let ((vars (lambda-parameters exp))
+    54→        (bproc (analyze-sequence
+    55→                (lambda-body exp))))
+    56→    (lambda (env succeed fail)
+    57→      (succeed (make-procedure vars bproc env)
+    58→               fail))))
+    59→@end lisp
+    60→
+    61→@noindent
+    62→変数を検索することは常に「成功」することに注意してください。@code{lookup-variable-value}が変数を見つけられない場合、通常どおりエラーを通知します。このような「失敗」はプログラムのバグ、つまり未束縛変数への参照を示しています。これは、現在試されている選択の代わりに別の非決定的選択を試すべきであることを示すものではありません。
+    63→
+    64→@subsubheading 条件式とシーケンス
+    65→
+    66→条件式も通常の評価器と同様の方法で処理されます。@code{analyze-if}によって生成される実行手続きは、述語の値が真かどうかをチェックし、帰結または代替のいずれかの実行を続行する成功継続で述語実行手続き@code{pproc}を呼び出します。@code{pproc}の実行が失敗した場合、@code{if}式の元の失敗継続が呼び出されます。
+    67→
+    68→@lisp
+    69→(define (analyze-if exp)
+    70→  (let ((pproc (analyze (if-predicate exp)))
+    71→        (cproc (analyze (if-consequent exp)))
+    72→        (aproc (analyze (if-alternative exp))))
+    73→    (lambda (env succeed fail)
+    74→      (pproc env
+    75→             @r{;; success continuation for evaluating}
+    76→             @r{;; the predicate to obtain @code{pred-value}}
+    77→             (lambda (pred-value fail2)
+    78→

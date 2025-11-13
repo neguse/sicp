@@ -1,0 +1,74 @@
+     1→
+     2→@lisp
+     3→(define (analyze-amb exp)
+     4→  (let ((cprocs
+     5→         (map analyze (amb-choices exp))))
+     6→    (lambda (env succeed fail)
+     7→      (define (try-next choices)
+     8→        (if (null? choices)
+     9→            (fail)
+    10→            ((car choices)
+    11→             env
+    12→             succeed
+    13→             (lambda ()
+    14→               (try-next (cdr choices))))))
+    15→      (try-next cprocs))))
+    16→@end lisp
+    17→
+    18→@subsubheading ドライバループ
+    19→
+    20→@code{amb}評価器のドライバループは、ユーザーが式の評価を再試行できるようにするメカニズムのために複雑です。ドライバは、引数として手続き@code{try-again}を取る@code{internal-loop}と呼ばれる手続きを使用します。意図は、@code{try-again}を呼び出すと、非決定性評価において次の未試行の代替案に進むべきであるということです。@code{internal-loop}は、ユーザーがドライバループで@code{try-again}を入力したことに応答して@code{try-again}を呼び出すか、または@code{ambeval}を呼び出すことによって新しい評価を開始します。
+    21→
+    22→この@code{ambeval}の呼び出しの失敗継続は、ユーザーに値がもうないことを通知し、ドライバループを再呼び出しします。
+    23→
+    24→@code{ambeval}の呼び出しの成功継続はより繊細です。取得した値を印刷し、次の代替案を試すことができる@code{try-again}手続きで内部ループを再び呼び出します。この@code{next-alternative}手続きは、成功継続に渡された2番目の引数です。通常、この2番目の引数を、現在の評価分岐が後で失敗した場合に使用される失敗継続と考えます。しかし、この場合、成功した評価を完了したため、追加の成功した評価を検索するために「失敗」代替分岐を呼び出すことができます。
+    25→
+    26→@lisp
+    27→(define input-prompt  ";;; Amb-Eval input:")
+    28→(define output-prompt ";;; Amb-Eval value:")
+    29→
+    30→(define (driver-loop)
+    31→  (define (internal-loop try-again)
+    32→    (prompt-for-input input-prompt)
+    33→    (let ((input (read)))
+    34→      (if (eq? input 'try-again)
+    35→          (try-again)
+    36→          (begin
+    37→            (newline)
+    38→            (display
+    39→             ";;; Starting a new problem ")
+    40→            (ambeval
+    41→             input
+    42→             the-global-environment
+    43→             @r{;; @code{ambeval} success}
+    44→             (lambda (val next-alternative)
+    45→               (announce-output
+    46→                output-prompt)
+    47→               (user-print val)
+    48→               (internal-loop
+    49→                next-alternative))
+    50→             @r{;; @code{ambeval} failure}
+    51→             (lambda ()
+    52→               (announce-output
+    53→                ";;; There are no
+    54→                 more values of")
+    55→               (user-print input)
+    56→               (driver-loop)))))))
+    57→  (internal-loop
+    58→   (lambda ()
+    59→     (newline)
+    60→     (display
+    61→      ";;; There is no current problem")
+    62→     (driver-loop))))
+    63→@end lisp
+    64→
+    65→@noindent
+    66→@code{internal-loop}への最初の呼び出しは、現在の問題がないことを文句を言い、ドライバループを再起動する@code{try-again}手続きを使用します。これは、進行中の評価がないときにユーザーが@code{try-again}を入力した場合に発生する動作です。
+    67→
+    68→@quotation
+    69→@strong{@anchor{Exercise 4.50}Exercise 4.50:} @code{amb}に似ているが、左から右ではなくランダムな順序で代替案を検索する新しい特殊形式@code{ramb}を実装してください。これが@ref{Exercise 4.49}のAlyssaの問題にどのように役立つかを示してください。
+    70→@end quotation
+    71→
+    72→@quotation
+    73→@strong{@anchor{Exercise 4.51}Exercise 4.51:} 失敗時に元に戻されない@code{permanent-set!}と呼ばれる新しい種類の代入を実装してください。例えば、リストから2つの異なる要素を選択し、成功した選択を行うために必要な試行回数を次のように数えることができます：
+    74→

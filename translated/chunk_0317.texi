@@ -1,0 +1,98 @@
+    (for-each (lambda (register-name)
+                ((machine 'allocate-register)
+                 register-name))
+              register-names)
+    ((machine 'install-operations) ops)
+    ((machine 'install-instruction-sequence)
+     (assemble controller-text machine))
+    machine))
+@end lisp
+
+@subsubheading レジスタ
+
+レジスタを、@ref{第3章}のように、ローカル状態を持つ手続きとして表現する。
+@code{make-register}手続きは、アクセスまたは変更できる値を保持するレジスタを
+作成する：
+
+@lisp
+(define (make-register name)
+  (let ((contents '*unassigned*))
+    (define (dispatch message)
+      (cond ((eq? message 'get) contents)
+            ((eq? message 'set)
+             (lambda (value)
+               (set! contents value)))
+            (else
+             (error "Unknown request:
+                     REGISTER"
+                    message))))
+    dispatch))
+@end lisp
+
+@noindent
+次の手続きはレジスタにアクセスするために使用される：
+
+@lisp
+(define (get-contents register)
+  (register 'get))
+
+(define (set-contents! register value)
+  ((register 'set) value))
+@end lisp
+
+@subsubheading スタック
+
+スタックもローカル状態を持つ手続きとして表現できる。@code{make-stack}
+手続きは、ローカル状態がスタック上のアイテムのリストから成るスタックを
+作成する。スタックは、スタックにアイテムを@code{push}する要求、スタックから
+トップアイテムを@code{pop}して返す要求、スタックを空に@code{initialize}
+する要求を受け付ける。
+
+@lisp
+(define (make-stack)
+  (let ((s '()))
+    (define (push x)
+      (set! s (cons x s)))
+    (define (pop)
+      (if (null? s)
+          (error "Empty stack: POP")
+          (let ((top (car s)))
+            (set! s (cdr s))
+            top)))
+    (define (initialize)
+      (set! s '())
+      'done)
+    (define (dispatch message)
+      (cond ((eq? message 'push) push)
+            ((eq? message 'pop) (pop))
+            ((eq? message 'initialize)
+             (initialize))
+            (else
+             (error "Unknown request: STACK"
+                    message))))
+    dispatch))
+@end lisp
+
+@noindent
+次の手続きはスタックにアクセスするために使用される：
+
+@lisp
+(define (pop stack) (stack 'pop))
+(define (push stack value)
+  ((stack 'push) value))
+@end lisp
+
+@subsubheading 基本的なマシン
+
+@ref{図5.13,,@w{図5.13}}に示されている@code{make-new-machine}手続きは、
+ローカル状態がスタック、最初は空の命令シーケンス、最初はスタックを初期化する
+演算を含む演算のリスト、および最初は@code{flag}と@code{pc}
+（「プログラムカウンタ」の略）という名前の2つのレジスタを含む
+@newterm{レジスタテーブル}から成るオブジェクトを構築する。内部手続き
+@code{allocate-register}はレジスタテーブルに新しいエントリを追加し、
+内部手続き@code{lookup-register}はテーブル内のレジスタを検索する。
+
+@noindent
+@strong{@anchor{図5.13}図5.13:} @math{\downarrow} 基本的なマシンモデルを
+実装する@code{make-new-machine}手続き。
+

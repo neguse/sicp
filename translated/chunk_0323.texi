@@ -1,0 +1,97 @@
+                machine
+                labels
+                operations)))
+          (lambda ()
+            (action-proc)
+            (advance-pc pc)))
+        (error "Bad PERFORM instruction:
+                ASSEMBLE"
+               inst))))
+
+(define (perform-action inst) (cdr inst))
+@end lisp
+
+@subsubheading サブ式の実行手続き
+
+@code{reg}、@code{label}、または@code{const}式の値は、レジスタへの代入
+（@code{make-assign}）または演算への入力（以下の@code{make-operation-exp}）に
+必要になる場合がある。次の手続きは、シミュレーション中にこれらの式の値を
+生成する実行手続きを生成する：
+
+@lisp
+(define (make-primitive-exp exp machine labels)
+  (cond ((constant-exp? exp)
+         (let ((c (constant-exp-value exp)))
+           (lambda () c)))
+        ((label-exp? exp)
+         (let ((insts
+                (lookup-label
+                 labels
+                 (label-exp-label exp))))
+           (lambda () insts)))
+        ((register-exp? exp)
+         (let ((r (get-register
+                   machine
+                   (register-exp-reg exp))))
+           (lambda () (get-contents r))))
+        (else (error "Unknown expression type:
+                      ASSEMBLE"
+                     exp))))
+@end lisp
+
+@noindent
+@code{reg}、@code{label}、@code{const}式の構文は次によって決定される：
+
+@lisp
+(define (register-exp? exp)
+  (tagged-list? exp 'reg))
+(define (register-exp-reg exp)
+  (cadr exp))
+(define (constant-exp? exp)
+  (tagged-list? exp 'const))
+(define (constant-exp-value exp)
+  (cadr exp))
+(define (label-exp? exp)
+  (tagged-list? exp 'label))
+(define (label-exp-label exp)
+  (cadr exp))
+@end lisp
+
+@noindent
+@code{Assign}、@code{perform}、@code{test}命令には、いくつかのオペランド
+（@code{reg}と@code{const}式で指定）に対するマシン演算（@code{op}式で指定）の
+適用が含まれる場合がある。次の手続きは、「演算式」——命令からの演算と
+オペランド式を含むリスト——の実行手続きを生成する：
+
+@lisp
+(define (make-operation-exp
+         exp machine labels operations)
+  (let ((op (lookup-prim
+             (operation-exp-op exp)
+             operations))
+        (aprocs
+         (map (lambda (e)
+                (make-primitive-exp
+                 e machine labels))
+              (operation-exp-operands exp))))
+    (lambda () (apply op (map (lambda (p) (p))
+                              aprocs)))))
+@end lisp
+
+@noindent
+演算式の構文は次によって決定される：
+
+@lisp
+(define (operation-exp? exp)
+  (and (pair? exp)
+       (tagged-list? (car exp) 'op)))
+(define (operation-exp-op operation-exp)
+  (cadr (car operation-exp)))
+(define (operation-exp-operands operation-exp)
+  (cdr operation-exp))
+@end lisp
+
+@noindent
+演算式の扱いは、@ref{4.1.7}の@code{analyze-application}手続きによる
+手続き適用の扱いに非常に似ていることに注意せよ。
+

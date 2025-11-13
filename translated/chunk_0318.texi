@@ -1,0 +1,99 @@
+@lisp
+(define (make-new-machine)
+  (let ((pc (make-register 'pc))
+        (flag (make-register 'flag))
+        (stack (make-stack))
+        (the-instruction-sequence '()))
+    (let ((the-ops
+           (list
+            (list 'initialize-stack
+                  (lambda ()
+                    (stack 'initialize)))))
+          (register-table
+           (list (list 'pc pc)
+                 (list 'flag flag))))
+      (define (allocate-register name)
+        (if (assoc name register-table)
+            (error
+             "Multiply defined register: "
+             name)
+            (set! register-table
+                  (cons
+                   (list name
+                         (make-register name))
+                   register-table)))
+        'register-allocated)
+      (define (lookup-register name)
+        (let ((val
+               (assoc name register-table)))
+          (if val
+              (cadr val)
+              (error "Unknown register:"
+                     name))))
+      (define (execute)
+        (let ((insts (get-contents pc)))
+          (if (null? insts)
+              'done
+              (begin
+                ((instruction-execution-proc
+                  (car insts)))
+                (execute)))))
+      (define (dispatch message)
+        (cond ((eq? message 'start)
+               (set-contents!
+                pc
+                the-instruction-sequence)
+               (execute))
+              ((eq?
+                message
+                'install-instruction-sequence)
+               (lambda (seq)
+                 (set!
+                  the-instruction-sequence
+                  seq)))
+              ((eq? message
+                    'allocate-register)
+               allocate-register)
+              ((eq? message 'get-register)
+               lookup-register)
+              ((eq? message
+                    'install-operations)
+               (lambda (ops)
+                 (set! the-ops
+                       (append the-ops ops))))
+              ((eq? message 'stack) stack)
+              ((eq? message 'operations)
+               the-ops)
+              (else (error "Unknown request:
+                            MACHINE"
+                           message))))
+      dispatch)))
+@end lisp
+
+@code{flag}レジスタは、シミュレートされたマシンでの分岐を制御するために
+使用される。@code{Test}命令は、@code{flag}の内容をテストの結果（真または偽）に
+設定する。@code{Branch}命令は、@code{flag}の内容を調べることで、分岐するか
+どうかを決定する。
+
+@code{pc}レジスタは、マシンが実行されるときの命令のシーケンスを決定する。
+このシーケンスは、内部手続き@code{execute}によって実装される。シミュレーション
+モデルでは、各マシン命令は、引数のない手続き（@newterm{命令実行手続き}と呼ぶ）を
+含むデータ構造であり、この手続きを呼び出すことで命令の実行をシミュレートする。
+シミュレーションが実行されるにつれて、@code{pc}は次に実行される命令から始まる
+命令シーケンス内の場所を指す。@code{Execute}はその命令を取得し、命令実行
+手続きを呼び出すことで実行し、実行する命令がなくなるまで（つまり、@code{pc}が
+命令シーケンスの終わりを指すまで）このサイクルを繰り返す。
+
+@noindent
+その動作の一部として、各命令実行手続きは@code{pc}を変更して、次に実行される
+命令を示す。@code{Branch}と@code{goto}命令は@code{pc}を変更して新しい宛先を
+指すようにする。他の全ての命令は単に@code{pc}を進め、シーケンス内の次の命令を
+指すようにする。@code{execute}への各呼び出しが@code{execute}を再び呼び出すが、
+命令実行手続きを実行することで@code{pc}の内容が変更されるため、無限ループを
+生成しないことに注意せよ。
+
+@code{Make-new-machine}は、内部状態へのメッセージパッシングアクセスを
+実装する@code{dispatch}手続きを返す。マシンを開始することは、@code{pc}を
+命令シーケンスの最初に設定し、@code{execute}を呼び出すことで達成される
+ことに注意せよ。
+

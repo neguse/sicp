@@ -1,0 +1,99 @@
+
+@quotation
+@strong{@anchor{Exercise 5.6}練習問題 5.6:} Ben Bitdiddleは、フィボナッチ
+マシンのコントローラーシーケンスには余分な@code{save}と余分な@code{restore}が
+あり、これらを削除すればより高速なマシンにできることに気づいた。
+これらの命令はどこにあるか？
+@end quotation
+
+@node	5.1.5, 5.2, Chapter 5, 5.1
+@subsection 命令のまとめ
+
+レジスタマシン言語のコントローラー命令は、次のいずれかの形式を持つ。
+ここで、各@math{{⟨\kern0.06em input_i⟩}}は、@code{(reg ⟨@var{register-name}⟩)}
+または@code{(const ⟨@var{constant-value}⟩)}のいずれかである。
+これらの命令は@ref{5.1.1}で導入された：
+
+@lisp
+(assign ⟨@var{register-name}⟩ (reg ⟨@var{register-name}⟩))
+(assign ⟨@var{register-name}⟩
+        (const ⟨@var{constant-value}⟩))
+(assign ⟨@var{register-name}⟩
+        (op ⟨@var{operation-name}⟩)
+        ⟨@var{input₁}⟩ @r{…} ⟨@var{inputₙ}⟩)
+(perform (op ⟨@var{operation-name}⟩)
+         ⟨@var{input₁}⟩
+         @r{…}
+         ⟨@var{inputₙ}⟩)
+(test (op ⟨@var{operation-name}⟩)
+      ⟨@var{input₁}⟩
+      @r{…}
+      ⟨@var{inputₙ}⟩)
+(branch (label ⟨@var{label-name}⟩))
+(goto (label ⟨@var{label-name}⟩))
+@end lisp
+
+@noindent
+ラベルを保持するためのレジスタの使用は@ref{5.1.3}で導入された：
+
+@lisp
+(assign ⟨@var{register-name}⟩ (label ⟨@var{label-name}⟩))
+(goto (reg ⟨@var{register-name}⟩))
+@end lisp
+
+@noindent
+スタックを使用する命令は@ref{5.1.4}で導入された：
+
+@lisp
+(save ⟨@var{register-name}⟩)
+(restore ⟨@var{register-name}⟩)
+@end lisp
+
+@noindent
+これまでに見た@code{⟨}@var{constant-value}@code{⟩}の唯一の種類は数値だが、
+後で文字列、シンボル、リストを使用する。
+たとえば、@*
+@code{(const "abc")}は文字列@code{"abc"}、@*
+@code{(const abc)}はシンボル@code{abc}、@*
+@code{(const (a b c))}はリスト@code{(a b c)}、@*
+そして@code{(const ())}は空のリストである。
+
+@node	5.2, 5.3, 5.1, Chapter 5
+@section レジスタマシンシミュレータ
+
+レジスタマシンの設計をよく理解するには、設計したマシンが期待どおりに
+動作するかをテストしなければならない。設計をテストする1つの方法は、
+@ref{練習問題 5.5}のようにコントローラーの動作を手動でシミュレートする
+ことである。しかし、これは最も単純なマシン以外では非常に退屈である。
+このセクションでは、レジスタマシン言語で記述されたマシンのシミュレータを
+構築する。シミュレータは、4つのインターフェース手続きを持つSchemeプログラム
+である。最初の手続きは、レジスタマシンの記述を使用してマシンのモデル
+（シミュレートされるマシンの部分に対応する部分を持つデータ構造）を構築し、
+他の3つの手続きは、モデルを操作することでマシンをシミュレートできるように
+する：
+
+@quotation
+
+@lisp
+(make-machine ⟨@var{register-names}⟩
+              ⟨@var{operations}⟩
+              ⟨@var{controller}⟩)
+@end lisp
+
+@noindent
+与えられたレジスタ、演算、コントローラーを持つマシンのモデルを構築して返す。
+
+@lisp
+(set-register-contents! ⟨@var{machine-model}⟩
+                        ⟨@var{register-name}⟩
+                        ⟨@var{value}⟩)
+@end lisp
+
+@noindent
+与えられたマシンのシミュレートされたレジスタに値を格納する。
+
+@lisp
+(get-register-contents ⟨@var{machine-model}⟩
+                       ⟨@var{register-name}⟩)
+@end lisp
+

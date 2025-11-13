@@ -1,0 +1,98 @@
+@noindent
+与えられたマシンのシミュレートされたレジスタの内容を返す。
+
+@lisp
+(start ⟨@var{machine-model}⟩)
+@end lisp
+
+@noindent
+与えられたマシンの実行をシミュレートする。コントローラーシーケンスの
+最初から開始し、シーケンスの終わりに達したときに停止する。
+@end quotation
+
+@noindent
+これらの手続きがどのように使用されるかの例として、次のように
+@ref{5.1.1}の@abbr{GCD}マシンのモデルである@code{gcd-machine}を
+定義できる：
+
+@lisp
+(define gcd-machine
+  (make-machine
+   '(a b t)
+   (list (list 'rem remainder) (list '= =))
+   '(test-b
+       (test (op =) (reg b) (const 0))
+       (branch (label gcd-done))
+       (assign t (op rem) (reg a) (reg b))
+       (assign a (reg b))
+       (assign b (reg t))
+       (goto (label test-b))
+     gcd-done)))
+@end lisp
+
+@noindent
+@code{make-machine}への最初の引数はレジスタ名のリストである。次の引数は、
+各演算名を演算を実装するScheme手続き（つまり、同じ入力値が与えられたときに
+同じ出力値を生成する）と対にしたテーブル（2要素リストのリスト）である。
+最後の引数は、@ref{5.1}のように、ラベルとマシン命令のリストとして
+コントローラーを指定する。
+
+このマシンで@abbr{GCD}を計算するには、入力レジスタを設定し、マシンを
+開始し、シミュレーションが終了したときに結果を調べる：
+
+@lisp
+(set-register-contents! gcd-machine 'a 206)
+@i{done}
+
+(set-register-contents! gcd-machine 'b 40)
+@i{done}
+
+(start gcd-machine)
+@i{done}
+
+(get-register-contents gcd-machine 'a)
+@i{2}
+@end lisp
+
+@noindent
+この計算は、Schemeで書かれた@code{gcd}手続きよりもはるかに遅く実行される。
+なぜなら、@code{assign}のような低レベルのマシン命令を、はるかに複雑な
+演算でシミュレートするからである。
+
+@quotation
+@strong{@anchor{Exercise 5.7}練習問題 5.7:} シミュレータを使って
+@ref{練習問題 5.4}で設計したマシンをテストせよ。
+@end quotation
+
+@menu
+* 5.2.1::            マシンモデル
+* 5.2.2::            アセンブラ
+* 5.2.3::            命令の実行手続きの生成
+* 5.2.4::            マシン性能の監視
+@end menu
+
+@node	5.2.1, 5.2.2, 5.2, 5.2
+@subsection マシンモデル
+
+@code{make-machine}によって生成されるマシンモデルは、@ref{第3章}で
+開発されたメッセージパッシング技法を使用して、ローカル状態を持つ手続きとして
+表現される。このモデルを構築するために、@code{make-machine}は最初に
+@code{make-new-machine}手続きを呼び出して、全てのレジスタマシンに共通する
+マシンモデルの部分を構築する。@code{make-new-machine}によって構築される
+この基本的なマシンモデルは、本質的には、いくつかのレジスタとスタックの
+コンテナと、コントローラー命令を1つずつ処理する実行メカニズムである。
+
+@code{Make-machine}は、この基本的なモデルを（メッセージを送信することで）
+拡張して、定義される特定のマシンのレジスタ、演算、コントローラーを含める。
+まず、提供された各レジスタ名に対して新しいマシンにレジスタを割り当て、
+指定された演算をマシンにインストールする。次に、@newterm{アセンブラ}
+（以下の@ref{5.2.2}で説明）を使用して、コントローラーリストを新しいマシンの
+命令に変換し、これらをマシンの命令シーケンスとしてインストールする。
+@code{Make-machine}は、その値として変更されたマシンモデルを返す。
+
+@lisp
+(define (make-machine register-names
+                      ops
+                      controller-text)
+  (let ((machine (make-new-machine)))
+

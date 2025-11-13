@@ -1,0 +1,96 @@
+                    (make-label-entry
+                     next-inst
+                     insts)
+                    labels))
+               (receive
+                   (cons (make-instruction
+                          next-inst)
+                         insts)
+                   labels)))))))
+@end lisp
+
+@noindent
+@code{Extract-labels}は、@code{text}の要素を順次スキャンし、@code{insts}と
+@code{labels}を累積することで動作する。要素がシンボル（したがってラベル）の
+場合、適切なエントリが@code{labels}テーブルに追加される。そうでない場合、
+要素は@code{insts}リストに累積される。@footnote{ここで@code{receive}手続きを
+使用することは、明示的にそれらを保持する複合データ構造を作成せずに、
+@code{extract-labels}に事実上2つの値——@code{labels}と@code{insts}——を
+返させる方法である。明示的な値のペアを返す代替実装は次のとおりである：
+
+@lisp
+(define (extract-labels text)
+  (if (null? text)
+      (cons '() '())
+      (let ((result
+             (extract-labels (cdr text))))
+        (let ((insts (car result))
+              (labels (cdr result)))
+          (let ((next-inst (car text)))
+            (if (symbol? next-inst)
+                (cons
+                 insts
+                 (cons
+                  (make-label-entry
+                   next-inst insts)
+                  labels))
+                (cons
+                 (cons
+                  (make-instruction next-inst)
+                  insts)
+                 labels)))))))
+@end lisp
+
+@noindent
+これは@code{assemble}によって次のように呼び出される：
+
+@lisp
+(define (assemble controller-text machine)
+  (let ((result
+         (extract-labels controller-text)))
+    (let ((insts (car result))
+          (labels (cdr result)))
+      (update-insts! insts labels machine)
+      insts)))
+@end lisp
+
+@code{receive}の使用を、複数の値を返すエレガントな方法を示すものと
+考えるか、単にプログラミングトリックを披露する口実と考えることができる。
+呼び出される次の手続きである@code{receive}のような引数は「継続」と呼ばれる。
+@ref{4.3.3}の@code{amb}評価器でバックトラック制御構造を実装するためにも
+継続を使用したことを思い出せ。}
+
+@code{Update-insts!}は、最初は命令のテキストのみを含む命令リストを変更して、
+対応する実行手続きを含めるようにする：
+
+@lisp
+(define (update-insts! insts labels machine)
+  (let ((pc (get-register machine 'pc))
+        (flag (get-register machine 'flag))
+        (stack (machine 'stack))
+        (ops (machine 'operations)))
+    (for-each
+     (lambda (inst)
+       (set-instruction-execution-proc!
+        inst
+        (make-execution-procedure
+         (instruction-text inst)
+         labels
+         machine
+         pc
+         flag
+         stack
+         ops)))
+     insts)))
+@end lisp
+
+@noindent
+マシン命令データ構造は、単に命令テキストを対応する実行手続きとペアにする。
+実行手続きは、@code{extract-labels}が命令を構築するときにはまだ利用できず、
+後で@code{update-insts!}によって挿入される。
+
+@lisp
+(define (make-instruction text)
+  (cons text '()))
+(define (instruction-text inst) (car inst))
+

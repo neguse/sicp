@@ -1,0 +1,97 @@
+(define (instruction-execution-proc inst)
+  (cdr inst))
+(define (set-instruction-execution-proc!
+         inst
+         proc)
+  (set-cdr! inst proc))
+@end lisp
+
+@noindent
+命令テキストはシミュレータでは使用されないが、デバッグ用に保持しておくと
+便利である（@ref{練習問題 5.16}を参照）。
+
+ラベルテーブルの要素はペアである：
+
+@lisp
+(define (make-label-entry label-name insts)
+  (cons label-name insts))
+@end lisp
+
+@noindent
+エントリは次のものでテーブル内で検索される：
+
+@lisp
+(define (lookup-label labels label-name)
+  (let ((val (assoc label-name labels)))
+    (if val
+        (cdr val)
+        (error "Undefined label: ASSEMBLE"
+               label-name))))
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 5.8}練習問題 5.8:} 次のレジスタマシンコードは
+曖昧である。なぜなら、ラベル@code{here}が複数回定義されているからである：
+
+@lisp
+start
+  (goto (label here))
+here
+  (assign a (const 3))
+  (goto (label there))
+here
+  (assign a (const 4))
+  (goto (label there))
+there
+@end lisp
+
+書かれたシミュレータでは、制御が@code{there}に到達したとき、レジスタ
+@code{a}の内容はどうなるか？同じラベル名が2つの異なる位置を示すために
+使用された場合、アセンブラがエラーを通知するように@code{extract-labels}
+手続きを変更せよ。
+@end quotation
+
+@node	5.2.3, 5.2.4, 5.2.2, 5.2
+@subsection 命令の実行手続きの生成
+
+アセンブラは@code{make-execution-procedure}を呼び出して、命令の実行手続きを
+生成する。@ref{4.1.7}の評価器の@code{analyze}手続きと同様に、これは命令の
+タイプにディスパッチして、適切な実行手続きを生成する。
+
+@lisp
+(define (make-execution-procedure
+         inst labels machine pc flag stack ops)
+  (cond ((eq? (car inst) 'assign)
+         (make-assign
+          inst machine labels ops pc))
+        ((eq? (car inst) 'test)
+         (make-test
+          inst machine labels ops flag pc))
+        ((eq? (car inst) 'branch)
+         (make-branch
+          inst machine labels flag pc))
+        ((eq? (car inst) 'goto)
+         (make-goto inst machine labels pc))
+        ((eq? (car inst) 'save)
+         (make-save inst machine stack pc))
+        ((eq? (car inst) 'restore)
+         (make-restore inst machine stack pc))
+        ((eq? (car inst) 'perform)
+         (make-perform
+          inst machine labels ops pc))
+        (else (error "Unknown instruction
+                      type: ASSEMBLE"
+                     inst))))
+@end lisp
+
+@noindent
+レジスタマシン言語の各タイプの命令に対して、適切な実行手続きを構築する
+ジェネレータがある。これらの手続きの詳細は、レジスタマシン言語の個々の
+命令の構文と意味の両方を決定する。@ref{4.1.2}の評価器で行ったように、
+構文手続きを使用して命令の部分を抽出して分類することで、レジスタマシン式の
+詳細な構文を一般的な実行メカニズムから分離するためにデータ抽象化を使用する。
+
+@subsubheading @code{Assign}命令
+
+@code{make-assign}手続きは@code{assign}命令を処理する：
+

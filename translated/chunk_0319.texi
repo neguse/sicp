@@ -1,0 +1,90 @@
+便宜上、@ref{5.2}の冒頭で指定されているように、マシンの@code{start}操作への
+代替の手続きインターフェース、およびレジスタの内容を設定および調べる手続きを
+提供する：
+
+@lisp
+(define (start machine)
+  (machine 'start))
+
+(define (get-register-contents
+         machine register-name)
+  (get-contents
+   (get-register machine register-name)))
+
+(define (set-register-contents!
+         machine register-name value)
+  (set-contents!
+   (get-register machine register-name)
+   value)
+  'done)
+@end lisp
+
+@noindent
+これらの手続き（および@ref{5.2.2}と@ref{5.2.3}の多くの手続き）は、
+次のものを使用して、与えられたマシンで与えられた名前のレジスタを検索する：
+
+@lisp
+(define (get-register machine reg-name)
+  ((machine 'get-register) reg-name))
+@end lisp
+
+@node	5.2.2, 5.2.3, 5.2.1, 5.2
+@subsection アセンブラ
+
+アセンブラは、マシンのコントローラー式のシーケンスを、それぞれに実行手続きを
+持つ対応するマシン命令のリストに変換する。全体として、アセンブラは
+@ref{第4章}で学んだ評価器に非常に似ている――入力言語（この場合は
+レジスタマシン言語）があり、言語内の各タイプの式に対して適切なアクションを
+実行しなければならない。
+
+各命令に対して実行手続きを生成する技法は、@ref{4.1.7}で分析を実行時の
+実行から分離することで評価器を高速化するために使用したものと同じである。
+@ref{第4章}で見たように、変数の実際の値を知らなくても、Scheme式の多くの
+有用な分析を実行できた。ここでも、同様に、マシンレジスタの実際の内容を
+知らなくても、レジスタマシン言語式の多くの有用な分析を実行できる。たとえば、
+レジスタへの参照をレジスタオブジェクトへのポインタで置き換えることができ、
+ラベルへの参照をラベルが指定する命令シーケンス内の場所へのポインタで置き換える
+ことができる。
+
+命令実行手続きを生成する前に、アセンブラは全てのラベルが何を参照するかを
+知らなければならないので、コントローラーテキストをスキャンして、ラベルを
+命令から分離することから始める。テキストをスキャンしながら、命令のリストと、
+各ラベルをそのリストへのポインタと関連付けるテーブルの両方を構築する。
+次に、アセンブラは、各命令の実行手続きを挿入することで命令リストを拡張する。
+
+@code{assemble}手続きは、アセンブラへのメインエントリである。コントローラー
+テキストとマシンモデルを引数として取り、モデルに格納される命令シーケンスを
+返す。@code{Assemble}は@code{extract-labels}を呼び出して、提供された
+コントローラーテキストから初期命令リストとラベルテーブルを構築する。
+@code{extract-labels}への2番目の引数は、これらの結果を処理するために
+呼び出される手続きである：この手続きは@code{update-insts!}を使用して
+命令実行手続きを生成し、それらを命令リストに挿入し、変更されたリストを返す。
+
+@lisp
+(define (assemble controller-text machine)
+  (extract-labels controller-text
+    (lambda (insts labels)
+      (update-insts! insts labels machine)
+      insts)))
+@end lisp
+
+@noindent
+@code{Extract-labels}は、リスト@code{text}（コントローラー命令式の
+シーケンス）と@code{receive}手続きを引数として取る。@code{Receive}は
+2つの値で呼び出される：(1) @code{text}からの各命令を含む命令データ構造の
+リスト@code{insts}；および (2) @code{text}からの各ラベルを、ラベルが指定する
+リスト@code{insts}内の位置と関連付ける@code{labels}と呼ばれるテーブル。
+
+@lisp
+(define (extract-labels text receive)
+  (if (null? text)
+      (receive '() '())
+      (extract-labels
+       (cdr text)
+       (lambda (insts labels)
+         (let ((next-inst (car text)))
+           (if (symbol? next-inst)
+               (receive
+                   insts
+                   (cons
+

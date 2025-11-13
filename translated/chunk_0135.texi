@@ -1,0 +1,63 @@
+     1→（@code{add-terms}など）@code{adjoin-term}を使用する手続きが、常にリストに現れるよりも高い次数の項でそれを呼び出すことを保証する限り、これで済ませることができます。このような保証をしたくない場合は、@code{adjoin-term}を順序付きリスト表現の集合の@code{adjoin-set}コンストラクター（@ref{練習問題2.61}）と同様に実装することができました。}
+     2→
+     3→@lisp
+     4→(define (adjoin-term term term-list)
+     5→  (if (=zero? (coeff term))
+     6→      term-list
+     7→      (cons term term-list)))
+     8→(define (the-empty-termlist) '())
+     9→(define (first-term term-list) (car term-list))
+    10→(define (rest-terms term-list) (cdr term-list))
+    11→(define (empty-termlist? term-list)
+    12→  (null? term-list))
+    13→(define (make-term order coeff)
+    14→  (list order coeff))
+    15→(define (order term) (car term))
+    16→(define (coeff term) (cadr term))
+    17→@end lisp
+    18→
+    19→@noindent
+    20→ここで、@code{=zero?}は@ref{練習問題2.80}で定義されているとおりです。（以下の@ref{練習問題2.87}も参照してください。）
+    21→
+    22→多項式パッケージのユーザーは、次の手続きによって（タグ付きの）多項式を作成します：
+    23→
+    24→@lisp
+    25→(define (make-polynomial var terms)
+    26→  ((get 'make 'polynomial) var terms))
+    27→@end lisp
+    28→
+    29→@quotation
+    30→@strong{@anchor{Exercise 2.87}練習問題2.87:} 多項式の@code{=zero?}をジェネリック算術パッケージにインストールしてください。これにより、係数自体が多項式である多項式に対して@code{adjoin-term}が機能するようになります。
+    31→@end quotation
+    32→
+    33→@quotation
+    34→@strong{@anchor{Exercise 2.88}練習問題2.88:} 多項式システムを拡張して、多項式の減算を含めてください。（ヒント：ジェネリック否定演算を定義すると役立つかもしれません。）
+    35→@end quotation
+    36→
+    37→@quotation
+    38→@strong{@anchor{Exercise 2.89}練習問題2.89:} 密な多項式に適した、上で説明した項リスト表現を実装する手続きを定義してください。
+    39→@end quotation
+    40→
+    41→@quotation
+    42→@strong{@anchor{Exercise 2.90}練習問題2.90:} 疎な多項式と密な多項式の両方に対して効率的な多項式システムを持ちたいとします。これを行う1つの方法は、システムで両方の種類の項リスト表現を許可することです。状況は、直交座標表現と極座標表現の両方を許可した@ref{2.4}の複素数の例に類似しています。これを行うには、異なる種類の項リストを区別し、項リストに対する演算をジェネリックにする必要があります。この一般化を実装するために多項式システムを再設計してください。これは大規模な作業であり、局所的な変更ではありません。
+    43→@end quotation
+    44→
+    45→@quotation
+    46→@strong{@anchor{Exercise 2.91}練習問題2.91:} 一変数多項式は、別の多項式で除算して、多項式の商と多項式の余りを生成できます。たとえば、
+    47→@ifinfo
+    48→
+    49→@example
+    50→x^5 - 1
+    51→------- = x^3 + x, remainder x - 1
+    52→x^2 - 1
+    53→@end example
+    54→
+    55→@end ifinfo
+    56→@tex
+    57→\[ % :57:
+    58→  {x^5 - 1 \over x^2 - 1} \,=\, {x^3 + x,} \text{  remainder  } {x - 1.}  \]
+    59→@end tex
+    60→除算は長除算を介して実行できます。つまり、被除数の最高次の項を除数の最高次の項で除算します。結果が商の最初の項です。次に、結果に除数を掛け、それを被除数から引き、除数で差を再帰的に除算することによって答えの残りを生成します。除数の次数が被除数の次数を超えたら停止し、被除数を余りと宣言します。また、被除数がゼロになった場合は、商と余りの両方としてゼロを返します。
+    61→
+    62→@code{add-poly}と@code{mul-poly}のモデルで@code{div-poly}手続きを設計できます。手続きは、2つのpolyが同じ変数を持っているかどうかをチェックします。そうであれば、@code{div-poly}は変数を剥ぎ取り、項リストに対して除算演算を実行する@code{div-terms}に問題を渡します。@code{Div-poly}は最終的に@code{div-terms}によって供給された結果に変数を再び付加します。@code{div-terms}を除算の商と余りの両方を計算するように設計すると便利です。@code{Div-terms}は2つの項リストを引数として取り、商の項リストと余りの項リストのリストを返すことができます。
+    63→

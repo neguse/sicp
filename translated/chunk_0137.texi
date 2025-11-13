@@ -1,0 +1,65 @@
+     1→  {{x^3 + 2x^2 + 3x + 1 \over x^4 + x^3 - x - 1}.}  \]
+     2→@end tex
+     3→@noindent
+     4→（ここでは、和は共通因数を除去することによって簡略化されています。通常の「たすき掛け」では、5次多項式分の4次多項式が生成されていたでしょう。）
+     5→
+     6→有理数演算パッケージをジェネリック演算を使用するように変更すれば、分数を最低項に簡約する問題を除いて、望むとおりに機能します。
+     7→
+     8→@quotation
+     9→@strong{@anchor{Exercise 2.93}練習問題2.93:} 有理数演算パッケージをジェネリック演算を使用するように変更しますが、@code{make-rat}を変更して、分数を最低項に簡約しようとしないようにしてください。2つの多項式に対して@code{make-rational}を呼び出して有理関数を生成することによってシステムをテストしてください：
+    10→
+    11→@lisp
+    12→(define p1 (make-polynomial 'x '((2 1) (0 1))))
+    13→(define p2 (make-polynomial 'x '((3 1) (0 1))))
+    14→(define rf (make-rational p2 p1))
+    15→@end lisp
+    16→
+    17→次に、@code{add}を使用して@code{rf}をそれ自身に加算してください。この加算手続きは分数を最低項に簡約しないことがわかります。
+    18→@end quotation
+    19→
+    20→@noindent
+    21→整数で使用したのと同じアイデアを使用して、多項式分数を最低項に簡約できます：@code{make-rat}を変更して、分子と分母の両方をそれらの最大公約数で除算します。「最大公約数」の概念は多項式にとって意味があります。実際、整数に対して機能するのと本質的に同じユークリッドのアルゴリズムを使用して、2つの多項式の@abbr{GCD}を計算できます。@footnote{ユークリッドのアルゴリズムが多項式に対して機能するという事実は、多項式が@newterm{ユークリッド環}と呼ばれる代数的領域の一種を形成すると言うことによって代数で形式化されています。ユークリッド環は、加算、減算、可換乗算を許可する領域であり、環の各要素@math{x}に、@math{{m(xy) \ge m(x)}}が任意の非ゼロの@math{x}と@math{y}に対して成り立ち、任意の@math{x}と@math{y}が与えられたとき、@math{{y = qx + r}}かつ@math{{r = 0}}または@math{{m(r) < m(x)}}となる@math{q}が存在するという性質を持つ正の整数「測度」@math{{m(x)}}を割り当てる方法があります。抽象的な観点から、これはユークリッドのアルゴリズムが機能することを証明するために必要なものです。整数の領域の場合、整数の測度@math{m}は整数自体の絶対値です。多項式の領域の場合、多項式の測度はその次数です。}整数版は
+    22→
+    23→@lisp
+    24→(define (gcd a b)
+    25→  (if (= b 0)
+    26→      a
+    27→      (gcd b (remainder a b))))
+    28→@end lisp
+    29→
+    30→@noindent
+    31→これを使用して、項リストに対して機能する@abbr{GCD}演算を定義する明白な変更を行うことができます：
+    32→
+    33→@lisp
+    34→(define (gcd-terms a b)
+    35→  (if (empty-termlist? b)
+    36→      a
+    37→      (gcd-terms b (remainder-terms a b))))
+    38→@end lisp
+    39→
+    40→@noindent
+    41→ここで、@code{remainder-terms}は、@ref{練習問題2.91}で実装された項リスト除算演算@code{div-terms}によって返されるリストの余り成分を取り出します。
+    42→
+    43→@quotation
+    44→@strong{@anchor{Exercise 2.94}練習問題2.94:} @code{div-terms}を使用して、手続き@code{remainder-terms}を実装し、これを使用して上記のように@code{gcd-terms}を定義してください。次に、2つのpolyの多項式@abbr{GCD}を計算する手続き@code{gcd-poly}を記述してください。（手続きは、2つのpolyが同じ変数にない場合、エラーを通知する必要があります。）多項式に対しては@code{gcd-poly}に、通常の数値に対しては通常の@code{gcd}に縮約されるジェネリック演算@code{greatest-common-divisor}をシステムにインストールしてください。テストとして、次を試してください
+    45→
+    46→@lisp
+    47→(define p1
+    48→  (make-polynomial
+    49→   'x '((4 1) (3 -1) (2 -2) (1 2))))
+    50→
+    51→(define p2
+    52→  (make-polynomial
+    53→   'x '((3 1) (1 -1))))
+    54→
+    55→(greatest-common-divisor p1 p2)
+    56→@end lisp
+    57→
+    58→@noindent
+    59→そして、結果を手で確認してください。
+    60→@end quotation
+    61→
+    62→@quotation
+    63→@strong{@anchor{Exercise 2.95}練習問題2.95:} @math{P_1}、@math{P_2}、および@math{P_3}を次の多項式として定義してください
+    64→@ifinfo
+    65→

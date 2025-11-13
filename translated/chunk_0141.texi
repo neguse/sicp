@@ -1,0 +1,57 @@
+     1→(withdraw 15)
+     2→@i{35}
+     3→@end lisp
+     4→
+     5→@noindent
+     6→式@code{(withdraw 25)}を2回評価すると、異なる値が得られることに注目してください。これは手続きにとって新しい種類の振る舞いです。これまで、我々のすべての手続きは数学関数を計算するための仕様として見ることができました。手続きの呼び出しは、与えられた引数に適用された関数の値を計算し、同じ引数を持つ同じ手続きへの2つの呼び出しは常に同じ結果を生成しました。@footnote{実際、これは完全には真実ではありません。1つの例外は@ref{1.2.6}の乱数生成器でした。別の例外は、@ref{2.4.3}で導入した演算/型テーブルを含み、同じ引数を持つ@code{get}への2つの呼び出しの値は、介在する@code{put}への呼び出しに依存していました。一方、代入を導入するまで、我々自身でそのような手続きを作成する方法はありません。}
+     7→
+     8→@code{withdraw}を実装するために、口座内のお金の残高を示す変数@code{balance}を使用し、@code{balance}にアクセスする手続きとして@code{withdraw}を定義できます。@code{withdraw}手続きは、@code{balance}が要求された@code{amount}以上であるかどうかをチェックします。そうであれば、@code{withdraw}は@code{balance}を@code{amount}だけ減らし、@code{balance}の新しい値を返します。そうでなければ、@code{withdraw}は@emph{Insufficient funds}メッセージを返します。次に、@code{balance}と@code{withdraw}の定義を示します：
+     9→
+    10→@lisp
+    11→(define balance 100)
+    12→
+    13→(define (withdraw amount)
+    14→  (if (>= balance amount)
+    15→      (begin (set! balance (- balance amount))
+    16→             balance)
+    17→      "Insufficient funds"))
+    18→@end lisp
+    19→
+    20→@noindent
+    21→@code{balance}を減らすことは、次の式によって達成されます
+    22→
+    23→@lisp
+    24→(set! balance (- balance amount))
+    25→@end lisp
+    26→
+    27→@noindent
+    28→これは、構文が次のような@code{set!}特殊形式を使用します
+    29→
+    30→@lisp
+    31→(set! ⟨@var{name}⟩ ⟨@var{new-value}⟩)
+    32→@end lisp
+    33→
+    34→@noindent
+    35→ここで、@code{⟨}@var{name}@code{⟩}はシンボルであり、@code{⟨}@var{new-value}@code{⟩}は任意の式です。
+    36→@code{Set!}は@code{⟨}@var{name}@code{⟩}を変更し、その値が@code{⟨}@var{new-value}@code{⟩}を評価することによって得られた結果になるようにします。手元の場合、@code{balance}を変更して、その新しい値が以前の@code{balance}の値から@code{amount}を引いた結果になるようにしています。@footnote{@code{set!}式の値は実装依存です。@code{Set!}はその効果のためにのみ使用され、その値のためには使用されるべきではありません。
+    37→
+    38→@code{set!}という名前は、Schemeで使用される命名規則を反映しています：変数の値を変更する（または@ref{3.3}で見るように、データ構造を変更する）演算には、疑問符で終わる名前が与えられます。
+    39→これは、疑問符で終わる名前によって述語を指定する規則に似ています。}
+    40→
+    41→@code{Withdraw}は、@code{if}テストが真である場合に2つの式を評価させるために@code{begin}特殊形式も使用します：最初に@code{balance}を減らし、次に@code{balance}の値を返します。一般に、式
+    42→
+    43→@lisp
+    44→(begin ⟨@var{exp₁}⟩ ⟨@var{exp₂}⟩ @r{…} ⟨@var{expₖ}⟩)
+    45→@end lisp
+    46→
+    47→@noindent
+    48→を評価すると、式@math{{⟨exp_1⟩}}から@math{{⟨exp_k⟩}}まで順番に評価され、最後の式@math{{⟨exp_k⟩}}の値が@code{begin}形式全体の値として返されます。@footnote{我々はすでにプログラムで@code{begin}を暗黙的に使用しています。なぜなら、Schemeでは手続きの本体は式のシーケンスにできるからです。また、@code{cond}式の各節の@code{⟨}@var{consequent}@code{⟩}部分は、単一の式ではなく式のシーケンスにすることができます。}
+    49→
+    50→@code{withdraw}は望みどおりに機能しますが、変数@code{balance}は問題を提起します。上で指定したように、@code{balance}はグローバル環境で定義された名前であり、任意の手続きによって自由に検査または変更できます。@code{balance}を何とかして@code{withdraw}の内部にできれば、@code{withdraw}だけが@code{balance}に直接アクセスでき、他の手続きは（@code{withdraw}への呼び出しを通じて）間接的にのみ@code{balance}にアクセスできるようになり、はるかに良いでしょう。
+    51→これにより、@code{balance}が口座の状態を追跡するために@code{withdraw}が使用するローカル状態変数であるという概念をより正確にモデル化できます。
+    52→
+    53→次のように定義を書き直すことによって、@code{balance}を@code{withdraw}の内部にすることができます：
+    54→
+    55→@lisp
+    56→(define new-withdraw
+    57→

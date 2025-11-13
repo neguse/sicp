@@ -1,0 +1,71 @@
+     1→    balance)
+     2→  (define (dispatch m)
+     3→    (cond ((eq? m 'withdraw) withdraw)
+     4→          ((eq? m 'deposit) deposit)
+     5→          (else (error "Unknown request:
+     6→                 MAKE-ACCOUNT" m))))
+     7→  dispatch)
+     8→@end lisp
+     9→
+    10→@noindent
+    11→@code{make-account}への各呼び出しは、ローカル状態変数@code{balance}を持つ環境を設定します。この環境内で、@code{make-account}は@code{balance}にアクセスする手続き@code{deposit}と@code{withdraw}、および「メッセージ」を入力として受け取り、2つのローカル手続きの1つを返す追加の手続き@code{dispatch}を定義します。@code{dispatch}手続き自体が銀行口座オブジェクトを表す値として返されます。これは、@ref{2.4.3}で見た@newterm{メッセージパッシング}スタイルのプログラミングと正確に同じですが、ここではローカル変数を変更する能力と組み合わせて使用しています。
+    12→
+    13→@code{Make-account}は次のように使用できます：
+    14→
+    15→@lisp
+    16→(define acc (make-account 100))
+    17→
+    18→((acc 'withdraw) 50)
+    19→@i{50}
+    20→
+    21→((acc 'withdraw) 60)
+    22→@i{"Insufficient funds"}
+    23→
+    24→((acc 'deposit) 40)
+    25→@i{90}
+    26→
+    27→((acc 'withdraw) 60)
+    28→@i{30}
+    29→@end lisp
+    30→
+    31→@noindent
+    32→@code{acc}への各呼び出しは、ローカルに定義された@code{deposit}または@code{withdraw}手続きを返し、それが指定された@code{amount}に適用されます。@code{make-withdraw}の場合と同様に、@code{make-account}への別の呼び出し
+    33→
+    34→@lisp
+    35→(define acc2 (make-account 100))
+    36→@end lisp
+    37→
+    38→@noindent
+    39→は、独自のローカル@code{balance}を維持する完全に別の口座オブジェクトを生成します。
+    40→
+    41→@quotation
+    42→@strong{@anchor{Exercise 3.1}練習問題3.1:} @newterm{累算器}は、単一の数値引数で繰り返し呼び出され、その引数を和に累積する手続きです。呼び出されるたびに、現在累積された和を返します。独立した和を維持するそれぞれの累算器を生成する手続き@code{make-accumulator}を記述してください。@code{make-accumulator}への入力は和の初期値を指定する必要があります。たとえば
+    43→
+    44→@lisp
+    45→(define A (make-accumulator 5))
+    46→
+    47→(A 10)
+    48→@i{15}
+    49→
+    50→(A 10)
+    51→@i{25}
+    52→@end lisp
+    53→@end quotation
+    54→
+    55→@quotation
+    56→@strong{@anchor{Exercise 3.2}練習問題3.2:} ソフトウェアテストアプリケーションでは、計算の過程で与えられた手続きが呼び出された回数をカウントできると便利です。それ自体が1つの入力を取る手続き@code{f}を入力として取る手続き@code{make-monitored}を記述してください。@code{make-monitored}によって返される結果は、呼び出された回数を追跡する内部カウンターを維持することによって、@code{mf}と呼ばれる第三の手続きです。@code{mf}への入力が特別なシンボル@code{how-many-calls?}である場合、@code{mf}はカウンターの値を返します。入力が特別なシンボル@code{reset-count}である場合、@code{mf}はカウンターをゼロにリセットします。他の入力に対しては、@code{mf}はその入力に対して@code{f}を呼び出した結果を返し、カウンターを増加させます。たとえば、@code{sqrt}手続きの監視バージョンを作成できます：
+    57→
+    58→@lisp
+    59→(define s (make-monitored sqrt))
+    60→
+    61→(s 100)
+    62→@i{10}
+    63→
+    64→(s 'how-many-calls?)
+    65→@i{1}
+    66→@end lisp
+    67→@end quotation
+    68→
+    69→@quotation
+    70→@strong{@anchor{Exercise 3.3}練習問題3.3:} @code{make-account}手続きを変更して、パスワードで保護された口座を作成するようにしてください。つまり、
+    71→

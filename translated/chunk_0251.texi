@@ -1,0 +1,89 @@
+@lisp
+(define (apply procedure arguments env)
+  (cond ((primitive-procedure? procedure)
+         (apply-primitive-procedure
+          procedure
+          (list-of-arg-values
+           arguments
+           env)))  @r{; changed}
+        ((compound-procedure? procedure)
+         (eval-sequence
+          (procedure-body procedure)
+          (extend-environment
+           (procedure-parameters procedure)
+           (list-of-delayed-args
+            arguments
+            env)   @r{; changed}
+           (procedure-environment procedure))))
+        (else (error "Unknown procedure
+                      type: APPLY"
+                     procedure))))
+@end lisp
+
+@noindent
+引数を処理する手続きは @ref{4.1.1} の @code{list-of-values} と同様ですが、@code{list-of-delayed-args} は引数を評価する代わりに遅延させ、@code{list-of-arg-values} は @code{eval} の代わりに @code{actual-value} を使用します：
+
+@lisp
+(define (list-of-arg-values exps env)
+  (if (no-operands? exps)
+      '()
+      (cons (actual-value
+             (first-operand exps)
+             env)
+            (list-of-arg-values
+             (rest-operands exps)
+             env))))
+
+(define (list-of-delayed-args exps env)
+  (if (no-operands? exps)
+      '()
+      (cons (delay-it
+             (first-operand exps)
+             env)
+            (list-of-delayed-args
+             (rest-operands exps)
+             env))))
+@end lisp
+
+@noindent
+評価器を変更しなければならない他の場所は @code{if} の処理です。ここで、それが真か偽かをテストする前に述語式の値を取得するために @code{eval} の代わりに @code{actual-value} を使用しなければなりません：
+
+@lisp
+(define (eval-if exp env)
+  (if (true? (actual-value (if-predicate exp)
+                           env))
+      (eval (if-consequent exp) env)
+      (eval (if-alternative exp) env)))
+@end lisp
+
+@noindent
+最後に、遅延された値が読み取り-評価-印刷ループに伝播された場合、印刷される前に強制されるように、@code{eval} の代わりに @code{actual-value} を使用するために @code{driver-loop} 手続き（@ref{4.1.4}）を変更しなければなりません。また、これが遅延評価器であることを示すためにプロンプトも変更します：
+
+@lisp
+(define input-prompt  ";;; L-Eval input:")
+(define output-prompt ";;; L-Eval value:")
+
+(define (driver-loop)
+  (prompt-for-input input-prompt)
+  (let ((input (read)))
+    (let ((output (actual-value
+                   input
+                   the-global-environment)))
+      (announce-output output-prompt)
+      (user-print output)))
+  (driver-loop))
+@end lisp
+
+@noindent
+これらの変更を行ったら、評価器を起動してテストできます。@ref{4.2.1} で議論した @code{try} 式の評価が成功することは、インタープリタが遅延評価を実行していることを示しています：
+
+@lisp
+(define the-global-environment
+  (setup-environment))
+
+(driver-loop)
+
+@i{;;; L-Eval input:}
+(define (try a b) (if (= a 0) 1 b))
+
+@i{;;; L-Eval value:}

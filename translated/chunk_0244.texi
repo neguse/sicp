@@ -1,0 +1,65 @@
+  (define dy (stream-map f y))
+  y)
+@end lisp
+
+この練習問題で示されているように内部定義がスキャンアウトされた場合、この手続きは動作するでしょうか？テキストで示されているようにスキャンアウトされた場合はどうでしょうか？説明してください。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.19}練習問題 4.19:} Ben Bitdiddle、Alyssa P. Hacker、Eva Lu Atorは、次の式を評価した望ましい結果について議論しています
+
+@lisp
+(let ((a 1))
+  (define (f x)
+    (define b (+ a x))
+    (define a 5)
+    (+ a b))
+  (f 10))
+@end lisp
+
+Benは、@code{define} の順次規則を使って結果が得られるべきだと主張します：@code{b} は 11 に定義され、次に @code{a} は 5 に定義されるので、結果は 16 です。Alyssaは、相互再帰には内部手続き定義の同時スコープ規則が必要であり、手続き名を他の名前と異なる扱いをするのは不合理だと反論します。したがって、彼女は @ref{Exercise 4.16} で実装された機構を主張します。これは @code{b} の値が計算される時点で @code{a} が未代入であることにつながります。したがって、Alyssaの見解では手続きはエラーを生成すべきです。Evaは第三の意見を持っています。彼女は、@code{a} と @code{b} の定義が本当に同時であることを意図しているなら、@code{a} の値 5 が @code{b} の評価で使用されるべきだと言います。したがって、Evaの見解では @code{a} は 5、@code{b} は 15、結果は 20 であるべきです。これらの見解のどれ（もしあれば）を支持しますか？Evaが好む動作をするように内部定義を実装する方法を考案できますか？@footnote{@abbr{MIT} のScheme実装者は次の理由でAlyssaを支持します：Evaは原則的には正しい―定義は同時とみなされるべきです。しかし、Evaが要求することを行う一般的で効率的な機構を実装するのは困難に思えます。そのような機構がない場合、同時定義の困難なケースでエラーを生成する方が（Alyssaの考え）、誤った答えを生成するより良い（Benがそうするだろうように）です。}
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.20}練習問題 4.20:} 内部定義は順次に見えますが実際には同時であるため、一部の人々はそれらを完全に避けて、代わりに特殊形式 @code{letrec} を使用することを好みます。@code{Letrec} は @code{let} に似ているので、それが束縛する変数が同時に束縛され、互いに同じスコープを持つことは驚くべきことではありません。上記のサンプル手続き @code{f} は、内部定義なしで、しかし全く同じ意味で次のように書けます
+
+@lisp
+(define (f x)
+  (letrec
+      ((even?
+        (lambda (n)
+          (if (= n 0)
+              true
+              (odd? (- n 1)))))
+       (odd?
+        (lambda (n)
+          (if (= n 0)
+              false
+              (even? (- n 1))))))
+    ⟨@var{rest of body of @code{f}}⟩))
+@end lisp
+
+@code{Letrec} 式は次の形式を持ちます
+
+@lisp
+(letrec ((⟨@var{var₁}⟩ ⟨@var{exp₁}⟩) @r{…} (⟨@var{varₙ}⟩ ⟨@var{expₙ}⟩))
+  ⟨@var{body}⟩)
+@end lisp
+
+@noindent
+これは @code{let} の変種であり、変数 @math{{⟨\kern0.06em var_k⟩}} の初期値を提供する式 @math{{⟨\kern0.1em exp_k⟩}} が、すべての @code{letrec} 束縛を含む環境で評価されます。これにより、上記の例での @code{even?} と @code{odd?} の相互再帰のような、束縛での再帰が許可されます。または10の階乗の評価も可能です
+
+@lisp
+(letrec
+    ((fact
+      (lambda (n)
+        (if (= n 1)
+            1
+            (* n (fact (- n 1)))))))
+  (fact 10))
+@end lisp
+
+@enumerate a
+
+@item
+@code{letrec} を派生式として実装してください。@code{letrec} 式をテキストまたは @ref{Exercise 4.18} で示されているように @code{let} 式に変換することで。つまり、@code{letrec} 変数は @code{let} で作成され、次に @code{set!} で値が代入されるべきです。

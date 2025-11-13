@@ -1,0 +1,60 @@
+
+(define (execute-application proc args)
+  (cond ((primitive-procedure? proc)
+         (apply-primitive-procedure proc args))
+        ((compound-procedure? proc)
+         ((procedure-body proc)
+          (extend-environment
+           (procedure-parameters proc)
+           args
+           (procedure-environment proc))))
+        (else (error "Unknown procedure type:
+                      EXECUTE-APPLICATION"
+                     proc))))
+@end lisp
+
+@noindent
+新しい評価器は、@ref{4.1.2}、@ref{4.1.3}、@ref{4.1.4} と同じデータ構造、構文手続き、実行時サポート手続きを使用します。
+
+@quotation
+@strong{@anchor{Exercise 4.22}練習問題 4.22:} このセクションの評価器を拡張して、特殊形式 @code{let} をサポートしてください（@ref{Exercise 4.6} を参照）。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.23}練習問題 4.23:} Alyssa P. Hackerは、なぜ @code{analyze-sequence} がそれほど複雑である必要があるのか理解できません。他のすべての解析手続きは、@ref{4.1.1} の対応する評価手続き（または @code{eval} 節）の直接的な変換です。彼女は @code{analyze-sequence} が次のようになることを期待していました：
+
+@lisp
+(define (analyze-sequence exps)
+  (define (execute-sequence procs env)
+    (cond ((null? (cdr procs))
+           ((car procs) env))
+          (else ((car procs) env)
+                (execute-sequence
+                 (cdr procs) env))))
+  (let ((procs (map analyze exps)))
+    (if (null? procs)
+        (error "Empty sequence:
+                ANALYZE"))
+    (lambda (env)
+      (execute-sequence procs env))))
+@end lisp
+
+Eva Lu AtorはAlyssaに、テキストのバージョンは列の評価の作業の多くを解析時に行うことを説明します。Alyssaの列実行手続きは、個々の実行手続きへの呼び出しが組み込まれているのではなく、それらを呼び出すために手続きをループします：事実上、列内の個々の式は解析されていますが、列自体は解析されていません。
+
+@code{analyze-sequence} の2つのバージョンを比較してください。例えば、列が1つの式だけを持つ（手続き本体の典型）という一般的なケースを考えてください。Alyssaのプログラムによって生成される実行手続きはどんな作業をするでしょうか？上記のテキストのプログラムによって生成される実行手続きについてはどうでしょうか？2つの式を持つ列については、2つのバージョンはどのように比較されますか？
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.24}練習問題 4.24:} 元のメタ循環評価器とこのセクションのバージョンの速度を比較するいくつかの実験を設計して実行してください。結果を使って、さまざまな手続きについて解析と実行に費やされる時間の割合を推定してください。
+@end quotation
+
+@node	4.2, 4.3, 4.1, Chapter 4
+@section Schemeの変種 --- 遅延評価
+
+今や評価器をLispプログラムとして表現したので、単に評価器を修正するだけで言語設計における代替選択を実験できます。実際、新しい言語は、新しい言語を既存の高水準言語内に埋め込む評価器を最初に書くことによって発明されることがよくあります。例えば、Lispコミュニティの別のメンバーとLispへの提案された修正のある側面について議論したい場合、変更を体現する評価器を提供できます。受け取る側は新しい評価器を実験し、さらなる修正としてコメントを送り返すことができます。高水準実装基盤が評価器のテストとデバッグを容易にするだけでなく、さらに埋め込みにより設計者が基礎となる言語から機能をスナーフ@footnote{Snarf: 「大きなドキュメントやファイルを、所有者の許可の有無にかかわらず使用する目的でつかむこと。」Snarf down: 「スナーフすること。時に吸収、処理、理解の意味合いを持つ。」（これらの定義は @ref{Steele et al. 1983} からスナーフされました。@ref{Raymond 1993} も参照してください。）}できるようになります。ちょうど私たちの埋め込まれたLisp評価器が基礎となるLispから基本手続きと制御構造を使用するのと同じです。後になって（もしそうなるなら）はじめて、設計者は低水準言語やハードウェアで完全な実装を構築する手間をかける必要があります。このセクションと次のセクションでは、重要な追加の表現力を提供するSchemeのいくつかの変種を探求します。
+
+@menu
+* 4.2.1::            正規順序と適用順序
+* 4.2.2::            遅延評価を持つインタープリタ
+* 4.2.3::            遅延リストとしてのストリーム
+@end menu

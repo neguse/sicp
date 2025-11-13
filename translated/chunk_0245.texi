@@ -1,0 +1,74 @@
+@code{let} で作成され、次に @code{set!} で値が代入されるべきです。
+
+@item
+Louis Reasonerは内部定義についてのこの騒ぎに混乱しています。彼の見方では、手続き内で @code{define} を使いたくなければ、単に @code{let} を使えばよいのです。式 @code{(f 5)} の評価中に @code{⟨}@var{rest of body of @code{f}}@code{⟩} が評価される環境を示す環境図を描いて、彼の推論の緩さを示してください。ここで @code{f} はこの練習問題で定義されているものとします。同じ評価について環境図を描いてください。ただし @code{f} の定義で @code{letrec} の代わりに @code{let} を使用した場合です。
+
+@end enumerate
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.21}練習問題 4.21:} 驚くべきことに、@ref{Exercise 4.20} でのLouisの直観は正しいのです。@code{letrec}（あるいは @code{define} さえも）を使わずに再帰手続きを指定することは実際に可能ですが、これを達成する方法はLouisが想像したよりもずっと微妙です。次の式は、再帰的な階乗手続きを適用することで10の階乗を計算します：@footnote{この例は、@code{define} を使わずに再帰手続きを定式化するためのプログラミングトリックを示しています。この種の最も一般的なトリックは @math{Y} @newterm{オペレータ} であり、再帰の「純粋なλ計算」実装を与えるために使用できます（λ計算の詳細については @ref{Stoy 1977} を、Schemeでの @math{Y} オペレータの説明については @ref{Gabriel 1988} を参照）。}
+
+@lisp
+((lambda (n)
+   ((lambda (fact) (fact fact n))
+    (lambda (ft k)
+      (if (= k 1)
+          1
+          (* k (ft ft (- k 1)))))))
+ 10)
+@end lisp
+
+@enumerate a
+
+@item
+（式を評価することで）これが本当に階乗を計算することを確認してください。フィボナッチ数を計算するための類似の式を考案してください。
+
+@item
+次の手続きを考えてください。これには相互再帰的な内部定義が含まれています：
+
+@lisp
+(define (f x)
+  (define (even? n)
+    (if (= n 0)
+        true
+        (odd? (- n 1))))
+  (define (odd? n)
+    (if (= n 0)
+        false
+        (even? (- n 1))))
+  (even? x))
+@end lisp
+
+@code{f} の代替定義を完成させるために、欠けている式を埋めてください。これは内部定義も @code{letrec} も使用しません：
+
+@lisp
+(define (f x)
+  ((lambda (even? odd?)
+     (even? even? odd? x))
+   (lambda (ev? od? n)
+     (if (= n 0)
+         true
+         (od? ⟨??⟩ ⟨??⟩ ⟨??⟩)))
+   (lambda (ev? od? n)
+     (if (= n 0)
+         false
+         (ev? ⟨??⟩ ⟨??⟩ ⟨??⟩)))))
+@end lisp
+@end enumerate
+@end quotation
+
+@node	4.1.7, 4.2, Chapter 4, 4.1
+@subsection 構文解析と実行の分離
+
+上で実装された評価器はシンプルですが、非常に非効率的です。なぜなら、式の構文解析がその実行とインターリーブされているからです。したがって、プログラムが何度も実行されると、その構文が何度も解析されます。例えば、次の @code{factorial} の定義を使って @code{(factorial 4)} を評価することを考えてください：
+
+@lisp
+(define (factorial n)
+  (if (= n 1)
+      1
+      (* (factorial (- n 1)) n)))
+@end lisp
+
+@noindent
+@code{factorial} が呼び出されるたびに、評価器は本体が @code{if} 式であることを判定し、述語を抽出しなければなりません。その後でのみ、述語を評価してその値に基づいてディスパッチできます。式 @code{(* (factorial (- n 1)) n)} や部分式

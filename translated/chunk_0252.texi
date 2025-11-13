@@ -1,0 +1,73 @@
+@i{ok}
+
+@i{;;; L-Eval input:}
+(try 0 (/ 1 0))
+
+@i{;;; L-Eval value:}
+@i{1}
+@end lisp
+
+@subsubheading サンクの表現
+
+評価器は、手続きが引数に適用されるときにサンクを作成し、後でこれらのサンクを強制するように配置しなければなりません。サンクは式を環境とともにパッケージ化して、後で引数を生成できるようにしなければなりません。サンクを強制するには、単にサンクから式と環境を抽出し、環境内で式を評価します。式の値自体がサンクである場合に備えて、それを強制し、以下同様にサンクでないものに到達するまで続けるために、@code{eval} ではなく @code{actual-value} を使用します：
+
+@lisp
+(define (force-it obj)
+  (if (thunk? obj)
+      (actual-value (thunk-exp obj)
+                    (thunk-env obj))
+      obj))
+@end lisp
+
+@noindent
+式を環境でパッケージ化する簡単な方法の1つは、式と環境を含むリストを作ることです。したがって、次のようにサンクを作成します：
+
+@lisp
+(define (delay-it exp env)
+  (list 'thunk exp env))
+(define (thunk? obj) (tagged-list? obj 'thunk))
+(define (thunk-exp thunk) (cadr thunk))
+(define (thunk-env thunk) (caddr thunk))
+@end lisp
+
+@noindent
+実際には、インタープリタに必要なのはこれではなく、メモ化されたサンクです。サンクが強制されたとき、保存された式をその値で置き換え、@code{thunk} タグを変更してすでに評価されていると認識できるようにすることで、それを評価されたサンクに変えます。@footnote{式の値が計算されたら、サンクから @code{env} も消去することに注意してください。これはインタープリタが返す値に違いをもたらしませんが、スペースを節約するのに役立ちます。なぜなら、もはや必要でなくなったらサンクから @code{env} への参照を削除することで、この構造が @newterm{ガベージコレクト} され、そのスペースが再利用できるようになるからです。これについては @ref{5.3} で議論します。
+
+同様に、@ref{3.5.1} のメモ化された遅延オブジェクトで不要になった環境をガベージコレクトできるようにすることもできました。@code{memo-proc} に @code{(set! proc '())} のようなことをさせて、その値を保存した後に手続き @code{proc}（@code{delay} が評価された環境を含む）を破棄することで。}
+
+@lisp
+(define (evaluated-thunk? obj)
+  (tagged-list? obj 'evaluated-thunk))
+
+(define (thunk-value evaluated-thunk)
+  (cadr evaluated-thunk))
+
+(define (force-it obj)
+  (cond ((thunk? obj)
+         (let ((result
+                (actual-value
+                 (thunk-exp obj)
+                 (thunk-env obj))))
+           (set-car! obj 'evaluated-thunk)
+           ;; @r{replace @code{exp} with its value:}
+           (set-car! (cdr obj) result)
+           ;; @r{forget unneeded @code{env}:}
+           (set-cdr! (cdr obj) '())
+           result))
+        ((evaluated-thunk? obj)
+         (thunk-value obj))
+        (else obj)))
+@end lisp
+
+@noindent
+同じ @code{delay-it} 手続きがメモ化の有無にかかわらず動作することに注意してください。
+
+@quotation
+@strong{@anchor{Exercise 4.27}練習問題 4.27:} 遅延評価器に次の定義を入力するとします：
+
+@lisp
+(define count 0)
+(define (id x) (set! count (+ count 1)) x)
+@end lisp
+
+次の一連の対話における欠けている値を与え、答えを説明してください。@footnote{この練習問題は、遅延評価と副作用の間の相互作用が非常に混乱を招く可能性があることを示しています。これはまさに @ref{Chapter 3} の議論から期待されることです。}

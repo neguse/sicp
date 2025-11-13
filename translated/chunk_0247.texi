@@ -1,0 +1,78 @@
+@code{Analyze-assignment} も、環境が提供されるまで実際の変数の設定を延期しなければなりません。しかし、@code{assignment-value} 式が解析中に（再帰的に）解析できるという事実は、効率における大きな利得です。なぜなら @code{assignment-value} 式は今や一度だけ解析されるからです。定義についても同じことが当てはまります。
+
+@lisp
+(define (analyze-assignment exp)
+  (let ((var (assignment-variable exp))
+        (vproc (analyze
+                (assignment-value exp))))
+    (lambda (env)
+      (set-variable-value!
+       var (vproc env) env)
+      'ok)))
+
+(define (analyze-definition exp)
+  (let ((var (definition-variable exp))
+        (vproc (analyze
+                (definition-value exp))))
+    (lambda (env)
+      (define-variable! var (vproc env) env)
+      'ok)))
+@end lisp
+
+@noindent
+@code{if} 式については、解析時に述語、帰結、代替を抽出して解析します。
+
+@lisp
+(define (analyze-if exp)
+  (let ((pproc (analyze (if-predicate exp)))
+        (cproc (analyze (if-consequent exp)))
+        (aproc (analyze (if-alternative exp))))
+    (lambda (env)
+      (if (true? (pproc env))
+          (cproc env)
+          (aproc env)))))
+@end lisp
+
+@noindent
+@code{lambda} 式の解析も効率における大きな利得を達成します：@code{lambda} の評価から生じる手続きが何度も適用される可能性があるにもかかわらず、@code{lambda} 本体を一度だけ解析します。
+
+@lisp
+(define (analyze-lambda exp)
+  (let ((vars (lambda-parameters exp))
+        (bproc (analyze-sequence
+                (lambda-body exp))))
+    (lambda (env)
+      (make-procedure vars bproc env))))
+@end lisp
+
+@noindent
+式の列（@code{begin} や @code{lambda} 式の本体など）の解析はより複雑です。@footnote{列の処理についての洞察については @ref{Exercise 4.23} を参照してください。} 列内の各式が解析され、実行手続きを生成します。これらの実行手続きが結合されて、環境を引数として取り、環境を引数として各個別の実行手続きを順次呼び出す実行手続きが生成されます。
+
+@lisp
+(define (analyze-sequence exps)
+  (define (sequentially proc1 proc2)
+    (lambda (env) (proc1 env) (proc2 env)))
+  (define (loop first-proc rest-procs)
+    (if (null? rest-procs)
+        first-proc
+        (loop (sequentially first-proc
+                            (car rest-procs))
+              (cdr rest-procs))))
+  (let ((procs (map analyze exps)))
+    (if (null? procs)
+        (error "Empty sequence: ANALYZE"))
+    (loop (car procs) (cdr procs))))
+@end lisp
+
+@noindent
+適用を解析するには、演算子とオペランドを解析し、演算子実行手続き（適用される実際の手続きを取得するため）とオペランド実行手続き（実際の引数を取得するため）を呼び出す実行手続きを構築します。次にこれらを @code{execute-application} に渡します。これは @ref{4.1.1} の @code{apply} の類似物です。@code{Execute-application} は @code{apply} と異なり、複合手続きの手続き本体はすでに解析されているため、さらなる解析を行う必要がありません。代わりに、拡張された環境で本体の実行手続きを呼び出すだけです。
+
+@lisp
+(define (analyze-application exp)
+  (let ((fproc (analyze (operator exp)))
+        (aprocs (map analyze (operands exp))))
+    (lambda (env)
+      (execute-application
+       (fproc env)
+       (map (lambda (aproc) (aproc env))
+            aprocs)))))

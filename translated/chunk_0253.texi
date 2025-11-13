@@ -1,0 +1,82 @@
+
+@lisp
+(define w (id (id 10)))
+
+@i{;;; L-Eval input:}
+count
+
+@i{;;; L-Eval value:}
+⟨@var{response}⟩
+
+@i{;;; L-Eval input:}
+w
+
+@i{;;; L-Eval value:}
+⟨@var{response}⟩
+
+@i{;;; L-Eval input:}
+count
+
+@i{;;; L-Eval value:}
+⟨@var{response}⟩
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.28}練習問題 4.28:} @code{Eval} は演算子を @code{apply} に渡す前に評価するために、@code{eval} ではなく @code{actual-value} を使用します。これは演算子の値を強制するためです。この強制の必要性を示す例を示してください。
+
+@noindent
+@strong{@anchor{Exercise 4.29}練習問題 4.29:} メモ化なしではメモ化ありよりもはるかに遅く実行されると期待されるプログラムを示してください。また、次の対話を考えてください。ここで @code{id} 手続きは @ref{Exercise 4.27} のように定義され、@code{count} は 0 から始まります：
+
+@lisp
+(define (square x) (* x x))
+
+@i{;;; L-Eval input:}
+(square (id 10))
+
+@i{;;; L-Eval value:}
+⟨@var{response}⟩
+
+@i{;;; L-Eval input:}
+count
+
+@i{;;; L-Eval value:}
+⟨@var{response}⟩
+@end lisp
+
+評価器がメモ化する場合としない場合の両方で応答を示してください。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.30}練習問題 4.30:} 改心したCプログラマーのCy D. Fectは、遅延評価器が列内の式を強制しないため、一部の副作用が決して起こらない可能性があることを心配しています。最後のもの以外の列内の式の値は使用されない（式はそこに変数への代入や印刷などの効果のためだけにある）ので、それを強制させるこの値の後続の使用（例えば、基本手続きへの引数として）はあり得ません。したがってCyは、列を評価するとき、最後のものを除いて列内のすべての式を強制しなければならないと考えます。彼は @ref{4.1.1} の @code{eval-sequence} を修正して @code{eval} ではなく @code{actual-value} を使用することを提案します：
+
+@lisp
+(define (eval-sequence exps env)
+  (cond ((last-exp? exps)
+         (eval (first-exp exps) env))
+        (else
+         (actual-value (first-exp exps)
+                       env)
+         (eval-sequence (rest-exps exps)
+                        env))))
+@end lisp
+
+@enumerate a
+
+@item
+Ben BitdiddleはCyが間違っていると考えています。彼はCyに @ref{Exercise 2.23} で説明された @code{for-each} 手続きを示します。これは副作用を持つ列の重要な例を示しています：
+
+@lisp
+(define (for-each proc items)
+  (if (null? items)
+      'done
+      (begin (proc (car items))
+             (for-each proc
+                       (cdr items)))))
+@end lisp
+
+彼は、テキストの評価器（元の @code{eval-sequence} を使用）がこれを正しく扱うと主張します：
+
+@lisp
+@i{;;; L-Eval input:}
+(for-each

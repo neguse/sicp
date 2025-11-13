@@ -1,0 +1,69 @@
+@code{(factorial (- n 1))} および @code{(- n 1)} を評価するたびに、評価器は @code{eval} でケース分析を実行して、式が適用であることを判定し、その演算子とオペランドを抽出しなければなりません。この解析は高価です。それを繰り返し実行するのは無駄です。
+
+構文解析が一度だけ実行されるように配置することで、評価器を大幅に効率的に変換できます。@footnote{この技術はコンパイルプロセスの不可欠な部分であり、@ref{Chapter 5} で議論します。Jonathan Reesは1982年頃、Tプロジェクト（@ref{Rees and Adams 1982}）のためにこのようなSchemeインタープリタを書きました。Marc @ref{Feeley (1986)}（@ref{Feeley and Lapalme 1987} も参照）は彼の修士論文でこの技術を独立に発明しました。} 式と環境を取る @code{eval} を2つの部分に分割します。手続き @code{analyze} は式のみを取ります。それは構文解析を実行し、新しい手続き、すなわち @newterm{実行手続き} を返します。これは解析された式の実行で行われる作業をカプセル化します。実行手続きは環境を引数として取り、評価を完了します。これは作業を節約します。なぜなら @code{analyze} は式に対して一度だけ呼び出されますが、実行手続きは何度も呼び出される可能性があるからです。
+
+解析と実行への分離により、@code{eval} は今や次のようになります
+
+@lisp
+(define (eval exp env) ((analyze exp) env))
+@end lisp
+
+@noindent
+@code{analyze} の呼び出しの結果は、環境に適用される実行手続きです。@code{analyze} 手続きは @ref{4.1.1} の元の @code{eval} と同じケース分析ですが、ディスパッチする手続きは完全な評価ではなく解析のみを実行します：
+
+@lisp
+(define (analyze exp)
+  (cond ((self-evaluating? exp)
+         (analyze-self-evaluating exp))
+        ((quoted? exp)
+         (analyze-quoted exp))
+        ((variable? exp)
+         (analyze-variable exp))
+        ((assignment? exp)
+         (analyze-assignment exp))
+        ((definition? exp)
+         (analyze-definition exp))
+        ((if? exp)
+         (analyze-if exp))
+        ((lambda? exp)
+         (analyze-lambda exp))
+        ((begin? exp)
+         (analyze-sequence
+          (begin-actions exp)))
+        ((cond? exp)
+         (analyze (cond->if exp)))
+        ((application? exp)
+         (analyze-application exp))
+        (else
+         (error "Unknown expression
+                 type: ANALYZE"
+                exp))))
+@end lisp
+
+@noindent
+これは最も単純な構文解析手続きであり、自己評価式を扱います。環境引数を無視して単に式を返す実行手続きを返します：
+
+@lisp
+(define (analyze-self-evaluating exp)
+  (lambda (env) exp))
+@end lisp
+
+@noindent
+引用式については、実行段階ではなく解析段階で引用のテキストを一度だけ抽出することで、わずかに効率を得ることができます。
+
+@lisp
+(define (analyze-quoted exp)
+  (let ((qval (text-of-quotation exp)))
+    (lambda (env) qval)))
+@end lisp
+
+@noindent
+変数値の検索は、環境を知ることに依存するため、実行段階でまだ行われなければなりません。@footnote{しかし、変数検索の重要な部分は構文解析の一部として行うことが@emph{できます}。@ref{5.5.6} で示すように、環境構造内で変数の値が見つかる位置を決定できるため、変数に一致するエントリを探して環境を走査する必要がなくなります。}
+
+@lisp
+(define (analyze-variable exp)
+  (lambda (env)
+    (lookup-variable-value exp env)))
+@end lisp
+
+@noindent

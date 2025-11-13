@@ -1,0 +1,71 @@
+   :        |       C_1     |       C_2     |     :   :C_(n-1) |
+   :        |               |               |     :   :        |
+           S_1             S_2             S_3                S_n
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.27b,132mm,,,.std.svg}
+@caption{@strong{図 3.27:} @math{n} ビット数のためのリップルキャリー加算器。}
+@end iftex
+@end float
+
+@subsubheading 配線の表現
+
+シミュレーションにおける配線は、2 つの局所状態変数を持つ計算オブジェクトです:@code{signal-value}(初期値は 0)と、信号が値を変更したときに実行される @code{action-procedures} のコレクションです。配線をメッセージパッシングスタイルを使用して、@ref{3.1.1} の単純な銀行口座オブジェクトと同様に、局所手続きのコレクションと適切な局所操作を選択する @code{dispatch} 手続きとして実装します:
+
+@lisp
+(define (make-wire)
+  (let ((signal-value 0)
+        (action-procedures '()))
+    (define (set-my-signal! new-value)
+      (if (not (= signal-value new-value))
+          (begin (set! signal-value new-value)
+                 (call-each
+                  action-procedures))
+          'done))
+    (define (accept-action-procedure! proc)
+      (set! action-procedures
+            (cons proc action-procedures))
+      (proc))
+    (define (dispatch m)
+      (cond ((eq? m 'get-signal)
+             signal-value)
+            ((eq? m 'set-signal!)
+             set-my-signal!)
+            ((eq? m 'add-action!)
+             accept-action-procedure!)
+            (else (error "Unknown operation:
+                          WIRE" m))))
+    dispatch))
+@end lisp
+
+@noindent
+局所手続き @code{set-my-signal!} は、新しい信号値が配線上の信号を変更するかどうかをテストします。変更する場合、次の手続き @code{call-each} を使用して各アクション手続きを実行します。この手続きは、引数なしの手続きのリストの各項目を呼び出します:
+
+@lisp
+(define (call-each procedures)
+  (if (null? procedures)
+      'done
+      (begin ((car procedures))
+             (call-each (cdr procedures)))))
+@end lisp
+
+@noindent
+局所手続き @code{accept-action-procedure!} は、指定された手続きを実行される手続きのリストに追加し、次に新しい手続きを 1 回実行します。(@ref{練習問題 3.31} を参照してください。)
+
+指定されたように局所 @code{dispatch} 手続きを設定すると、配線上の局所操作にアクセスするための次の手続きを提供できます:@footnote{@anchor{Footnote 155} これらの手続きは、オブジェクトの局所手続きにアクセスするために通常の手続き構文を使用できるようにする単なる構文糖衣です。「手続き」と「データ」の役割をこのように単純な方法で交換できることは印象的です。例えば、@code{(wire 'get-signal)} と書くと、@code{wire} を入力としてメッセージ @code{get-signal} で呼び出される手続きと考えます。あるいは、@code{(get-signal wire)} と書くと、@code{wire} を手続き @code{get-signal} への入力であるデータオブジェクトと考えるよう促されます。実際のところ、手続きをオブジェクトとして扱うことができる言語では、「手続き」と「データ」の間に根本的な違いはなく、選択したスタイルでプログラミングできるように構文糖衣を選択できます。}
+
+@lisp
+(define (get-signal wire)
+  (wire 'get-signal))
+(define (set-signal! wire new-value)
+  ((wire 'set-signal!) new-value))
+(define (add-action! wire action-procedure)
+  ((wire 'add-action!) action-procedure))
+@end lisp
+
+@noindent
+時間変化する信号を持ち、デバイスに段階的に接続される可能性のある配線は、可変オブジェクトの典型です。代入によって変更される局所状態変数を持つ手続きとしてモデル化しました。新しい配線が作成されると、新しい状態変数のセットが割り当てられ(@code{make-wire} の @code{let} 式によって)、新しい @code{dispatch} 手続きが構築され、新しい状態変数を持つ環境を捕捉して返されます。
+
+配線は、それらに接続されたさまざまなデバイス間で共有されます。

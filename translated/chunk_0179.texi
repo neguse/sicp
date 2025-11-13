@@ -1,0 +1,80 @@
+@noindent
+次に、4 本の配線を定義し、そのうち 2 本にプローブを配置します:
+
+@lisp
+(define input-1 (make-wire))
+(define input-2 (make-wire))
+(define sum (make-wire))
+(define carry (make-wire))
+
+(probe 'sum sum)
+@i{sum 0  New-value = 0}
+
+(probe 'carry carry)
+@i{carry 0  New-value = 0}
+@end lisp
+
+@noindent
+次に、(@ref{図 3.25} のように)半加算器回路で配線を接続し、@code{input-1} の信号を 1 に設定し、シミュレーションを実行します:
+
+@lisp
+(half-adder input-1 input-2 sum carry)
+@i{ok}
+
+(set-signal! input-1 1)
+@i{done}
+
+(propagate)
+@i{sum 8  New-value = 1}
+@i{done}
+@end lisp
+
+@noindent
+@code{sum} 信号は時刻 8 で 1 に変わります。シミュレーションの開始から 8 時間単位経過しています。この時点で、@code{input-2} の信号を 1 に設定し、値を伝播させることができます:
+
+@lisp
+(set-signal! input-2 1)
+@i{done}
+
+(propagate)
+@i{carry 11  New-value = 1}
+@i{sum 16  New-value = 0}
+@i{done}
+@end lisp
+
+@noindent
+@code{carry} は時刻 11 で 1 に変わり、@code{sum} は時刻 16 で 0 に変わります。
+
+@quotation
+@strong{@anchor{Exercise 3.31}練習問題 3.31:} @code{make-wire} で定義された内部手続き @code{accept-action-procedure!} は、新しいアクション手続きが配線に追加されたときに、手続きがすぐに実行されることを指定します。この初期化が必要な理由を説明してください。特に、上記の段落の半加算器の例をトレースし、@code{accept-action-procedure!} を次のように定義した場合、システムの応答がどのように異なるかを述べてください
+
+@lisp
+(define (accept-action-procedure! proc)
+  (set! action-procedures
+        (cons proc action-procedures)))
+@end lisp
+@end quotation
+
+@subsubheading アジェンダの実装
+
+最後に、将来の実行のためにスケジュールされた手続きを保持するアジェンダデータ構造の詳細を示します。
+
+アジェンダは@newterm{タイムセグメント}で構成されます。各タイムセグメントは、数値(時刻)とそのタイムセグメント中に実行されるようにスケジュールされた手続きを保持するキュー(@ref{練習問題 3.32} を参照)で構成されるペアです。
+
+@lisp
+(define (make-time-segment time queue)
+  (cons time queue))
+(define (segment-time s) (car s))
+(define (segment-queue s) (cdr s))
+@end lisp
+
+@noindent
+@ref{3.3.2} で説明されているキュー操作を使用して、タイムセグメントキューを操作します。
+
+アジェンダ自体は、タイムセグメントの 1 次元テーブルです。@ref{3.3.3} で説明されているテーブルとは、セグメントが時刻の昇順にソートされる点で異なります。さらに、処理された最後のアクションの時刻である@newterm{現在時刻}をアジェンダの先頭に格納します。新しく構築されたアジェンダにはタイムセグメントがなく、現在時刻は 0 です:@footnote{アジェンダは @ref{3.3.3} のテーブルのようなヘッダ付きリストですが、リストは時刻でヘッダされるため、追加のダミーヘッダ(テーブルで使用される @code{*table*} シンボルのような)は必要ありません。}
+
+@lisp
+(define (make-agenda) (list 0))
+(define (current-time agenda) (car agenda))
+(define (set-current-time! agenda time)
+  (set-car! agenda time))

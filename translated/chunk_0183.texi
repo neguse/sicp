@@ -1,0 +1,77 @@
+@i{Error! Contradiction (77 212)}
+@end lisp
+
+@noindent
+コネクタは矛盾を感知したと不平を言います:その値は 77 であり、誰かがそれを 212 に設定しようとしています。新しい値でネットワークを本当に再利用したい場合は、@code{C} に古い値を忘れるように指示できます:
+
+@lisp
+(forget-value! C 'user)
+@i{Probe: Celsius temp = ?}
+@i{Probe: Fahrenheit temp = ?}
+@i{done}
+@end lisp
+
+@noindent
+@code{C} は、元々その値を設定した @code{user} が今その値を撤回していることを知り、@code{C} はプローブが示すように値を失うことに同意し、この事実をネットワークの残りの部分に通知します。この情報は最終的に @code{F} に伝播し、@code{F} は自身の値が 77 であると信じ続ける理由がないことを知ります。したがって、@code{F} もプローブが示すように値を放棄します。
+
+@code{F} に値がないので、212 に設定できます:
+
+@lisp
+(set-value! F 212 'user)
+@i{Probe: Fahrenheit temp = 212}
+@i{Probe: Celsius temp = 100}
+@i{done}
+@end lisp
+
+@noindent
+この新しい値は、ネットワークを通じて伝播されると、@code{C} に 100 の値を持つことを強制し、これは @code{C} のプローブによって登録されます。まったく同じネットワークが、@code{F} が与えられた @code{C} を計算し、@code{C} が与えられた @code{F} を計算するために使用されていることに注意してください。この計算の無方向性は、制約ベースシステムの際立った特徴です。
+
+@subsubheading 制約システムの実装
+
+制約システムは、@ref{3.3.4} のデジタル回路シミュレータと非常によく似た方法で、局所状態を持つ手続きオブジェクトを介して実装されます。制約システムの基本オブジェクトはやや複雑ですが、アジェンダと論理遅延に関する懸念がないため、全体的なシステムはより単純です。
+
+コネクタの基本操作は次のとおりです:
+
+@itemize @bullet
+
+@item
+@code{(has-value? ⟨@var{connector}⟩)} は、コネクタが値を持っているかどうかを示します。
+
+@item
+@code{(get-value ⟨@var{connector}⟩)} は、コネクタの現在の値を返します。
+
+@item
+@code{(set-value! ⟨@var{connector}⟩ ⟨@var{new-value}⟩ ⟨@var{informant}⟩)}
+は、通知者がコネクタに値を新しい値に設定するように要求していることを示します。
+
+@item
+@code{(forget-value! ⟨@var{connector}⟩ ⟨@var{retractor}⟩)} は、撤回者がコネクタに値を忘れるように要求していることをコネクタに伝えます。
+
+@item
+@code{(connect ⟨@var{connector}⟩ ⟨@var{new-constraint}⟩)} は、コネクタに新しい制約に参加するように指示します。
+
+@end itemize
+
+@noindent
+コネクタは、手続き @code{inform-about-value}(コネクタが値を持っていることを指定された制約に伝える)と @code{inform-about-no-value}(コネクタが値を失ったことを制約に伝える)によって制約と通信します。
+
+@code{Adder} は、被加数コネクタ @code{a1} と @code{a2} および @code{sum} コネクタの間に加算器制約を構築します。加算器は局所状態を持つ手続き(以下の手続き @code{me})として実装されます:
+
+@lisp
+(define (adder a1 a2 sum)
+  (define (process-new-value)
+    (cond ((and (has-value? a1)
+                (has-value? a2))
+           (set-value! sum
+                       (+ (get-value a1)
+                          (get-value a2))
+                       me))
+          ((and (has-value? a1)
+                (has-value? sum))
+           (set-value! a2
+                       (- (get-value sum)
+                          (get-value a1))
+                       me))
+          ((and (has-value? a2)
+                (has-value? sum))
+           (set-value! a1

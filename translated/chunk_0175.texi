@@ -1,0 +1,80 @@
+@code{half-adder} を定義して、この操作に明示的に名前を付けることができます:
+
+@lisp
+(define (half-adder a b s c)
+  (let ((d (make-wire)) (e (make-wire)))
+    (or-gate a b d)
+    (and-gate a b c)
+    (inverter c e)
+    (and-gate d e s)
+    'ok))
+@end lisp
+
+@noindent
+この定義の利点は、@code{half-adder} 自体をより複雑な回路を作成するための構成要素として使用できることです。例えば、@ref{図 3.26} は、2 個の半加算器と 1 個の OR ゲートで構成された@newterm{全加算器}を示しています。@footnote{全加算器は、2 つの 2 進数を加算するために使用される基本的な回路要素です。ここで A と B は加算される 2 つの数の対応する位置のビットであり、@math{\rm C_{in}} は 1 つ右の位置からの桁上げビットです。回路は、対応する位置の和のビットである SUM と、左に伝播される桁上げビットである @math{\rm C_{out}} を生成します。} 全加算器は次のように構築できます:
+
+@lisp
+(define (full-adder a b c-in sum c-out)
+  (let ((c1 (make-wire))
+        (c2 (make-wire))
+        (s  (make-wire)))
+    (half-adder b c-in s c1)
+    (half-adder a s sum c2)
+    (or-gate c1 c2 c-out)
+    'ok))
+@end lisp
+
+@float
+@anchor{Figure 3.26}
+@ifinfo
+@quotation
+@strong{図 3.26:} 全加算器回路。
+
+@example
+    +----------------------------------+
+    |              +-------+           |
+A -----------------+ half- +-------------- SUM
+    |  +-------+   | adder |   ____    |
+B -----+ half- +---+       +---\   \   |
+    |  | adder |   +-------+    >or >----- Cout
+C -----+       +---------------/___/   |
+    |  +-------+                       |
+    +----------------------------------+
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.26,129mm,,,.std.svg}
+@caption{@strong{図 3.26:} 全加算器回路。}
+@end iftex
+@end float
+
+@noindent
+@code{full-adder} を手続きとして定義したので、さらに複雑な回路を作成するための構成要素として使用できます。(例えば、@ref{練習問題 3.30} を参照してください。)
+
+本質的に、シミュレータは回路の言語を構築するためのツールを提供します。@ref{1.1} で Lisp の研究に取り組んだ言語に関する一般的な観点を採用すると、基本機能ボックスが言語の基本要素を形成し、ボックスを配線で接続することが組み合わせの手段を提供し、配線パターンを手続きとして指定することが抽象化の手段として機能すると言えます。
+
+@subsubheading 基本機能ボックス
+
+基本機能ボックスは、1 本の配線上の信号の変化が他の配線上の信号に影響を与える「力」を実装します。機能ボックスを構築するために、配線に対する次の操作を使用します:
+
+@itemize @bullet
+
+@item @code{(get-signal ⟨@var{wire}⟩)}
+
+@noindent
+配線上の信号の現在の値を返します。
+
+@item @code{(set-signal! ⟨@var{wire}⟩ ⟨@var{new value}⟩)}
+
+@noindent
+配線上の信号の値を新しい値に変更します。
+
+@item @code{(add-action! ⟨@var{wire}⟩ ⟨@var{procedure of no arguments}⟩)}
+
+@noindent
+配線上の信号の値が変化するたびに、指定された手続きを実行すべきであることを主張します。このような手続きは、配線上の信号値の変化を他の配線に伝達する手段です。
+
+@end itemize
+
+@noindent

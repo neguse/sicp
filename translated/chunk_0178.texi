@@ -1,0 +1,81 @@
+したがって、1 つのデバイスとの相互作用によって行われた変更は、配線に接続された他のすべてのデバイスに影響を与えます。配線は、接続が確立されたときに提供されたアクション手続きを呼び出すことによって、変更を隣接するものに伝達します。
+
+@subsubheading アジェンダ
+
+シミュレータを完成させるために必要なのは @code{after-delay} だけです。ここでの考え方は、実行すべきことのスケジュールを含む@newterm{アジェンダ}と呼ばれるデータ構造を維持することです。アジェンダに対して次の操作が定義されています:
+
+@itemize @bullet
+
+@item
+@code{(make-agenda)} は新しい空のアジェンダを返します。
+
+@item
+@code{(empty-agenda? ⟨@var{agenda}⟩)} は、指定されたアジェンダが空の場合に真です。
+
+@item
+@code{(first-agenda-item ⟨@var{agenda}⟩)} は、アジェンダの最初の項目を返します。
+
+@item
+@code{(remove-first-agenda-item! ⟨@var{agenda}⟩)} は、最初の項目を削除してアジェンダを変更します。
+
+@item
+@code{(add-to-agenda! ⟨@var{time}⟩ ⟨@var{action}⟩ ⟨@var{agenda}⟩)}
+は、指定された時刻に実行される指定されたアクション手続きを追加してアジェンダを変更します。
+
+@item
+@code{(current-time ⟨@var{agenda}⟩)} は現在のシミュレーション時刻を返します。
+
+@end itemize
+
+@noindent
+使用する特定のアジェンダは @code{the-agenda} によって示されます。手続き @code{after-delay} は @code{the-agenda} に新しい要素を追加します:
+
+@lisp
+(define (after-delay delay action)
+  (add-to-agenda!
+   (+ delay (current-time the-agenda))
+   action
+   the-agenda))
+@end lisp
+
+@noindent
+シミュレーションは、@code{the-agenda} 上で動作し、アジェンダ上の各手続きを順番に実行する手続き @code{propagate} によって駆動されます。一般に、シミュレーションが実行されると、新しい項目がアジェンダに追加され、@code{propagate} はアジェンダに項目がある限りシミュレーションを続けます:
+
+@lisp
+(define (propagate)
+  (if (empty-agenda? the-agenda)
+      'done
+      (let ((first-item
+             (first-agenda-item the-agenda)))
+        (first-item)
+        (remove-first-agenda-item! the-agenda)
+        (propagate))))
+@end lisp
+
+@subsubheading サンプルシミュレーション
+
+次の手続きは、配線に「プローブ」を配置し、シミュレータの動作を示します。プローブは配線に、信号が値を変更するたびに、現在の時刻と配線を識別する名前とともに新しい信号値を出力するように指示します:
+
+@lisp
+(define (probe name wire)
+  (add-action!
+   wire
+   (lambda ()
+     (newline)
+     (display name)
+     (display " ")
+     (display (current-time the-agenda))
+     (display "  New-value = ")
+     (display (get-signal wire)))))
+@end lisp
+
+@noindent
+まず、アジェンダを初期化し、基本機能ボックスの遅延を指定します:
+
+@lisp
+(define the-agenda (make-agenda))
+(define inverter-delay 2)
+(define and-gate-delay 3)
+(define or-gate-delay 5)
+@end lisp
+

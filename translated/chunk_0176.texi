@@ -1,0 +1,68 @@
+さらに、時間遅延と実行される手続きを受け取り、指定された遅延の後に指定された手続きを実行する手続き @code{after-delay} を使用します。
+
+これらの手続きを使用して、基本的なデジタル論理機能を定義できます。インバーターを通して入力を出力に接続するために、@code{add-action!} を使用して、入力配線の信号が値を変更するたびに実行される手続きを入力配線に関連付けます。手続きは入力信号の @code{logical-not} を計算し、次に 1 @code{inverter-delay} の後、出力信号をこの新しい値に設定します:
+
+@lisp
+(define (inverter input output)
+  (define (invert-input)
+    (let ((new-value
+           (logical-not (get-signal input))))
+      (after-delay
+       inverter-delay
+       (lambda ()
+         (set-signal! output new-value)))))
+  (add-action! input invert-input)
+  'ok)
+
+(define (logical-not s)
+  (cond ((= s 0) 1)
+        ((= s 1) 0)
+        (else (error "Invalid signal" s))))
+@end lisp
+
+@noindent
+AND ゲートはもう少し複雑です。アクション手続きは、ゲートへの入力のいずれかが変化した場合に実行される必要があります。入力配線上の信号の値の @code{logical-and}(@code{logical-not} に類似した手続きを使用)を計算し、1 @code{and-gate-delay} の後に出力配線上で新しい値への変更を設定します。
+
+@lisp
+(define (and-gate a1 a2 output)
+  (define (and-action-procedure)
+    (let ((new-value
+           (logical-and (get-signal a1)
+                        (get-signal a2))))
+      (after-delay
+       and-gate-delay
+       (lambda ()
+         (set-signal! output new-value)))))
+  (add-action! a1 and-action-procedure)
+  (add-action! a2 and-action-procedure)
+  'ok)
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 3.28}練習問題 3.28:} OR ゲートを基本機能ボックスとして定義してください。@code{or-gate} コンストラクタは @code{and-gate} に似たものにする必要があります。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.29}練習問題 3.29:} OR ゲートを構築する別の方法は、AND ゲートとインバーターから構築された複合デジタル論理デバイスとしてです。これを実現する手続き @code{or-gate} を定義してください。OR ゲートの遅延時間は @code{and-gate-delay} と @code{inverter-delay} の観点でどうなりますか?
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.30}練習問題 3.30:} @ref{図 3.27} は、@math{n} 個の全加算器を連結して形成された@newterm{リップルキャリー加算器}を示しています。これは、2 つの @math{n} ビット 2 進数を加算するための最も単純な形式の並列加算器です。入力 @math{A_1}、@math{A_2}、@math{A_3}、@dots{}、@math{A_n} と @math{B_1}、@math{B_2}、@math{B_3}、@dots{}、@math{B_n} は加算される 2 つの 2 進数です(各 @math{A_k} と @math{B_k} は 0 または 1 です)。回路は和の @math{n} ビットである @math{S_1}、@math{S_2}、@math{S_3}、@dots{}、@math{S_n}、および加算からの桁上げである @math{C} を生成します。この回路を生成する手続き @code{ripple-carry-adder} を記述してください。手続きは引数として @math{n} 本の配線の 3 つのリスト---@math{A_k}、@math{B_k}、@math{S_k}---および別の配線 @math{C} を取る必要があります。リップルキャリー加算器の主な欠点は、桁上げ信号が伝播するのを待つ必要があることです。AND ゲート、OR ゲート、およびインバーターの遅延の観点で表現された、@math{n} ビットリップルキャリー加算器から完全な出力を得るために必要な遅延は何ですか?
+@end quotation
+
+@float
+@anchor{Figure 3.27}
+@ifinfo
+@quotation
+@strong{図 3.27:} @math{n} ビット数のためのリップルキャリー加算器。
+
+@example
+   :                                              :   :
+   : A_1 B_1   C_1   A_2 B_2   C_2   A_3 B_3   C_3:   : A_n B_n C_n=0
+   :  |   |   +---+   |   |   +---+   |   |   +-----  :  |   |   +-
+   |  |   |   |   |   |   |   |   |   |   |   |   :   :  |   |   |
+   : ++---+---++  |  ++---+---++  |  ++---+---++  :   : ++---+---++
+   : |   FA    |  |  |   FA    |  |  |   FA    |  :   : |   FA    |
+   : +--+---+--+  |  +--+---+--+  |  +--+---+--+  :   : +--+---+--+
+   :    |   |     |     |   |     |     |   |     :   :    |   |
+C ------+   |     +-----+   |     +-----+   |     :  ------+   |

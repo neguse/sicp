@@ -1,0 +1,71 @@
+    |    +-----+        +-----+     | |     +-----+
+    +----+  9  |        |  5  +-----+ +-----+  32 |
+         +-----+        +-----+             +-----+
+@end example
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.28,142mm,,,.std.svg}
+@caption{@strong{図 3.28:} 制約ネットワークとして表現された関係 @math{{9C = 5(F - 32)}}。}
+@end iftex
+@end float
+
+@noindent
+このようなネットワークによる計算は次のように進行します:コネクタに値が与えられると(ユーザーまたはそれがリンクされている制約ボックスによって)、値があることを通知するために、(それを起動したばかりの制約を除いて)関連するすべての制約を起動します。起動された各制約ボックスは、コネクタをポーリングして、コネクタの値を決定するのに十分な情報があるかどうかを確認します。ある場合、ボックスはそのコネクタを設定し、次にそれが関連するすべての制約を起動し、というように続きます。例えば、摂氏と華氏の変換では、@math{w}、@math{x}、@math{y} はそれぞれ 9、5、32 に定数ボックスによってすぐに設定されます。コネクタは乗算器と加算器を起動しますが、続行するのに十分な情報がないと判断されます。ユーザー(またはネットワークの他の部分)が @math{C} を値(たとえば 25)に設定すると、最も左の乗算器が起動され、@math{u} を @math{{25 \cdot 9 = 225}} に設定します。次に @math{u} が 2 番目の乗算器を起動し、@math{v} を 45 に設定し、@math{v} が加算器を起動し、@math{f} を 77 に設定します。
+
+@subsubheading 制約システムの使用
+
+制約システムを使用して上記で概説した温度計算を実行するには、まずコンストラクタ @code{make-connector} を呼び出して 2 つのコネクタ @code{C} と @code{F} を作成し、@code{C} と @code{F} を適切なネットワークにリンクします:
+
+@lisp
+(define C (make-connector))
+(define F (make-connector))
+(celsius-fahrenheit-converter C F)
+@i{ok}
+@end lisp
+
+@noindent
+ネットワークを作成する手続きは次のように定義されます:
+
+@lisp
+(define (celsius-fahrenheit-converter c f)
+  (let ((u (make-connector))
+        (v (make-connector))
+        (w (make-connector))
+        (x (make-connector))
+        (y (make-connector)))
+    (multiplier c w u)
+    (multiplier v x u)
+    (adder v y f)
+    (constant 9 w)
+    (constant 5 x)
+    (constant 32 y)
+    'ok))
+@end lisp
+
+@noindent
+この手続きは内部コネクタ @code{u}、@code{v}、@code{w}、@code{x}、@code{y} を作成し、基本制約コンストラクタ @code{adder}、@code{multiplier}、@code{constant} を使用して @ref{図 3.28} に示すようにそれらをリンクします。@ref{3.3.4} のデジタル回路シミュレータと同様に、これらの基本要素の組み合わせを手続きの観点で表現することで、複合オブジェクトの抽象化の手段を言語に自動的に提供します。
+
+ネットワークの動作を監視するために、@ref{3.3.4} で配線を監視するために使用したものと同様の @code{probe} 手続きを使用して、コネクタ @code{C} と @code{F} にプローブを配置できます。コネクタにプローブを配置すると、コネクタに値が与えられるたびにメッセージが出力されます:
+
+@lisp
+(probe "Celsius temp" C)
+(probe "Fahrenheit temp" F)
+@end lisp
+
+@noindent
+次に、@code{C} の値を 25 に設定します。(@code{set-value!} の 3 番目の引数は、この指令が @code{user} から来たことを @code{C} に伝えます。)
+
+@lisp
+(set-value! C 25 'user)
+@i{Probe: Celsius temp = 25}
+@i{Probe: Fahrenheit temp = 77}
+@i{done}
+@end lisp
+
+@noindent
+@code{C} のプローブが起動し、値を報告します。@code{C} はまた、上記で説明したようにネットワークを通じて値を伝播します。これにより @code{F} が 77 に設定され、@code{F} のプローブによって報告されます。
+
+今度は @code{F} を新しい値、例えば 212 に設定してみましょう:
+
+@lisp
+(set-value! F 212 'user)

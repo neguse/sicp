@@ -1,0 +1,68 @@
+sicp-pocket-ja.texi:5996: misplaced {
+sicp-pocket-ja.texi:5996: misplaced }
+sicp-pocket-ja.texi:5996: misplaced {
+sicp-pocket-ja.texi:5996: misplaced }
+sicp-pocket-ja.texi:5996: misplaced {
+sicp-pocket-ja.texi:5996: misplaced }
+sicp-pocket-ja.texi:5999: unmatched `@end tex'
+sicp-pocket-ja.texi:10273: `@end' expected `quotation', but saw `example'
+sicp-pocket-ja.texi:10273: unmatched `@end example'
+sicp-pocket-ja.texi:10274: unmatched `@end'
+sicp-pocket-ja.texi:10277: @anchor `Figure 2.20' previously defined
+sicp-pocket-ja.texi:11833: misplaced }
+sicp-pocket-ja.texi:14538: unmatched `@end'
+sicp-pocket-ja.texi:14541: @anchor `Figure 3.24' previously defined
+sicp-pocket-ja.texi:16182: misplaced {
+sicp-pocket-ja.texi:16182: misplaced {
+sicp-pocket-ja.texi:16182: misplaced }
+sicp-pocket-ja.texi:16182: misplaced }
+sicp-pocket-ja.texi:16591: unmatched `@end lisp'
+sicp-pocket-ja.texi:16594: unmatched `@end quotation'
+sicp-pocket-ja.texi:20002: unknown command `footnoteref'
+sicp-pocket-ja.texi:20002: misplaced {
+sicp-pocket-ja.texi:20002: misplaced }
+sicp-pocket-ja.texi:20012: unmatched `@end lisp'
+sicp-pocket-ja.texi:20015: unmatched `@end quotation'
+sicp-pocket-ja.texi:28046: unmatched `@end lisp'
+sicp-pocket-ja.texi:30888: unmatched `@end lisp'
+sicp-pocket-ja.texi:30889: unmatched `@end quotation'
+sicp-pocket-ja.texi:3150: @ref reference to nonexistent node `Hardy and Wright (1960)'
+sicp-pocket-ja.texi:5880: @ref reference to nonexistent node `Moses 1970'
+sicp-pocket-ja.texi:5881: @ref reference to nonexistent node `Moses 2012'
+sicp-pocket-ja.texi:5883: @ref reference to nonexistent node `MacDonald 1967'
+sicp-pocket-ja.texi:5886: @ref reference to nonexistent node `Macsyma 2012'
+sicp-pocket-ja.texi:5887: @ref reference to nonexistent node `Fateman 1979'
+sicp-pocket-ja.texi:5887: @ref reference to nonexistent node `Martin and Fateman 1971'
+sicp-pocket-ja.texi:11236: @ref reference to nonexistent node `図2.24'
+sicp-pocket-ja.texi:11273: @ref reference to nonexistent node `図2.24'
+sicp-pocket-ja.texi:11287: @ref reference to nonexistent node `図2.24'
+sicp-pocket-ja.texi:11357: @ref reference to nonexistent node `練習問題2.82'
+sicp-pocket-ja.texi:11408: @ref reference to nonexistent node `図2.25'
+sicp-pocket-ja.texi:11441: @ref reference to nonexistent node `練習問題2.83'
+sicp-pocket-ja.texi:11442: @ref reference to nonexistent node `練習問題2.84'
+sicp-pocket-ja.texi:11450: @ref reference to nonexistent node `練習問題2.85'
+sicp-pocket-ja.texi:11456: @ref reference to nonexistent node `図2.26'
+sicp-pocket-ja.texi:11550: @ref reference to nonexistent node `図2.25'
+sicp-pocket-ja.texi:11554: @ref reference to nonexistent node `練習問題2.83'
+sicp-pocket-ja.texi:11558: @ref reference to nonexistent node `練習問題2.83'
+sicp-pocket-ja.texi:11561: @ref reference to nonexistent node `練習問題2.79'
+sicp-pocket-ja.texi:11561: @ref reference to nonexistent node `練習問題2.84'
+sicp-pocket-ja.texi:11697: @ref reference to nonexistent node `練習問題2.62'
+sicp-pocket-ja.texi:11831: @ref reference to nonexistent node `練習問題2.78'
+sicp-pocket-ja.texi:11831: @ref reference to nonexistent node `練習問題2.61'
+sicp-pocket-ja.texi:11833: @ref reference to nonexistent node `練習問題2.61'
+sicp-pocket-ja.texi:11852: @ref reference to nonexistent node `練習問題2.80'
+sicp-pocket-ja.texi:11852: @ref reference to nonexistent node `練習問題2.87'
+sicp-pocket-ja.texi:12005: @ref reference to nonexistent node `練習問題2.91'
+sicp-pocket-ja.texi:12048: @ref reference to nonexistent node `練習問題2.94'
+sicp-pocket-ja.texi:12052: @ref reference to nonexistent node `練習問題2.95'
+sicp-pocket-ja.texi:12061: @ref reference to nonexistent node `練習問題2.95'
+sicp-pocket-ja.texi:12075: @ref reference to nonexistent node `練習問題2.96'
+sicp-pocket-ja.texi:12261: @ref reference to nonexistent node `練習問題3.10'
+sicp-pocket-ja.texi:15299: @ref reference to nonexistent node `脚注 155'
+sicp-pocket-ja.texi:16282: @ref reference to nonexistent node `第 2 章'
+sicp-pocket-ja.texi:16509: @ref reference to nonexistent node `脚注 78'
+sicp-pocket-ja.texi:19926: @ref reference to nonexistent node `Marc Feeley 1986'
+sicp-pocket-ja.texi:25465: @ref reference to nonexistent node `図5.1'
+sicp-pocket-ja.texi:31311: @ref reference to nonexistent node `Figure 5.11'
+sicp-pocket-ja.texi:31334: @ref reference to nonexistent node `Figure 5.12'

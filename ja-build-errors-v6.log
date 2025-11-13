@@ -1,0 +1,37 @@
+sicp-pocket-ja.texi:5996: misplaced {
+sicp-pocket-ja.texi:5996: misplaced }
+sicp-pocket-ja.texi:5996: misplaced {
+sicp-pocket-ja.texi:5996: misplaced }
+sicp-pocket-ja.texi:5996: misplaced {
+sicp-pocket-ja.texi:5996: misplaced }
+sicp-pocket-ja.texi:5999: unmatched `@end tex'
+sicp-pocket-ja.texi:10273: `@end' expected `quotation', but saw `example'
+sicp-pocket-ja.texi:10273: unmatched `@end example'
+sicp-pocket-ja.texi:10274: unmatched `@end'
+sicp-pocket-ja.texi:10277: @anchor `Figure 2.20' previously defined
+sicp-pocket-ja.texi:11833: misplaced }
+sicp-pocket-ja.texi:14538: unmatched `@end'
+sicp-pocket-ja.texi:14541: @anchor `Figure 3.24' previously defined
+sicp-pocket-ja.texi:16182: misplaced {
+sicp-pocket-ja.texi:16182: misplaced {
+sicp-pocket-ja.texi:16182: misplaced }
+sicp-pocket-ja.texi:16182: misplaced }
+sicp-pocket-ja.texi:16591: unmatched `@end lisp'
+sicp-pocket-ja.texi:16594: unmatched `@end quotation'
+sicp-pocket-ja.texi:20002: unknown command `footnoteref'
+sicp-pocket-ja.texi:20002: misplaced {
+sicp-pocket-ja.texi:20002: misplaced }
+sicp-pocket-ja.texi:20012: unmatched `@end lisp'
+sicp-pocket-ja.texi:20015: unmatched `@end quotation'
+sicp-pocket-ja.texi:28046: unmatched `@end lisp'
+sicp-pocket-ja.texi:28085: @anchor `Figure 5.16' previously defined
+sicp-pocket-ja.texi:30888: unmatched `@end lisp'
+sicp-pocket-ja.texi:30889: unmatched `@end quotation'
+sicp-pocket-ja.texi:3150: @ref reference to nonexistent node `Hardy and Wright (1960)'
+sicp-pocket-ja.texi:5880: @ref reference to nonexistent node `Moses 1970'
+sicp-pocket-ja.texi:5881: @ref reference to nonexistent node `Moses 2012'
+sicp-pocket-ja.texi:5883: @ref reference to nonexistent node `MacDonald 1967'
+sicp-pocket-ja.texi:5886: @ref reference to nonexistent node `Macsyma 2012'
+sicp-pocket-ja.texi:5887: @ref reference to nonexistent node `Fateman 1979'
+sicp-pocket-ja.texi:5887: @ref reference to nonexistent node `Martin and Fateman 1971'
+sicp-pocket-ja.texi:19926: @ref reference to nonexistent node `Marc Feeley 1986'

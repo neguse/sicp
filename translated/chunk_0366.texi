@@ -1,0 +1,69 @@
+  (test (op primitive-procedure?)
+        (reg proc))
+  (branch (label primitive-branch22))
+compiled-branch21
+  (assign continue (label after-call20))
+  (assign val
+          (op compiled-procedure-entry)
+          (reg proc))
+  (goto (reg val))
+primitive-branch22
+  (assign val
+          (op apply-primitive-procedure)
+          (reg proc)
+          (reg argl))
+after-call20
+  (assign argl (op list) (reg val))
+  (restore env)
+  (assign val
+          (op lookup-variable-value)
+          (const x)
+          (reg env))
+  (assign argl
+          (op cons)
+          (reg val)
+          (reg argl))
+  (restore proc)
+  (restore continue)
+  (test (op primitive-procedure?)
+        (reg proc))
+  (branch (label primitive-branch25))
+compiled-branch24
+  (assign val (op compiled-procedure-entry)
+              (reg proc))
+  (goto (reg val))
+primitive-branch25
+  (assign val
+          (op apply-primitive-procedure)
+          (reg proc)
+          (reg argl))
+  (goto (reg continue))
+after-call23
+after-lambda15
+  (perform (op define-variable!)
+           (const f)
+           (reg val)
+           (reg env))
+  (assign val (const ok))
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.36}練習問題 5.36:} 我々のコンパイラは組み合わせのオペランドに対してどのような評価順序を生成するか? それは左から右、右から左、またはその他の順序か? コンパイラのどこでこの順序が決定されるか? 何らかの他の評価順序を生成するようにコンパイラを修正せよ。(明示的制御評価器の評価順序に関する@ref{5.4.1}の議論を参照。)オペランドの評価順序を変更すると、引数リストを構築するコードの効率にどのように影響するか?
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.37}練習問題 5.37:} スタック使用を最適化するためのコンパイラの@code{preserving}メカニズムを理解する一つの方法は、このアイデアを使用しない場合に生成される余分な操作を見ることである。@code{preserving}を常に@code{save}および@code{restore}操作を生成するように修正せよ。いくつかの単純な式をコンパイルして、生成される不要なスタック操作を特定せよ。@code{preserving}メカニズムが無傷の状態で生成されるコードと比較せよ。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.38}練習問題 5.38:} 我々のコンパイラは不要なスタック操作を避けることに関しては賢いが、マシンが提供する基本操作の観点から言語の基本手続きへの呼び出しをコンパイルすることに関しては全く賢くない。たとえば、@code{(+ a 1)}を計算するためにどれだけのコードがコンパイルされるかを考えよ: コードは@code{argl}に引数リストをセットアップし、(環境でシンボル@code{+}を検索することで見つかる)基本加算手続きを@code{proc}に入れ、手続きが基本的か複合的かをテストする。コンパイラは常に、基本および複合分岐のコード(そのうちの一つだけが実行される)と同様にテストを実行するコードを生成する。基本要素を実装するコントローラの部分は示していないが、これらの命令はマシンのデータパスの基本算術操作を利用すると推測される。コンパイラが基本要素を@newterm{オープンコード}できる場合、つまり、これらの基本マシン操作を直接使用するコードを生成できる場合、どれだけ少ないコードが生成されるかを考えよ。式@code{(+ a 1)}は次のように単純なものにコンパイルされるかもしれない@footnote{ここでは同じシンボル@code{+}をソース言語の手続きとマシン操作の両方を示すために使用している。一般的に、ソース言語の基本要素とマシンの基本要素の間には一対一の対応はない。}
+
+@lisp
+(assign val (op lookup-variable-value)
+            (const a)
+            (reg env))
+(assign val (op +)
+            (reg val)
+            (const 1))
+@end lisp

@@ -1,0 +1,76 @@
+インターフェースは扱いにくい。なぜなら、コンパイラは(評価器マシンが起動されたときに)一度だけ呼び出せるからである。次のように明示的制御評価器内から呼び出せる@code{compile-and-run}基本要素を提供することで、コンパイラ-インタプリタインターフェースを拡張せよ:
+
+@lisp
+@i{;;; EC-Eval input:}
+(compile-and-run
+ '(define (factorial n)
+    (if (= n 1)
+        1
+        (* (factorial (- n 1)) n))))
+
+@i{;;; EC-Eval value:}
+@i{ok}
+
+@i{;;; EC-Eval input:}
+(factorial 5)
+
+@i{;;; EC-Eval value:}
+@i{120}
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.49}練習問題 5.49:} 明示的制御評価器の読み取り-評価-印刷ループを使用する代わりに、読み取り-コンパイル-実行-印刷ループを実行するレジスタマシンを設計せよ。つまり、マシンは式を読み取り、コンパイルし、結果のコードをアセンブルして実行し、結果を印刷するループを実行すべきである。手続き@code{compile}と@code{assemble}を「レジスタマシン操作」として呼び出すように配置できるため、これはシミュレートされた設定で実行するのは簡単である。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.50}練習問題 5.50:} コンパイラを使用して@ref{4.1}のメタ循環評価器をコンパイルし、レジスタマシンシミュレータを使用してこのプログラムを実行せよ。(一度に複数の定義をコンパイルするには、定義を@code{begin}にパッケージ化できる。)結果のインタプリタは、解釈の複数のレベルのため非常に遅く実行されるが、すべての詳細を機能させることは有益な演習である。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.51}練習問題 5.51:} @ref{5.4}の明示的制御評価器をCに変換することにより、C(または選択した他の低レベル言語)でSchemeの初歩的な実装を開発せよ。このコードを実行するには、適切なストレージ割り当てルーチンやその他の実行時サポートも提供する必要がある。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.52}練習問題 5.52:} @ref{Exercise 5.51}の対位法として、Scheme手続きをC命令のシーケンスにコンパイルするようにコンパイラを修正せよ。@ref{4.1}のメタ循環評価器をコンパイルして、Cで書かれたSchemeインタプリタを生成せよ。
+@end quotation
+
+@node    References, Exercises, 5.5, Top
+@unnumbered 参考文献
+
+@anchor{Abelson et al. 1992}
+Abelson, Harold, Andrew Berlin, Jacob Katzenelson, William McAllister,
+Guillermo Rozas, Gerald Jay Sussman, and Jack Wisdom. 1992.  The Super@-com@-pu@-ter
+Tool@-kit: 特殊目的計算のための一般的フレームワーク。
+@cite{In@-ter@-na@-tio@-nal Journal of High-Speed Electronics} 3(3): 337-361.
+@url{http://www.hpl.hp.com/techreports/94/HPL-94-30.html, –›}
+
+@anchor{Allen 1978}
+Allen, John.  1978.  @cite{Anatomy of Lisp}. New York: McGraw-Hill.
+
+@anchor{ANSI 1994}
+@abbr{ANSI} @abbr{X}3.226-1994. @cite{American National Standard for Information
+Systems---Programming Language---Common Lisp}.
+
+@anchor{Appel 1987}
+Appel, Andrew W.  1987.  ガベージコレクションはスタック割り当てより高速になり得る。@cite{Information Processing Letters} 25(4): 275-279.
+@url{https://www.cs.princeton.edu/~appel/papers/45.ps, –›}
+
+@anchor{Backus 1978}
+Backus, John.  1978.  プログラミングはフォン・ノイマンスタイルから解放されることができるか?
+@cite{Communications of the @abbr{ACM}} 21(8): 613-641.
+@url{http://worrydream.com/refs/Backus-CanProgrammingBeLiberated.pdf, –›}
+
+@anchor{Baker (1978)}
+Baker, Henry G., Jr.  1978.  シリアルコンピュータでのリアルタイムリスト処理。
+@cite{Communications of the @abbr{ACM}} 21(4): 280-293.
+@url{http://dspace.mit.edu/handle/1721.1/41976, –›}
+
+@anchor{Batali et al. 1982}
+Batali, John, Neil Mayle, Howard Shrobe, Gerald Jay Sussman, and Daniel Weise.
+1982.  Scheme-81アーキテクチャ---システムとチップ。@cite{Proceedings of
+the @abbr{MIT} Conference on Advanced Research in @abbr{VLSI}}、Paul Penfield, Jr編集。Dedham, @abbr{MA}: Artech House.
+
+@anchor{Borning (1977)}
+Borning, Alan.  1977.  ThingLab---制約を使用してシミュレーションを構築するオブジェクト指向システム。@cite{Proceedings of the 5th International
+Joint Conference on Artificial Intelligence}.

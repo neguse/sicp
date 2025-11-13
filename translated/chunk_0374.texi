@@ -1,0 +1,94 @@
+@url{http://ijcai.org/Past%20Proceedings/IJCAI-77-VOL1/PDF/085.pdf, –›}
+
+@anchor{Borodin and Munro (1975)}
+Borodin, Alan, and Ian Munro.  1975.  @cite{The Computational Complexity of
+Algebraic and Numeric Problems}. New York: American Elsevier.
+
+@anchor{Chaitin 1975}
+Chaitin, Gregory J.  1975.  ランダム性と数学的証明。
+@cite{Scientific American} 232(5): 47-52.
+@url{http://www.owlnet.rice.edu/~km9/Randomness%20and%20Mathematical.pdf, –›}
+
+@anchor{Church (1941)}
+Church, Alonzo.  1941.  @cite{The Calculi of Lambda-Con@-ver@-sion}.  Princeton,
+N.J.: Princeton University Press.
+
+@anchor{Clark (1978)}
+Clark, Keith L.  1978.  失敗としての否定。@cite{Logic and Data Bases}.
+New York: Plenum Press, pp. 293-322.
+@url{http://www.doc.ic.ac.uk/~klc/neg.html, –›}
+
+@anchor{Clinger (1982)}
+Clinger, William.  1982.  非決定論的call by needは遅延でも名前呼びでもない。@cite{Proceedings of the @abbr{ACM} Symposium on Lisp and
+Functional Programming}, pp. 226-234.
+
+@anchor{Clinger and Rees 1991}
+Clinger, William, and Jonathan Rees.  1991.  動作するマクロ。
+@cite{Proceedings of the 1991 @abbr{ACM} Conference on Principles of
+Programming Languages}, pp. 155-162.
+@url{http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.464.1336&rep=rep1&type=pdf, –›}
+
+@anchor{Colmerauer et al. 1973}
+Colmerauer A., H. Kanoui, R. Pasero, and P. Roussel.  1973.  フランス語での人間-機械コミュニケーションシステム。技術レポート、Groupe
+Intelligence Artificielle, Universit@'e d'Aix Marseille, Luminy.
+@url{http://alain.colmerauer.free.fr/alcol/ArchivesPublications/HommeMachineFr/HoMa.pdf, –›}
+
+@anchor{Cormen et al. 1990}
+Cormen, Thomas, Charles Leiserson, and Ronald Rivest.  1990. @cite{Introduction
+to Algorithms}. Cambridge, @abbr{MA}: @abbr{MIT} Press.
+
+@anchor{Darlington et al. 1982}
+Darlington, John, Peter Henderson, and David Turner.  1982.  @cite{Functional
+Programming and Its Applications}. New York: Cambridge University Press.
+
+@anchor{Dijkstra 1968a}
+Dijkstra, Edsger W. 1968a.  「@abbr{THE}」マルチプログラミングシステムの構造。@cite{Communications of the @abbr{ACM}}
+11(5): 341-346.
+@url{http://www.cs.utexas.edu/users/EWD/ewd01xx/EWD196.PDF, –›}
+
+@anchor{1968b}
+Dijkstra, Edsger W. 1968b.  協調する逐次プロセス。
+@cite{Programming Languages}、F. Genuys編集。New York: Academic Press,
+pp.  43-112.
+@url{http://www.cs.utexas.edu/users/EWD/ewd01xx/EWD123.PDF, –›}
+
+@anchor{Dinesman 1968}
+Dinesman, Howard P.  1968.  @cite{Superior Mathematical Puzzles}.  New York:
+Simon and Schuster.
+
+@anchor{deKleer et al. 1977}
+deKleer, Johan, Jon Doyle, Guy Steele, and Gerald J. Sussman.  1977.
+@abbr{AMORD}: 推論の明示的制御。@cite{Proceedings of the
+@abbr{ACM} Symposium on Artificial Intelligence and Programming Languages},
+pp.  116-125.
+@url{http://dspace.mit.edu/handle/1721.1/5750, –›}
+
+@anchor{Doyle (1979)}
+Doyle, Jon. 1979. 真理維持システム。@cite{Artificial Intelligence}
+12: 231-272.
+@url{http://dspace.mit.edu/handle/1721.1/5733, –›}
+
+@anchor{Feigenbaum and Shrobe 1993}
+Feigenbaum, Edward, and Howard Shrobe. 1993. 日本の第五世代プロジェクト: 紹介、調査、評価。@cite{Future
+Generation Computer Systems}, vol. 9, pp. 105-117.
+@url{https://saltworks.stanford.edu/assets/kv359wz9060.pdf, –›}
+
+@anchor{Feeley (1986)}
+Feeley, Marc.  1986.  Scheme言語の実装への2つのアプローチ。修士論文、Universit@'e de Montr@'eal.
+@url{http://www.iro.umontreal.ca/~feeley/papers/FeeleyMSc.pdf, –›}
+
+@anchor{Feeley and Lapalme 1987}
+Feeley, Marc and Guy Lapalme.  1987.  コード生成のためのクロージャの使用。
+@cite{Journal of Computer Languages} 12(1): 47-66.
+@url{http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.90.6978, –›}
+
+Feller, William.  1957.  @cite{An Introduction to Probability Theory and Its
+Applications}, volume 1. New York: John Wiley & Sons.
+
+@anchor{Fenichel and Yochelson (1969)}
+Fenichel, R., and J. Yochelson.  1969.  仮想メモリコンピュータシステム用のLispガベージコレクター。@cite{Communications of the @abbr{ACM}}
+12(11): 611-612.
+@url{https://www.cs.purdue.edu/homes/hosking/690M/p611-fenichel.pdf, –›}
+
+@anchor{Floyd (1967)}
+Floyd, Robert. 1967. 非決定論的アルゴリズム。@cite{@abbr{JACM}},

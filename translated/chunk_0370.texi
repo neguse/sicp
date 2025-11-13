@@ -1,0 +1,69 @@
+(非基本的)である。明示的制御評価器で使用される用語との互換性のため、このセクションでは「複合」を(コンパイル済みではなく)解釈されたという意味で使用する。}
+
+@lisp
+apply-dispatch
+  (test (op primitive-procedure?) (reg proc))
+  (branch (label primitive-apply))
+  (test (op compound-procedure?) (reg proc))
+  (branch (label compound-apply))
+  (test (op compiled-procedure?) (reg proc))
+  (branch (label compiled-apply))
+  (goto (label unknown-procedure-type))
+
+compiled-apply
+  (restore continue)
+  (assign val
+          (op compiled-procedure-entry)
+          (reg proc))
+  (goto (reg val))
+@end lisp
+
+@noindent
+@code{compiled-apply}での@code{continue}の復元に注意せよ。評価器は@code{apply-dispatch}で継続がスタックの最上部にあるように配置されていたことを思い出せ。一方、コンパイル済みコードのエントリポイントは継続が@code{continue}にあることを期待しているため、コンパイル済みコードが実行される前に@code{continue}を復元する必要がある。
+
+評価器マシンを起動するときにいくつかのコンパイル済みコードを実行できるようにするために、評価器マシンの開始時に@code{branch}命令を追加し、@code{flag}レジスタが設定されている場合にマシンが新しいエントリポイントに移動するようにする。@footnote{評価器マシンが@code{branch}で開始するようになったので、評価器マシンを起動する前に常に@code{flag}レジスタを初期化する必要がある。マシンを通常の読み取り-評価-印刷ループで開始するには、次を使用できる
+
+@lisp
+(define (start-eceval)
+  (set! the-global-environment
+        (setup-environment))
+  (set-register-contents! eceval 'flag false)
+  (start eceval))
+@end lisp
+}
+
+@lisp
+@r{;; @code{flag}が設定されている場合に分岐:}
+(branch (label external-entry))
+read-eval-print-loop
+  (perform (op initialize-stack))
+  @r{…}
+@end lisp
+
+@noindent
+@code{External-entry}は、マシンが@code{val}に、結果を@code{val}に入れて@code{(goto (reg continue))}で終わる命令シーケンスの位置を含んで開始されることを想定している。このエントリポイントから開始すると@code{val}によって指定された位置にジャンプするが、最初に@code{continue}を割り当てて、実行が@code{print-result}に戻るようにする。これは@code{val}の値を印刷してから評価器の読み取り-評価-印刷ループの開始に移動する。@footnote{コンパイル済み手続きはシステムが印刷しようとする可能性のあるオブジェクトなので、コンパイル済み手続きのコンポーネントを印刷しようとしないようにシステム印刷操作@code{user-print}(@ref{4.1.4}から)も修正する:
+
+@lisp
+(define (user-print object)
+  (cond ((compound-procedure? object)
+         (display
+          (list 'compound-procedure
+                (procedure-parameters object)
+                (procedure-body object)
+                '<procedure-env>)))
+        ((compiled-procedure? object)
+         (display '<compiled-procedure>))
+        (else (display object))))
+@end lisp
+}
+
+@lisp
+external-entry
+  (perform (op initialize-stack))
+  (assign env (op get-global-environment))
+  (assign continue (label print-result))
+  (goto (reg val))
+@end lisp
+
+@noindent
+これで、次の手続きを使用して手続き定義をコンパイルし、コンパイル済みコードを実行し、読み取り-評価-印刷ループを実行して手続きを試すことができる。コンパイル済みコードが結果を@code{val}に入れて@code{continue}の位置に戻るようにしたいので、式を@code{val}のターゲットと@code{return}のリンケージでコンパイルする。コンパイラによって生成されたオブジェクトコードを評価器レジスタマシンの実行可能命令に変換するために、レジスタマシンシミュレータ(@ref{5.2.2})から手続き@code{assemble}を使用する。次に、@code{val}レジスタを初期化して命令のリストを指すようにし、評価器が@code{external-entry}に移動するように@code{flag}を設定し、評価器を起動する。

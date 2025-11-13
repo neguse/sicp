@@ -1,0 +1,92 @@
+  (perform (op define-variable!)
+           (const factorial)
+           (reg val)
+           (reg env))
+  (assign val (const ok))
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.33}練習問題 5.33:} 次の階乗手続きの定義を考えよ。これは上で与えられたものと少し異なる:
+
+@lisp
+(define (factorial-alt n)
+  (if (= n 1)
+      1
+      (* n (factorial-alt (- n 1)))))
+@end lisp
+
+この手続きをコンパイルし、結果のコードを@code{factorial}用に生成されたものと比較せよ。見つかった違いを説明せよ。どちらかのプログラムがより効率的に実行されるか?
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.34}練習問題 5.34:} 反復的階乗手続きをコンパイルせよ
+
+@lisp
+(define (factorial n)
+  (define (iter product counter)
+    (if (> counter n)
+        product
+        (iter (* counter product)
+              (+ counter 1))))
+  (iter 1 1))
+@end lisp
+
+結果のコードに注釈を付けて、反復バージョンと再帰バージョンの@code{factorial}のコード間の本質的な違いを示し、一方のプロセスがスタック空間を増やし、他方が一定のスタック空間で実行される理由を示せ。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.35}練習問題 5.35:} @ref{Figure 5.18}に示されているコードを生成するためにコンパイルされた式は何か?
+@end quotation
+
+@quotation
+@strong{@anchor{Figure 5.18}図 5.18:} @math{\downarrow} コンパイラ出力の例。@ref{Exercise 5.35}を参照。
+
+@lisp
+(assign val (op make-compiled-procedure)
+            (label entry16)
+            (reg env))
+  (goto (label after-lambda15))
+entry16
+  (assign env (op compiled-procedure-env)
+              (reg proc))
+  (assign env (op extend-environment)
+              (const (x))
+              (reg argl)
+              (reg env))
+  (assign proc (op lookup-variable-value)
+               (const +)
+               (reg env))
+  (save continue) (save proc) (save env)
+  (assign proc (op lookup-variable-value)
+               (const g)
+               (reg env))
+  (save proc)
+  (assign proc (op lookup-variable-value)
+               (const +)
+               (reg env))
+  (assign val (const 2))
+  (assign argl (op list) (reg val))
+  (assign val (op lookup-variable-value)
+              (const x)
+              (reg env))
+  (assign argl (op cons)
+               (reg val)
+               (reg argl))
+  (test (op primitive-procedure?)
+        (reg proc))
+  (branch (label primitive-branch19))
+compiled-branch18
+  (assign continue (label after-call17))
+  (assign val
+          (op compiled-procedure-entry)
+          (reg proc))
+  (goto (reg val))
+primitive-branch19
+  (assign val
+          (op apply-primitive-procedure)
+          (reg proc)
+          (reg argl))
+after-call17
+  (assign argl (op list) (reg val))
+  (restore proc)

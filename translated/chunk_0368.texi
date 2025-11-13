@@ -1,0 +1,46 @@
+frame.
+
+我々はこの事実を、環境と@newterm{語彙アドレス}を引数として取る新しい種類の変数検索操作@code{lexical-address-lookup}を発明することによって利用できる。語彙アドレスは2つの数で構成される: 通過するフレームの数を指定する@newterm{フレーム番号}と、そのフレームで通過する変数の数を指定する@newterm{変位番号}である。@code{Lexical-address-lookup}は、現在の環境に対してその語彙アドレスに格納されている変数の値を生成する。@code{lexical-address-lookup}操作をマシンに追加すると、コンパイラは@code{lookup-variable-value}ではなく、この操作を使用して変数を参照するコードを生成できる。同様に、コンパイルされたコードは@code{set-variable-value!}の代わりに新しい@code{lexical-address-set!}操作を使用できる。
+
+このようなコードを生成するために、コンパイラはコンパイルしようとしている変数への参照の語彙アドレスを決定できなければならない。プログラム内の変数の語彙アドレスは、コード内のどこにいるかによって異なる。たとえば、次のプログラムでは、式@code{⟨}@var{e1}@code{⟩}内の@code{x}のアドレスは(2, 0)---2フレーム戻ってフレーム内の最初の変数---である。その時点で@code{y}はアドレス(0, 0)にあり、@code{c}はアドレス(1, 2)にある。式@code{⟨}@var{e2}@code{⟩}では、@code{x}は(1, 0)にあり、@code{y}は(1, 1)にあり、@code{c}は(0, 2)にある。
+
+@lisp
+((lambda (x y)
+   (lambda (a b c d e)
+     ((lambda (y z) ⟨@var{e1}⟩)
+      ⟨@var{e2}⟩
+      (+ c d x))))
+ 3
+ 4)
+@end lisp
+
+@noindent
+コンパイラが語彙アドレッシングを使用するコードを生成する一つの方法は、@newterm{コンパイル時環境}と呼ばれるデータ構造を維持することである。これは、特定の変数アクセス操作が実行されるときに、実行時環境のどのフレームのどの位置にどの変数があるかを追跡する。コンパイル時環境は、それぞれが変数のリストを含むフレームのリストである。(もちろん値は変数にバインドされないが、コンパイル時に値は計算されないからである。)コンパイル時環境は@code{compile}の追加引数となり、各コード生成器に渡される。@code{compile}へのトップレベル呼び出しは空のコンパイル時環境を使用する。@code{lambda}本体がコンパイルされると、@code{compile-lambda-body}は手続きのパラメータを含むフレームによってコンパイル時環境を拡張し、本体を構成するシーケンスがその拡張された環境でコンパイルされるようにする。コンパイルの各時点で、@code{compile-variable}と@code{compile-assignment}はコンパイル時環境を使用して適切な語彙アドレスを生成する。
+
+@ref{Exercise 5.39}から@ref{Exercise 5.43}は、語彙ルックアップをコンパイラに組み込むために、語彙アドレッシング戦略のこのスケッチをどのように完成させるかを説明している。@ref{Exercise 5.44}はコンパイル時環境の別の使用法を説明している。
+
+@quotation
+@strong{@anchor{Exercise 5.39}練習問題 5.39:} 新しいルックアップ操作を実装する手続き@code{lexical-address-lookup}を書け。これは2つの引数---語彙アドレスと実行時環境---を受け取り、指定された語彙アドレスに格納されている変数の値を返す。@code{Lexical-address-lookup}は、変数の値がシンボル@code{*unassigned*}の場合はエラーを通知すべきである。@footnote{これは、内部定義を排除するためのスキャン方法を実装する場合に必要な変数検索の修正である(@ref{Exercise 5.43})。語彙アドレッシングが機能するためには、これらの定義を排除する必要がある。}また、指定された語彙アドレスの変数の値を変更する操作を実装する手続き@code{lexical-address-set!}も書け。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.40}練習問題 5.40:} 上記のようにコンパイル時環境を維持するようにコンパイラを修正せよ。つまり、@code{compile}と様々なコード生成器にコンパイル時環境引数を追加し、@code{compile-lambda-body}でそれを拡張せよ。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.41}練習問題 5.41:} 変数とコンパイル時環境を引数として受け取り、その環境に対する変数の語彙アドレスを返す手続き@code{find-variable}を書け。たとえば、上に示したプログラムフラグメントでは、式@code{⟨}@var{e1}@code{⟩}のコンパイル中のコンパイル時環境は@code{((y z) (a b c d e) (x y))}である。@code{Find-variable}は次を生成すべきである
+
+@lisp
+(find-variable
+ 'c '((y z) (a b c d e) (x y)))
+@i{(1 2)}
+
+(find-variable
+ 'x '((y z) (a b c d e) (x y)))
+@i{(2 0)}
+
+(find-variable
+ 'w '((y z) (a b c d e) (x y)))
+@i{not-found}
+@end lisp
+@end quotation

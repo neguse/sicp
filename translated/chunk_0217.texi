@@ -1,0 +1,93 @@
+@code{(define RC1 (RC 5 1 0.5))}と評価できるべきです。これは@code{RC1}を、
+電流の時間列を表すストリームと初期コンデンサ電圧を取り、電圧の出力ストリームを生成する
+手続きとして定義します。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.74}練習問題 3.74:} Alyssa P. Hackerは、物理センサーからの
+信号を処理するシステムを設計しています。彼女が生成したい重要な特徴の1つは、入力信号の
+@newterm{ゼロ交差}（zero crossings）を記述する信号です。つまり、結果の信号は、
+入力信号が負から正に変化するときは@math{{+1}}、入力信号が正から負に変化するときは@math{{-1}}、
+それ以外は@math{0}でなければなりません。（@math{0}入力の符号は正であると仮定します。）
+例えば、典型的な入力信号とそれに関連するゼロ交差信号は次のようになります。
+
+@lisp
+@r{…} 1 2 1.5 1 0.5 -0.1 -2 -3 -2 -0.5 0.2 3 4 @r{…}
+@r{…} 0 0  0  0  0   -1   0  0  0   0   1  0 0 @r{…}
+@end lisp
+
+Alyssaのシステムでは、センサーからの信号はストリーム@code{sense-data}として表され、
+ストリーム@code{zero-crossings}は対応するゼロ交差のストリームです。Alyssaはまず、
+2つの値を引数として取り、値の符号を比較して適切な@math{0}、@math{1}、または@math{{-1}}を
+生成する手続き@code{sign-change-detector}を書きます。次に、彼女は次のようにゼロ交差ストリームを
+構築します。
+
+@lisp
+(define (make-zero-crossings
+         input-stream last-value)
+  (cons-stream
+   (sign-change-detector
+    (stream-car input-stream)
+    last-value)
+   (make-zero-crossings
+    (stream-cdr input-stream)
+    (stream-car input-stream))))
+
+(define zero-crossings
+  (make-zero-crossings sense-data 0))
+@end lisp
+
+Alyssaの上司であるEva Lu Atorが通りかかり、このプログラムは@ref{Exercise 3.50}の
+一般化された@code{stream-map}を使う次のプログラムとほぼ同等だと提案します。
+
+@lisp
+(define zero-crossings
+  (stream-map sign-change-detector
+              sense-data
+              ⟨@var{expression}⟩))
+@end lisp
+
+示された@code{⟨}@var{expression}@code{⟩}を提供してプログラムを完成させてください。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.75}練習問題 3.75:} 残念ながら、@ref{Exercise 3.74}の
+Alyssaのゼロ交差検出器は不十分であることが判明しました。センサーからのノイズの多い信号が
+偽のゼロ交差につながるからです。ハードウェア専門家のLem E. Tweakitは、ゼロ交差を抽出する前に
+信号を平滑化してノイズをフィルタリングすることを提案します。Alyssaは彼のアドバイスに従い、
+センスデータの各値を前の値と平均化することで構築された信号からゼロ交差を抽出することにします。
+彼女は問題をアシスタントのLouis Reasonerに説明し、彼はこのアイデアを実装しようとして、
+Alyssaのプログラムを次のように変更します。
+
+@lisp
+(define (make-zero-crossings
+         input-stream last-value)
+  (let ((avpt
+         (/ (+ (stream-car input-stream)
+               last-value)
+            2)))
+    (cons-stream
+     (sign-change-detector avpt last-value)
+     (make-zero-crossings
+      (stream-cdr input-stream) avpt))))
+@end lisp
+
+これはAlyssaの計画を正しく実装していません。Louisがインストールしたバグを見つけて、
+プログラムの構造を変更せずに修正してください。（ヒント：@code{make-zero-crossings}の
+引数の数を増やす必要があります。）
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.76}練習問題 3.76:} Eva Lu Atorは、@ref{Exercise 3.75}の
+Louisのアプローチに批判があります。彼が書いたプログラムはモジュラーではありません。
+なぜなら、平滑化の操作とゼロ交差抽出の操作を混在させているからです。例えば、もしAlyssaが
+入力信号を調整するより良い方法を見つけたとしても、抽出器を変更する必要があってはいけません。
+ストリームを入力として取り、各要素が2つの連続する入力ストリーム要素の平均である
+ストリームを生成する手続き@code{smooth}を書くことでLouisを助けてください。
+次に、@code{smooth}をコンポーネントとして使って、よりモジュラーなスタイルでゼロ交差検出器を
+実装してください。
+@end quotation
+
+@node	3.5.4, 3.5.5, 3.5.3, 3.5
+@subsection ストリームと遅延評価
+

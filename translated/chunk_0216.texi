@@ -1,0 +1,94 @@
+  S_i \,=\, C + {\sum_{j=1}^i x_j \, dt}  \]
+@end tex
+@noindent
+そして値@math{{S = (S_i)}}のストリームを返します。次の@code{integral}手続きは、
+整数のストリームの「陰的スタイル」の定義（@ref{3.5.2}）を思い起こさせます。
+
+@lisp
+(define (integral integrand initial-value dt)
+  (define int
+    (cons-stream
+     initial-value
+     (add-streams (scale-stream integrand dt)
+                  int)))
+  int)
+@end lisp
+
+@noindent
+@ref{Figure 3.32}は、@code{integral}手続きに対応する信号処理システムの図です。
+入力ストリームは@math{{dt}}でスケーリングされ、加算器を通過し、その出力は同じ加算器を
+通して戻されます。@code{int}の定義における自己参照は、加算器の出力を入力の1つに接続する
+フィードバックループによって図に反映されています。
+
+@float
+@anchor{Figure 3.32}
+@ifinfo
+@strong{図 3.32:} 信号処理システムとして見た@code{integral}手続き。
+
+@example
+                             initial-value
+                                  |
+       +-----------+              |   |\__
+input  |           |      |\__    +-->|   \_  integral
+------>| scale: dt +----->|   \_      |cons_>--*------->
+       |           |      | add_>---->| __/    |
+       +-----------+  +-->| __/       |/       |
+                      |   |/                   |
+                      |                        |
+                      +------------------------+
+@end example
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.32a,143mm,,,.std.svg}
+@caption{@strong{図 3.32:} 信号処理システムとして見た@code{integral}手続き。}
+@end iftex
+@end float
+
+@quotation
+@strong{@anchor{Exercise 3.73}練習問題 3.73:} ストリームを使って、時間の列における
+電流や電圧の値を表現し、電気回路をモデル化できます。例えば、抵抗@math{R}の抵抗器と
+静電容量@math{C}のコンデンサが直列に接続された@newterm{RC回路}があるとします。
+注入された電流@math{i}に対する回路の電圧応答@math{v}は、@ref{Figure 3.33}の式で決定され、
+その構造は付随する信号フロー図で示されています。
+
+@float
+@anchor{Figure 3.33}
+@ifinfo
+@strong{図 3.33:} RC回路と関連する信号フロー図。
+
+@example
+  +        v        -
+
+ ->----'\/\/\,---| |---
+  i       R         C
+
+
+                  / t
+               1  |
+ v  =  v   +  --- |  i dt  +  R i
+        0      C  |
+                  / 0
+
+         +--------------+
+     +-->|   scale: R   |---------------------+   |\_
+     |   +--------------+                     |   |  \_
+     |                                        +-->|    \   v
+  i  |   +--------------+     +------------+      | add >--->
+ ----+-->|  scale: 1/C  |---->|  integral  |----->|   _/
+         +--------------+     +------------+      | _/
+                                    |             |/
+				   v
+				    0
+@end example
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.33a,125mm,,,.std.svg}
+@caption{@strong{図 3.33:} RC回路と関連する信号フロー図。}
+@end iftex
+@end float
+
+この回路をモデル化する手続き@code{RC}を書いてください。@code{RC}は@math{R}、@math{C}、
+@math{{dt}}の値を入力として取り、電流@math{i}を表すストリームとコンデンサ電圧の初期値
+@math{v_0}を入力として取り、電圧@math{v}のストリームを出力として生成する手続きを返すべきです。
+例えば、@code{RC}を使って、@math{R} = 5オーム、@math{C} = 1ファラド、時間ステップ0.5秒の
+RC回路をモデル化するには、

@@ -1,0 +1,91 @@
+前節の最後にある@code{integral}手続きは、フィードバックループを含む信号処理システムを
+モデル化するためにストリームをどのように使用できるかを示しています。@ref{Figure 3.32}に
+示されている加算器のフィードバックループは、@code{integral}の内部ストリーム@code{int}が
+それ自身の観点から定義されているという事実によってモデル化されています。
+
+@lisp
+(define int
+  (cons-stream
+   initial-value
+   (add-streams
+    (scale-stream integrand dt) int)))
+@end lisp
+
+@noindent
+インタプリタがこのような陰的定義を扱う能力は、@code{cons-stream}に組み込まれている
+@code{delay}に依存しています。この@code{delay}がなければ、インタプリタは@code{int}を
+構築する前に@code{cons-stream}への両方の引数を評価する必要があり、これには@code{int}が
+すでに定義されている必要があります。一般に、@code{delay}はループを含む信号処理システムを
+モデル化するためにストリームを使用するために不可欠です。@code{delay}がなければ、
+私たちのモデルは、任意の信号処理コンポーネントへの入力が出力を生成する前に完全に評価される
+ように定式化する必要があります。これはループを禁止することになります。
+
+@noindent
+残念ながら、ループを持つシステムのストリームモデルは、@code{cons-stream}によって提供される
+「隠された」@code{delay}を超える@code{delay}の使用を必要とする場合があります。
+例えば、@ref{Figure 3.34}は、微分方程式@math{{dy / dt = f(y)}}を解くための信号処理システムを
+示しています。ここで@math{f}は与えられた関数です。この図は、その入力信号に@math{f}を適用する
+マッピングコンポーネントを示しており、これは実際にそのような方程式を解くために使われる
+アナログコンピュータ回路と非常によく似た方法で、積分器にフィードバックループでリンクされています。
+
+@float
+@anchor{Figure 3.34}
+@ifinfo
+@quotation
+@strong{図 3.34:} 方程式@math{{dy / dt = f(y)}}を解く「アナログコンピュータ回路」。
+
+@example
+                            y_0
+                             |
+                             V
+    +----------+  dy   +----------+     y
++-->|  map: f  +------>| integral +--*----->
+|   +----------+       +----------+  |
+|                                    |
++------------------------------------+
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.34,110mm,,,.std.svg}
+@caption{@strong{図 3.34:} 方程式@math{{dy / dt = f(y)}}を解く「アナログコンピュータ回路」。}
+@end iftex
+@end float
+
+@math{y}の初期値@math{y_0}が与えられたと仮定すると、次の手続きを使ってこのシステムを
+モデル化しようとできます。
+
+@lisp
+(define (solve f y0 dt)
+  (define y (integral dy y0 dt))
+  (define dy (stream-map f y))
+  y)
+@end lisp
+
+@noindent
+この手続きは機能しません。なぜなら、@code{solve}の最初の行で@code{integral}の呼び出しには
+入力@code{dy}が定義されている必要がありますが、これは@code{solve}の2行目まで起こらないからです。
+
+一方、私たちの定義の意図は理にかなっています。なぜなら、原理的には、@code{dy}を知らなくても
+@code{y}ストリームの生成を開始できるからです。実際、@code{integral}や他の多くのストリーム
+操作は、引数に関する部分的な情報だけが与えられても答えの一部を生成できるという点で、
+@code{cons-stream}と同様の性質を持っています。@code{integral}の場合、出力ストリームの
+最初の要素は指定された@code{initial-value}です。したがって、被積分関数@code{dy}を評価せずに
+出力ストリームの最初の要素を生成できます。@code{y}の最初の要素がわかれば、@code{solve}の
+2行目の@code{stream-map}は@code{dy}の最初の要素を生成し始めることができ、これは@code{y}の
+次の要素を生成し、以下同様です。
+
+このアイデアを活用するために、@code{integral}を再定義して、被積分関数ストリームが
+@newterm{遅延引数}（delayed argument）であることを期待するようにします。@code{Integral}は、
+出力ストリームの最初の要素以上を生成する必要がある場合にのみ、被積分関数を評価するために
+@code{force}します。
+
+@lisp
+(define (integral
+         delayed-integrand initial-value dt)
+  (define int
+    (cons-stream
+     initial-value
+     (let ((integrand
+            (force delayed-integrand)))
+       (add-streams

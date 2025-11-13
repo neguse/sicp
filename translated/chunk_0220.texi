@@ -1,0 +1,99 @@
+|                           |                |
+|            +----------+   |                |
+|     __/|<--+ scale: a |<--+                |
+|   _/   |   +----------+                    |
++--<_add |                                   |
+     \__ |   +----------+                    |
+        \|<--+ scale: b |<-------------------+
+             +----------+
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.35b,116mm,,,.std.svg}
+@caption{@strong{図 3.35:} 2階線形微分方程式の解のための信号フロー図。}
+@end iftex
+@end float
+
+@quotation
+@strong{@anchor{Exercise 3.79}練習問題 3.79:} @ref{Exercise 3.78}の@code{solve-2nd}
+手続きを一般化して、一般的な2階微分方程式@math{{d^2 y / dt^2} = {f(dy / dt, y)}}を
+解くために使えるようにしてください。
+@end quotation
+
+@float
+@anchor{Figure 3.36}
+@ifinfo
+@quotation
+@strong{図 3.36:} 直列RLC回路。
+
+@example
+              + v_R -
+        i_R
+     +--->----'\/\/\,--------+
+     |                       |  i_L
+    \|/          R          \|/
+  +  |  i_C                  |_   +
+    -+-                       _)
+v_C -+- C                     _)  v_L
+     |                        _)
+  -  |                       |    -
+     +-----------------------+
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.36,102mm,,,.std.svg}
+@caption{@strong{図 3.36:} 直列RLC回路。}
+@end iftex
+@end float
+
+@quotation
+@strong{@anchor{Exercise 3.80}練習問題 3.80:} @newterm{直列RLC回路}は、
+@ref{Figure 3.36}に示すように、抵抗器、コンデンサ、およびインダクタが直列に接続されて
+構成されています。@math{R}、@math{L}、@math{C}がそれぞれ抵抗、インダクタンス、静電容量で
+あるとき、3つのコンポーネントに対する電圧@math{{(v)}}と電流@math{{(i)}}の関係は次の式で
+記述されます。
+@ifinfo
+
+@example
+v_R = i_R R
+
+         d i_L
+v_L = L -------
+          d t
+
+         d v_C
+i_C = C -------
+          d t
+@end example
+
+@end ifinfo
+@tex
+\[ % :75:
+\begin{eqnarray}
+  v_R 	&=&   i_R R, \\
+  v_L 	&=&   L\,{di_L \over dt}, \\
+  i_C 	&=&   C\,{dv_C \over dt},
+\end{eqnarray}
+\]
+@end tex
+そして回路の接続は次の関係を規定します。
+@ifinfo
+
+@example
+i_R = i_L = -i_C
+
+v_C = v_L + v_R
+@end example
+
+@end ifinfo
+@tex
+\[ % :76:
+\begin{eqnarray}
+  i_R 	&=&   i_L = -i_C, \\
+  v_C 	&=&   v_L + v_R.
+\end{eqnarray}
+\]
+@end tex
+@noindent

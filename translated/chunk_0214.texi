@@ -1,0 +1,91 @@
+                (stream-cdr t))
+    (pairs (stream-cdr s)
+           (stream-cdr t)))))
+@end lisp
+
+@noindent
+手続きを完成させるために、2つの内部ストリームを結合する方法を選ぶ必要があります。
+1つのアイデアは、@ref{2.2.1}の@code{append}手続きのストリーム版を使うことです。
+
+@lisp
+(define (stream-append s1 s2)
+  (if (stream-null? s1)
+      s2
+      (cons-stream
+       (stream-car s1)
+       (stream-append (stream-cdr s1) s2))))
+@end lisp
+
+@noindent
+しかし、これは無限ストリームには不適切です。なぜなら、2番目のストリームを組み込む前に、
+1番目のストリームからすべての要素を取り出すからです。特に、もし正の整数のすべてのペアを生成しようとして
+
+@lisp
+(pairs integers integers)
+@end lisp
+
+@noindent
+を使うと、結果のストリームは最初に第1整数が1であるすべてのペアを列挙しようとするため、
+第1整数が他の値となるペアを決して生成しません。
+
+無限ストリームを扱うには、プログラムを十分長く実行すれば、すべての要素が最終的に到達されることを
+保証するような結合の順序を考案する必要があります。これを達成するエレガントな方法は、
+次の@code{interleave}手続きです。@footnote{結合の順序に要求される性質の正確な表現は次の通りです。
+第1ストリームの要素@math{i}と第2ストリームの要素@math{j}に対応するペアが、出力ストリームの
+要素番号@math{{f(i, j)}}として現れるような、2引数の関数@math{f}が存在すべきです。
+@code{interleave}を使ってこれを達成するトリックは、David Turnerが私たちに示したもので、
+彼は言語KRCでこれを採用しました（@ref{Turner 1981}）。}
+
+@lisp
+(define (interleave s1 s2)
+  (if (stream-null? s1)
+      s2
+      (cons-stream
+       (stream-car s1)
+       (interleave s2 (stream-cdr s1)))))
+@end lisp
+
+@noindent
+@code{interleave}は2つのストリームから交互に要素を取るので、最初のストリームが無限であっても、
+第2ストリームのすべての要素は最終的にインターリーブされたストリームに入ります。
+
+したがって、必要なペアのストリームを次のように生成できます。
+
+@lisp
+(define (pairs s t)
+  (cons-stream
+   (list (stream-car s) (stream-car t))
+   (interleave
+    (stream-map (lambda (x)
+                  (list (stream-car s) x))
+                (stream-cdr t))
+    (pairs (stream-cdr s) (stream-cdr t)))))
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 3.66}練習問題 3.66:} ストリーム@code{(pairs integers integers)}を
+調べてください。ペアがストリームに配置される順序について、何か一般的なコメントができますか？
+例えば、ペア (1, 100) の前におよそ何個のペアがありますか？ペア (99, 100) は？ペア (100, 100) は？
+（もしここで正確な数学的表現ができるなら、それに越したことはありません。しかし、もし行き詰まってしまうなら、
+より定性的な答えでも構いません。）
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.67}練習問題 3.67:} @code{pairs}手続きを修正して、
+@code{(pairs integers integers)}が整数の@emph{すべての}ペア@math{{(i, j)}}
+（条件@math{{i \le j}}なし）のストリームを生成するようにしてください。
+ヒント：追加のストリームを混ぜ込む必要があります。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.68}練習問題 3.68:} Louis Reasonerは、ペアのストリームを
+3つの部分から構築するのは不必要に複雑だと考えています。ペア@math{{(S_0, T_0)}}を
+第1行の残りのペアから分離する代わりに、彼は第1行全体を使って作業することを提案しています。
+
+@lisp
+(define (pairs s t)
+  (interleave
+   (stream-map
+    (lambda (x)
+      (list (stream-car s) x))
+    t)

@@ -1,0 +1,87 @@
+高階手続きの存在下で実用的な「データ型」の概念を維持することは、多くの難しい問題を提起します。
+この問題に対処する1つの方法は、言語ML（@ref{Gordon et al. 1979}）によって示されており、
+その「多相データ型」にはデータ型間の高階変換のためのテンプレートが含まれています。
+さらに、MLのほとんどの手続きのデータ型は、プログラマによって明示的に宣言されることはありません。
+代わりに、MLには@newterm{型推論}（type-inferencing）機構が含まれており、環境内の情報を使用して
+新しく定義された手続きのデータ型を推論します。}
+
+2つの異なるクラスの手続きの必要性を避ける1つの方法は、すべての手続きが遅延引数を取るように
+することです。すべての手続きへの引数が自動的に遅延され、実際に必要な場合（例えば、
+プリミティブ操作によって要求される場合）にのみ引数が強制される評価モデルを採用できます。
+これにより、言語は正規順序評価を使用するように変換され、これは@ref{1.1.5}で評価の
+置換モデルを導入したときに最初に説明しました。正規順序評価への変換は、遅延評価の使用を
+単純化する統一的でエレガントな方法を提供し、ストリーム処理のみに関心がある場合には
+採用する自然な戦略です。@ref{4.2}では、評価器を研究した後、まさにこの方法で言語を
+変換する方法を見ていきます。残念ながら、手続き呼び出しに遅延を含めることは、代入を使用したり、
+データを変更したり、入出力を実行したりするプログラムなど、イベントの順序に依存するプログラムを
+設計する能力を大混乱に陥れます。@code{cons-stream}の単一の@code{delay}でさえ、
+@ref{Exercise 3.51}と@ref{Exercise 3.52}で示されるように、大きな混乱を引き起こす可能性が
+あります。誰もが知る限り、可変性と遅延評価はプログラミング言語でうまく混在せず、
+これらの両方を同時に扱う方法を考案することは活発な研究分野です。
+
+@node 3.5.5, Chapter 4, 3.4, 3.5
+@subsection 関数型プログラムのモジュラリティとオブジェクトのモジュラリティ
+
+@ref{3.1.2}で見たように、代入を導入することの主な利点の1つは、大規模システムの状態の一部を
+ローカル変数内にカプセル化、または「隠蔽」することによって、システムのモジュラリティを
+高めることができることです。ストリームモデルは、代入を使用せずに同等のモジュラリティを
+提供できます。例として、@ref{3.1.2}で調べた@math{\pi}のモンテカルロ推定を、
+ストリーム処理の観点から再実装できます。
+
+主要なモジュラリティの問題は、乱数を使用するプログラムから乱数生成器の内部状態を
+隠したいということでした。連続する値が乱数の供給を提供する手続き@code{rand-update}から
+始めて、これを使って乱数生成器を生成しました。
+
+@lisp
+(define rand
+  (let ((x random-init))
+    (lambda ()
+      (set! x (rand-update x))
+      x)))
+@end lisp
+
+@noindent
+ストリーム定式化では、乱数生成器@emph{自体}はなく、@code{rand-update}への連続する呼び出しに
+よって生成される乱数のストリームだけがあります。
+
+@lisp
+(define random-numbers
+  (cons-stream random-init
+               (stream-map rand-update
+                           random-numbers)))
+@end lisp
+
+@noindent
+これを使って、@code{random-numbers}ストリームの連続するペアに対して実行される
+Ces@`aro実験の結果のストリームを構築します。
+
+@lisp
+(define cesaro-stream
+  (map-successive-pairs
+   (lambda (r1 r2) (= (gcd r1 r2) 1))
+   random-numbers))
+
+(define (map-successive-pairs f s)
+  (cons-stream
+   (f (stream-car s)
+      (stream-car (stream-cdr s)))
+   (map-successive-pairs
+    f (stream-cdr (stream-cdr s)))))
+@end lisp
+
+@noindent
+@code{cesaro-stream}は@code{monte-carlo}手続きに供給され、確率の推定値のストリームを
+生成します。結果は@math{\pi}の推定値のストリームに変換されます。このバージョンの
+プログラムでは、何回の試行を実行するかを指示するパラメータは必要ありません。より良い
+@math{\pi}の推定値（より多くの実験を実行することから得られる）は、@code{pi}ストリームの
+さらに先を見ることで得られます。
+
+@lisp
+(define (monte-carlo experiment-stream
+                     passed
+                     failed)
+  (define (next passed failed)
+    (cons-stream
+     (/ passed (+ passed failed))
+     (monte-carlo
+      (stream-cdr experiment-stream)

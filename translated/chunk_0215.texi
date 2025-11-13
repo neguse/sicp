@@ -1,0 +1,86 @@
+   (pairs (stream-cdr s)
+          (stream-cdr t))))
+@end lisp
+
+これは機能しますか？Louisの@code{pairs}の定義を使って@code{(pairs integers integers)}
+を評価したら何が起こるか考えてください。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.69}練習問題 3.69:} 3つの無限ストリーム@math{S}、@math{T}、@math{U}を取り、
+@math{{i \le j \le k}}となる三つ組@math{{(S_i, T_j, U_k)}}のストリームを生成する
+手続き@code{triples}を書いてください。@code{triples}を使って、すべてのピタゴラスの
+三つ組の正の整数のストリーム、つまり@math{{i \le j}}かつ@math{{i^2 + j^2 = k^2}}となる
+三つ組@math{{(i, j, k)}}のストリームを生成してください。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.70}練習問題 3.70:} @emph{アドホック}なインターリーブプロセスから
+生じる順序ではなく、ペアが何らかの有用な順序で現れるストリームを生成できると良いでしょう。
+整数のペアが別のペアより「小さい」と言う方法を定義すれば、@ref{Exercise 3.56}の
+@code{merge}手続きと同様の技法を使うことができます。1つの方法は、「重み付け関数」
+@math{{W(i, j)}}を定義し、@math{{W(i_1, j_1) <} {W(i_2, j_2)}}であれば
+@math{{(i_1, j_1)}}は@math{{(i_2, j_2)}}より小さいと規定することです。
+@code{merge}のような@code{merge-weighted}手続きを書いてください。ただし
+@code{merge-weighted}は追加の引数@code{weight}を取り、これはペアの重みを計算する
+手続きで、要素がマージされたストリームに現れるべき順序を決定するために使われます。
+@footnote{重み付け関数が、ペアの配列の行に沿って、または列に沿って移動するにつれて
+ペアの重みが増加するという性質を持つことを要求します。}これを使って、@code{pairs}を
+一般化し、2つのストリームと、重み付け関数を計算する手続きを取り、重みに従って順序付けられた
+ペアのストリームを生成する手続き@code{weighted-pairs}にしてください。
+あなたの手続きを使って次を生成してください。
+
+@enumerate a
+
+@item
+和@math{{i + j}}に従って順序付けられた、@math{{i \le j}}の正の整数のすべてのペア@math{{(i, j)}};
+
+@item
+@math{i}も@math{j}も2、3、または5で割り切れず、和@math{{2i + 3j + 5ij}}に従って
+順序付けられた、@math{{i \le j}}の正の整数のすべてのペア@math{{(i, j)}}。
+
+@end enumerate
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.71}練習問題 3.71:} 2つの立方数の和として複数の方法で
+表現できる数は、数学者Srinivasa Ramanujanに敬意を表して、@newterm{Ramanujan数}と
+呼ばれることがあります。@footnote{G. H. HardyのRamanujanの死亡記事（@ref{Hardy 1921}）
+から引用します。「『すべての正の整数は彼の友人の1人だった』と言ったのはLittlewood氏
+（と思います）でした。彼がPutneyで病気で寝ていたとき、私が会いに行ったことを覚えています。
+私はタクシーNo. 1729に乗ってきて、その番号はかなり退屈なものに思え、不吉な前兆でなければいいが
+と言いました。『いや』と彼は答えました、『それは非常に興味深い数です。2つの立方数の和として
+2通りの方法で表現できる最小の数です。』」重み付けペアを使ってRamanujan数を生成するトリックは、
+Charles Leisersonが私たちに示しました。}順序付けられたペアのストリームは、これらの数を計算する
+問題への優雅な解決策を提供します。2つの立方数の和として2通りの方法で書ける数を見つけるには、
+和@math{{i^3 + j^3}}で重み付けられた整数のペア@math{{(i, j)}}のストリームを生成し
+（@ref{Exercise 3.70}参照）、次に同じ重みを持つ連続する2つのペアをストリームから検索するだけです。
+Ramanujan数を生成する手続きを書いてください。最初のそのような数は1,729です。次の5つは何ですか？
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.72}練習問題 3.72:} @ref{Exercise 3.71}と同様の方法で、
+2つの平方数の和として3通りの方法で書ける（どのように書けるかを示す）すべての数のストリームを
+生成してください。
+@end quotation
+
+@subsubheading 信号としてのストリーム
+
+私たちは、ストリームを信号処理システムの「信号」の計算的アナログとして記述することから
+ストリームの議論を始めました。実際、ストリームを使って信号処理システムを非常に直接的な方法で
+モデル化でき、連続する時間間隔での信号の値をストリームの連続する要素として表現できます。
+例えば、入力ストリーム@math{{x = (x_i)}}、初期値@math{C}、小さな増分@math{{dt}}に対して、
+和を累積する@newterm{積分器}（integrator）または@newterm{加算器}（summer）を実装できます。
+@ifinfo
+
+@example
+           i
+          ---
+S_i = C + >   x_j dt
+          ---
+          j=1
+@end example
+
+@end ifinfo
+@tex
+\[ % :73:

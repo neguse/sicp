@@ -1,0 +1,90 @@
+@anchor{Figure 2.5}
+@ifinfo
+@quotation
+@strong{図 2.5:} @code{(cons (list 1 2) (list 3 4))}によって形成される構造。
+
+@example
+                                          (3 4)
+                                            |
+                                            V
+((1 2) 3 4)  +---+---+                  +---+---+     +---+---+
+        ---->| * | *-+----------------->| * | *-+---->| * | / |
+             +-|-+---+                  +-|-+---+     +-|-+---+
+               |                          |             |
+               V                          V             V
+      (1 2)  +---+---+     +---+---+    +---+         +---+
+        ---->| * | *-+---->| * | / |    | 3 |         | 4 |
+             +-|-+---+     +-|-+---+    +---+         +---+
+               |             |
+               V             V
+             +---+         +---+
+             | 1 |         | 2 |
+             +---+         +---+
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap2/Fig2.5e,140mm,,,.std.svg}
+@caption{@strong{図 2.5:} @code{(cons (list 1 2) (list 3 4))}によって形成される構造。}
+@end iftex
+@end float
+
+要素が列である列を考える別の方法は、@newterm{木}としてです。列の要素は木の枝であり、それ自体が列である要素は部分木です。@ref{Figure 2.6}は、@ref{Figure 2.5}の構造を木として見たものを示しています。
+
+@float
+@anchor{Figure 2.6}
+@ifinfo
+@quotation
+@strong{図 2.6:} @ref{Figure 2.5}のリスト構造を木として見たもの。
+
+@example
+ ((1 2) 3 4)
+     /\\
+    /  | \
+(1 2)  3 4
+ / \
+ 1 2
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap2/Fig2.6b,40mm,,,.std.svg}
+@caption{@strong{図 2.6:} @ref{Figure 2.5}のリスト構造を木として見たもの。}
+@end iftex
+@end float
+
+@noindent
+再帰は木構造を扱う自然なツールです。木に対する演算を、その枝に対する演算に還元でき、それはさらに枝の枝に対する演算に還元でき、といった具合に木の葉に到達するまで続くからです。例として、@ref{2.2.1}の@code{length}手続きと、木の葉の総数を返す@code{count-leaves}手続きを比較してください：
+
+@lisp
+(define x (cons (list 1 2) (list 3 4)))
+@end lisp
+
+@lisp
+(length x)
+@i{3}
+@end lisp
+
+@lisp
+(count-leaves x)
+@i{4}
+
+(list x x)
+@i{(((1 2) 3 4) ((1 2) 3 4))}
+
+(length (list x x))
+@i{2}
+
+(count-leaves (list x x))
+@i{8}
+@end lisp
+
+@noindent
+@code{count-leaves}を実装するには、@code{length}を計算するための再帰的計画を思い出してください：
+
+@itemize @bullet
+
+@item
+リスト@code{x}の@code{Length}は、@code{x}の@code{cdr}の@code{length}に1を加えたものです。
+
+@item

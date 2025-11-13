@@ -1,0 +1,78 @@
+@iftex
+@image{fig/chap2/Fig2.7e,147mm,,,.std.svg}
+@caption{@strong{図 2.7:} 手続き@code{sum-odd-squares}（上）と@code{even-fibs}（下）の信号フロー計画は、2つのプログラム間の共通性を明らかにします。}
+@end iftex
+@end float
+
+@noindent
+残念ながら、上記の2つの手続き定義は、この信号フロー構造を示すことができません。例えば、@code{sum-odd-squares}手続きを調べると、列挙が@code{null?}と@code{pair?}テストによって部分的に実装され、手続きの木再帰構造によって部分的に実装されていることがわかります。同様に、累積はテストに部分的に見られ、再帰で使用される加算に部分的に見られます。一般に、いずれの手続きにも、信号フロー記述の要素に対応する明確な部分はありません。私たちの2つの手続きは、計算を異なる方法で分解し、プログラム全体に列挙を広げ、それをマップ、フィルタ、累積と混ぜ合わせています。書くプロセスで信号フロー構造が明示されるようにプログラムを編成できれば、結果のコードの概念的明確さが向上するでしょう。
+
+@subsubheading 列演算
+
+信号フロー構造をより明確に反映するようにプログラムを編成する鍵は、プロセスのある段階から次の段階へ流れる「信号」に集中することです。これらの信号をリストとして表現すれば、各段階での処理を実装するためにリスト演算を使用できます。例えば、信号フロー図のマッピング段階を@ref{2.2.1}の@code{map}手続きを使用して実装できます：
+
+@lisp
+(map square (list 1 2 3 4 5))
+@i{(1 4 9 16 25)}
+@end lisp
+
+@noindent
+与えられた述語を満たす要素のみを選択するように列をフィルタリングするには、次のようにします：
+
+@lisp
+(define (filter predicate sequence)
+  (cond ((null? sequence) nil)
+        ((predicate (car sequence))
+         (cons (car sequence)
+               (filter predicate
+                       (cdr sequence))))
+        (else  (filter predicate
+                       (cdr sequence)))))
+@end lisp
+
+@noindent
+例えば、
+
+@lisp
+(filter odd? (list 1 2 3 4 5))
+@i{(1 3 5)}
+@end lisp
+
+@noindent
+累積は次のように実装できます：
+
+@lisp
+(define (accumulate op initial sequence)
+  (if (null? sequence)
+      initial
+      (op (car sequence)
+          (accumulate op
+                      initial
+                      (cdr sequence)))))
+
+(accumulate + 0 (list 1 2 3 4 5))
+@i{15}
+(accumulate * 1 (list 1 2 3 4 5))
+@i{120}
+(accumulate cons nil (list 1 2 3 4 5))
+@i{(1 2 3 4 5)}
+@end lisp
+
+@noindent
+信号フロー図を実装するために残っているのは、処理される要素の列を列挙することだけです。@code{even-fibs}の場合、与えられた範囲内の整数の列を生成する必要があります。これは次のようにできます：
+
+@lisp
+(define (enumerate-interval low high)
+  (if (> low high)
+      nil
+      (cons low
+            (enumerate-interval
+             (+ low 1)
+             high))))
+
+(enumerate-interval 2 7)
+@i{(2 3 4 5 6 7)}
+@end lisp
+
+@noindent
+木の葉を列挙するには、次を使用できます：@footnote{これは実際、@ref{Exercise 2.28}の@code{fringe}手続きと正確に同じです。ここでは、一般的な列操作手続きのファミリーの一部であることを強調するために名前を変更しました。}

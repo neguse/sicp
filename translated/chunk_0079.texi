@@ -1,0 +1,83 @@
+        ((not (pair? tree))
+         (if (odd? tree) (square tree) 0))
+        (else (+ (sum-odd-squares
+                  (car tree))
+                 (sum-odd-squares
+                  (cdr tree))))))
+@end lisp
+
+@noindent
+表面上、この手続きは次のものとは非常に異なります。これは、@math{k}が与えられた整数@math{n}以下であるすべての偶数のフィボナッチ数@math{{\text{Fib}(k)}}のリストを構築します：
+
+@lisp
+(define (even-fibs n)
+  (define (next k)
+    (if (> k n)
+        nil
+        (let ((f (fib k)))
+          (if (even? f)
+              (cons f (next (+ k 1)))
+              (next (+ k 1))))))
+  (next 0))
+@end lisp
+
+@noindent
+これら2つの手続きが構造的に非常に異なるという事実にもかかわらず、2つの計算のより抽象的な記述は多くの類似性を明らかにします。最初のプログラムは
+
+@itemize @bullet
+
+@item
+木の葉を列挙します。
+
+@item
+それらをフィルタリングし、奇数のものを選択します。
+
+@item
+選択された各ものを二乗します。そして
+
+@item
+結果を@code{+}を使用して、0から始めて累積します。
+
+@end itemize
+
+@noindent
+2番目のプログラムは
+
+@itemize @bullet
+
+@item
+0から@math{n}までの整数を列挙します。
+
+@item
+各整数のフィボナッチ数を計算します。
+
+@item
+それらをフィルタリングし、偶数のものを選択します。そして
+
+@item
+結果を@code{cons}を使用して、空リストから始めて累積します。
+
+@end itemize
+
+@noindent
+信号処理エンジニアは、@ref{Figure 2.7}に示すように、プログラム計画の一部を実装する段階のカスケードを通して流れる信号の観点から、これらのプロセスを概念化することを自然に感じるでしょう。@code{sum-odd-squares}では、与えられた木の葉から成る「信号」を生成する@newterm{列挙器}から始めます。この信号は、奇数要素以外のすべてを除去する@newterm{フィルタ}を通過します。結果の信号は、各要素に@code{square}手続きを適用する「変換器」である@newterm{マップ}を通過します。マップの出力は、初期値0から始めて@code{+}を使用して要素を結合する@newterm{累積器}に送られます。@code{even-fibs}の計画は類似しています。
+
+@float
+@anchor{Figure 2.7}
+@ifinfo
+@quotation
+@strong{図 2.7:} 手続き@code{sum-odd-squares}（上）と@code{even-fibs}（下）の信号フロー計画は、2つのプログラム間の共通性を明らかにします。
+
+@example
++-------------+   +-------------+   +-------------+   +-------------+
+| enumerate:  |-->| filter:     |-->| map:        |-->| accumulate: |
+| tree leaves |   | odd?        |   | square      |   | +, 0        |
++-------------+   +-------------+   +-------------+   +-------------+
+
++-------------+   +-------------+   +-------------+   +-------------+
+| enumerate:  |-->| map:        |-->| filter:     |-->| accumulate: |
+| integers    |   | fib         |   | even?       |   | cons, ()    |
++-------------+   +-------------+   +-------------+   +-------------+
+@end example
+@end quotation
+@end ifinfo

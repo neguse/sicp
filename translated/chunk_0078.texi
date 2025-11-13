@@ -1,0 +1,75 @@
+         (* tree factor))
+        (else
+         (cons (scale-tree (car tree)
+                           factor)
+               (scale-tree (cdr tree)
+                           factor)))))
+
+(scale-tree (list 1
+                  (list 2 (list 3 4) 5)
+                  (list 6 7))
+            10)
+
+@i{(10 (20 (30 40) 50) (60 70))}
+@end lisp
+
+@noindent
+@code{scale-tree}を実装する別の方法は、木を部分木の列と見なし、@code{map}を使用することです。列をマッピングし、各部分木を順番にスケールし、結果のリストを返します。基底ケースでは、木が葉である場合、単に係数を掛けます：
+
+@lisp
+(define (scale-tree tree factor)
+  (map (lambda (sub-tree)
+         (if (pair? sub-tree)
+             (scale-tree sub-tree factor)
+             (* sub-tree factor)))
+       tree))
+@end lisp
+
+@noindent
+多くの木演算は、列演算と再帰の同様の組み合わせによって実装できます。
+
+@quotation
+@strong{@anchor{Exercise 2.30}練習問題 2.30:} @ref{Exercise 2.21}の@code{square-list}手続きに類似した手続き@code{square-tree}を定義してください。つまり、@code{square-tree}は次のように振る舞うべきです：
+
+@lisp
+(square-tree
+ (list 1
+       (list 2 (list 3 4) 5)
+       (list 6 7)))
+@i{(1 (4 (9 16) 25) (36 49))}
+@end lisp
+
+@code{square-tree}を、直接（つまり、高階手続きを使用せずに）と、@code{map}と再帰を使用して、両方の方法で定義してください。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.31}練習問題 2.31:} @ref{Exercise 2.30}への答えを抽象化して、@code{square-tree}が次のように定義できるような性質を持つ手続き@code{tree-map}を作成してください：
+
+@lisp
+(define (square-tree tree)
+  (tree-map square tree))
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.32}練習問題 2.32:} 集合を異なる要素のリストとして表現でき、集合のすべての部分集合の集合をリストのリストとして表現できます。例えば、集合が@code{(1 2 3)}である場合、すべての部分集合の集合は@code{(() (3) (2) (2 3) (1) (1 3) (1 2) (1 2 3))}です。集合の部分集合の集合を生成する手続きの次の定義を完成させ、なぜそれが機能するかの明確な説明を与えてください：
+
+@lisp
+(define (subsets s)
+  (if (null? s)
+      (list nil)
+      (let ((rest (subsets (cdr s))))
+        (append rest (map ⟨??⟩ rest)))))
+@end lisp
+@end quotation
+
+@node	2.2.3, 2.2.4, 2.2.2, 2.2
+@subsection 従来のインターフェースとしての列
+
+複合データを扱う際、データ抽象化がデータ表現の詳細にとらわれることなくプログラムを設計することを可能にする方法、そして抽象化が代替表現を実験する柔軟性を保持する方法を強調してきました。このセクションでは、データ構造を扱うための別の強力な設計原則、つまり@newterm{従来のインターフェース}の使用を紹介します。
+
+@ref{1.3}では、高階手続きとして実装されたプログラム抽象化が、数値データを扱うプログラムの共通パターンをどのように捉えることができるかを見ました。複合データを扱うための類似の演算を定式化する能力は、データ構造を操作するスタイルに決定的に依存しています。例えば、@ref{2.2.2}の@code{count-leaves}手続きに類似した次の手続きを考えてみてください。これは木を引数として受け取り、奇数である葉の二乗の和を計算します：
+
+@lisp
+(define (sum-odd-squares tree)
+  (cond ((null? tree) 0)

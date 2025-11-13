@@ -1,0 +1,78 @@
+
+@lisp
+(define (enumerate-tree tree)
+  (cond ((null? tree) nil)
+        ((not (pair? tree)) (list tree))
+        (else (append
+               (enumerate-tree (car tree))
+               (enumerate-tree (cdr tree))))))
+
+(enumerate-tree (list 1 (list 2 (list 3 4)) 5))
+@i{(1 2 3 4 5)}
+@end lisp
+
+@noindent
+これで、信号フロー図のように@code{sum-odd-squares}と@code{even-fibs}を再定式化できます。@code{sum-odd-squares}の場合、木の葉の列を列挙し、これをフィルタリングして列内の奇数のみを保持し、各要素を二乗し、結果を合計します：
+
+@lisp
+(define (sum-odd-squares tree)
+  (accumulate
+   +
+   0
+   (map square
+        (filter odd?
+                (enumerate-tree tree)))))
+@end lisp
+
+@noindent
+@code{even-fibs}の場合、0から@math{n}までの整数を列挙し、これらの整数のそれぞれのフィボナッチ数を生成し、結果の列をフィルタリングして偶数要素のみを保持し、結果をリストに累積します：
+
+@lisp
+(define (even-fibs n)
+  (accumulate
+   cons
+   nil
+   (filter even?
+           (map fib
+                (enumerate-interval 0 n)))))
+@end lisp
+
+@noindent
+プログラムを列演算として表現することの価値は、これがモジュール式のプログラム設計を作成するのに役立つことです。つまり、比較的独立した部品を組み合わせて構築された設計です。標準コンポーネントのライブラリと、柔軟な方法でコンポーネントを接続するための従来のインターフェースを提供することで、モジュール式設計を促進できます。
+
+モジュール式構築は、工学設計において複雑さを制御するための強力な戦略です。例えば、実際の信号処理アプリケーションでは、設計者はフィルタと変換器の標準化されたファミリーから選択された要素をカスケード接続することでシステムを定期的に構築します。同様に、列演算は、私たちが混ぜ合わせることができる標準プログラム要素のライブラリを提供します。例えば、@code{sum-odd-squares}と@code{even-fibs}手続きからの部品を再利用して、最初の@math{{n + 1}}個のフィボナッチ数の二乗のリストを構築するプログラムを作成できます：
+
+@lisp
+(define (list-fib-squares n)
+  (accumulate
+   cons
+   nil
+   (map square
+        (map fib
+             (enumerate-interval 0 n)))))
+
+(list-fib-squares 10)
+@i{(0 1 1 4 9 25 64 169 441 1156 3025)}
+@end lisp
+
+@noindent
+部品を並べ替えて、列内の奇数整数の二乗の積を計算するのに使用できます：
+
+@lisp
+(define
+  (product-of-squares-of-odd-elements
+   sequence)
+  (accumulate
+   *
+   1
+   (map square (filter odd? sequence))))
+
+(product-of-squares-of-odd-elements
+ (list 1 2 3 4 5))
+@i{225}
+@end lisp
+
+@noindent
+従来のデータ処理アプリケーションも列演算の観点で定式化できます。人事記録の列があり、最も高給のプログラマの給与を見つけたいとします。記録の給与を返すセレクタ@code{salary}と、記録がプログラマのものかどうかをテストする述語@code{programmer?}があると仮定します。そうすれば、次のように書くことができます：
+
+@lisp

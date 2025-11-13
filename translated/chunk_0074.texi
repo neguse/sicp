@@ -1,0 +1,82 @@
+数のリストを引数として受け取り、それらの数の二乗のリストを返します。
+
+@lisp
+(square-list (list 1 2 3 4))
+@i{(1 4 9 16)}
+@end lisp
+
+@code{square-list}の2つの異なる定義を以下に示します。欠けている式を埋めて両方を完成させてください：
+
+@lisp
+(define (square-list items)
+  (if (null? items)
+      nil
+      (cons ⟨??⟩ ⟨??⟩)))
+
+(define (square-list items)
+  (map ⟨??⟩ ⟨??⟩))
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.22}練習問題 2.22:} Louis Reasonerは、@ref{Exercise 2.21}の最初の@code{square-list}手続きを反復プロセスに進化するように書き直そうとします：
+
+@lisp
+(define (square-list items)
+  (define (iter things answer)
+    (if (null? things)
+        answer
+        (iter (cdr things)
+              (cons (square (car things))
+                    answer))))
+  (iter items nil))
+@end lisp
+
+残念ながら、このように@code{square-list}を定義すると、望ましいものとは逆順の答えのリストが生成されます。なぜですか？
+
+そこでLouisは、@code{cons}への引数を交換することでバグを修正しようとします：
+
+@lisp
+(define (square-list items)
+  (define (iter things answer)
+    (if (null? things)
+        answer
+        (iter (cdr things)
+              (cons answer
+                    (square
+                     (car things))))))
+  (iter items nil))
+@end lisp
+
+これもうまくいきません。説明してください。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.23}練習問題 2.23:} 手続き@code{for-each}は@code{map}に似ています。手続きと要素のリストを引数として受け取ります。しかし、結果のリストを形成するのではなく、@code{for-each}は単に手続きを左から右へ各要素に順番に適用するだけです。手続きを要素に適用することで返される値はまったく使用されません---@code{for-each}は、印刷などのアクションを実行する手続きで使用されます。例えば、
+
+@lisp
+(for-each
+ (lambda (x) (newline) (display x))
+ (list 57 321 88))
+
+@i{57}
+@i{321}
+@i{88}
+@end lisp
+
+@code{for-each}の呼び出しによって返される値（上には示されていません）は、trueなど任意のものである可能性があります。@code{for-each}の実装を与えてください。
+@end quotation
+
+@node	2.2.2, 2.2.3, 2.2.1, 2.2
+@subsection 階層的構造
+
+リストの観点での列の表現は、要素自体が列である可能性がある列を表現するように自然に一般化されます。例えば、次によって構築されたオブジェクト@code{((1 2) 3 4)}を
+
+@lisp
+(cons (list 1 2) (list 3 4))
+@end lisp
+
+@noindent
+最初の項目がそれ自体リスト@code{(1 2)}である3つの項目のリストと見なすことができます。実際、これはインタプリタによって結果が出力される形式によって示唆されています。@ref{Figure 2.5}は、ペアの観点でのこの構造の表現を示しています。
+
+@float

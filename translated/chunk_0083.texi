@@ -1,0 +1,84 @@
+
+@lisp
+(define
+  (horner-eval x coefficient-sequence)
+  (accumulate
+   (lambda (this-coeff higher-terms)
+     ⟨??⟩)
+   0
+   coefficient-sequence))
+@end lisp
+
+例えば、@math{{x = 2}}で@math{{1 + 3x} + {5x^3 + x^5}}を計算するには、次を評価します：
+
+@lisp
+(horner-eval 2 (list 1 3 0 5 0 1))
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.35}練習問題 2.35:} @ref{2.2.2}の@code{count-leaves}を累積として再定義してください：
+
+@lisp
+(define (count-leaves t)
+  (accumulate ⟨??⟩ ⟨??⟩ (map ⟨??⟩ ⟨??⟩)))
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.36}練習問題 2.36:} 手続き@code{accumulate-n}は@code{accumulate}に似ていますが、第3引数として列の列を受け取る点が異なります。すべて同じ数の要素を持つと仮定されます。指定された累積手続きを適用して、すべての列の最初の要素、すべての列の2番目の要素、というように結合し、結果の列を返します。例えば、@code{s}が4つの列@code{((1 2 3) (4 5 6) (7 8 9) (10 11 12))}を含む列である場合、@code{(accumulate-n + 0 s)}の値は列@code{(22 26 30)}であるべきです。@code{accumulate-n}の次の定義で欠けている式を埋めてください：
+
+@lisp
+(define (accumulate-n op init seqs)
+  (if (null? (car seqs))
+      nil
+      (cons (accumulate op init ⟨??⟩)
+            (accumulate-n op init ⟨??⟩))))
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.37}練習問題 2.37:}
+ベクトル@b{v} = @math{{(v_i)}}を数の列として、行列@b{m} = @math{{(m_{ij})}}をベクトルの列（行列の行）として表現するとします。例えば、行列
+@ifinfo
+
+@example
++-         -+
+|  1 2 3 4  |
+|  4 5 6 6  |
+|  6 7 8 9  |
++-         -+
+@end example
+
+@end ifinfo
+@tex
+\[ % :37:
+
+\left(\matrix{	1 & 2 & 3 & 4 \cr
+		4 & 5 & 6 & 6 \cr
+		6 & 7 & 8 & 9 \cr }\right)  \]
+@end tex
+@noindent
+は列@code{((1 2 3 4) (4 5 6 6) (6 7 8 9))}として表現されます。この表現により、列演算を使用して基本的な行列とベクトルの演算を簡潔に表現できます。これらの演算（行列代数の任意の本で説明されています）は次のとおりです：
+@ifinfo
+
+@example
+                                       __
+(dot-product v w)      returns the sum >_i v_i w_i
+
+(matrix-*-vector m v)  returns the vector t,
+                                   __
+                       where t_i = >_j m_(ij) v_j
+
+(matrix-*-matrix m n)  returns the matrix p,
+                                      __
+                       where p_(ij) = >_k m_(ik) n_(kj)
+
+(transpose m)          returns the matrix n,
+                       where n_(ij) = m_(ji)
+@end example
+
+@end ifinfo
+@tex
+\[ % :38:
+

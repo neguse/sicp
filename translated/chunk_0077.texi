@@ -1,0 +1,76 @@
+x
+@i{((1 2) (3 4))}
+
+(reverse x)
+@i{((3 4) (1 2))}
+
+(deep-reverse x)
+@i{((4 3) (2 1))}
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.28}練習問題 2.28:} 木（リストとして表現される）を引数として受け取り、木のすべての葉を左から右への順序で配置した要素を持つリストを返す手続き@code{fringe}を書いてください。例えば、
+
+@lisp
+(define x
+  (list (list 1 2) (list 3 4)))
+
+(fringe x)
+@i{(1 2 3 4)}
+
+(fringe (list x x))
+@i{(1 2 3 4 1 2 3 4)}
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.29}練習問題 2.29:} 二分モビールは、左の枝と右の枝という2つの枝で構成されます。各枝は、重りまたは別の二分モビールがぶら下がる一定の長さの棒です。複合データを使用して、2つの枝（例えば、@code{list}を使用）から構築することで二分モビールを表現できます：
+
+@lisp
+(define (make-mobile left right)
+  (list left right))
+@end lisp
+
+枝は、@code{length}（数でなければなりません）と@code{structure}から構築されます。@code{structure}は、数（単純な重りを表す）または別のモビールのいずれかです：
+
+@lisp
+(define (make-branch length structure)
+  (list length structure))
+@end lisp
+
+@enumerate a
+
+@item
+モビールの枝を返す対応するセレクタ@code{left-branch}と@code{right-branch}、および枝の構成要素を返す@code{branch-length}と@code{branch-structure}を書いてください。
+
+@item
+セレクタを使用して、モビールの総重量を返す手続き@code{total-weight}を定義してください。
+
+@item
+モビールは、左上の枝によって加えられるトルクが右上の枝によって加えられるトルクと等しい場合（つまり、左の棒の長さにその棒からぶら下がる重りを掛けたものが、右側の対応する積と等しい場合）、およびその枝からぶら下がる各部分モビールがバランスしている場合、@newterm{バランスしている}と言われます。二分モビールがバランスしているかどうかをテストする述語を設計してください。
+
+@item
+コンストラクタを次のように変更するとします：
+
+@lisp
+(define (make-mobile left right)
+  (cons left right))
+
+(define (make-branch length structure)
+  (cons length structure))
+@end lisp
+
+新しい表現に変換するために、プログラムをどれだけ変更する必要がありますか？
+
+@end enumerate
+@end quotation
+
+@subsubheading 木のマッピング
+
+@code{map}が列を扱うための強力な抽象化であるのと同様に、@code{map}と再帰を組み合わせることは、木を扱うための強力な抽象化です。例えば、@ref{2.2.1}の@code{scale-list}に類似した@code{scale-tree}手続きは、数値係数と葉が数である木を引数として受け取ります。同じ形状の木を返しますが、各数は係数で乗算されています。@code{scale-tree}の再帰的計画は@code{count-leaves}のものと似ています：
+
+@lisp
+(define (scale-tree tree factor)
+  (cond ((null? tree) nil)
+        ((not (pair? tree))

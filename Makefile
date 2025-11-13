@@ -4,8 +4,8 @@
 # Constants
 
 DIR = html/
-SRC = sicp-pocket.texi          # book's Texinfo source
-GOAL = ../sicp.epub             # the end product of compilation
+SRC = sicp-pocket-ja.texi          # book's Texinfo source
+GOAL = ../sicp-ja.epub             # the end product of compilation
 NEXUS = $(DIR)index.xhtml       # the central file with table of contents
 META = content.opf toc.xhtml    # epub metafiles generated from NEXUS
 HTML = $(DIR)*.xhtml            # all the HTML files of the book

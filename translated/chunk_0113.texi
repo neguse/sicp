@@ -1,0 +1,130 @@
+@noindent
+抽象データシステムを完成させるには、複素数を構築およびセレクトするための手続きに関する仕様(「シグネチャ」)が必要です。Ben Bitdiddle という名前の人が、直交形式でデータ表現を選択し、それに対応して複素数の部分を選択します：
+
+@lisp
+(define (real-part z) (car z))
+(define (imag-part z) (cdr z))
+
+(define (magnitude z)
+  (sqrt (+ (square (real-part z))
+           (square (imag-part z)))))
+
+(define (angle z)
+  (atan (imag-part z) (real-part z)))
+
+(define (make-from-real-imag x y)
+  (cons x y))
+
+(define (make-from-mag-ang r a)
+  (cons (* r (cos a)) (* r (sin a))))
+@end lisp
+
+@noindent
+代わりに、Alyssa P. Hacker という名前の人が、極形式のデータ表現を選択し、それに対応して複素数の部分を選択します：
+
+@lisp
+(define (real-part z)
+  (* (magnitude z) (cos (angle z))))
+
+(define (imag-part z)
+  (* (magnitude z) (sin (angle z))))
+
+(define (magnitude z) (car z))
+(define (angle z) (cdr z))
+
+(define (make-from-real-imag x y)
+  (cons (sqrt (+ (square x) (square y)))
+        (atan y x)))
+
+(define (make-from-mag-ang r a)
+  (cons r a))
+@end lisp
+
+@noindent
+規律は、どの表現が選択されても、@code{real-part}、@code{imag-part}、@code{magnitude}、@code{angle}の手続きが、Ben と Alyssa の個別に書かれた@code{add-complex}、@code{sub-complex}、@code{mul-complex}、@code{div-complex}手続きにとって、複素数の抽象データに対する適切なセレクタとして機能することを保証します。
+
+これらの表現は、コンストラクタとセレクタが以下の関係を満たす場合に相互に変換されるため、相互に等価です：
+
+@itemize @w{}
+
+@item
+実部@math{x}と虚部@math{y}からデータオブジェクトを構築すると、データオブジェクトの@code{real-part}と@code{imag-part}を選択すると@math{x}と@math{y}が返されます。
+
+@item
+大きさ@math{r}と角度@math{A}からデータオブジェクトを構築すると、データオブジェクトの@code{magnitude}と@code{angle}を選択すると@math{r}と@math{A}が返されます。
+
+@end itemize
+
+@noindent
+これらの条件は構築後の選択を指定しますが、複素数から実部と虚部のみを指定して大きさと角度を選択する必要はありません。たとえば、@math{{x = r \cos A}}と@math{{y = r \sin A}}が成り立つ場合、@code{(make-from-real-imag x y)}から@code{magnitude}を取得すると@math{r}が得られます。しかし、この場合も、コンストラクタとセレクタは相互に一貫しているので、問題ありません。たとえば、@math{x}と@math{y}から構築した後に@code{real-part}を使用して実部を抽出する場合、結果は@math{x}と同じです。このような性質により、手続きから望ましい「抽象」手続きとしての振る舞いが得られます。
+
+@quotation
+@strong{@anchor{Exercise 2.73}練習問題 2.73:} @ref{2.3.2}では、基本的な微分ルールをプログラムとして表現する微分手続きを記述しました：
+
+@lisp
+(define (deriv exp var)
+  (cond ((number? exp) 0)
+        ((variable? exp)
+         (if (same-variable? exp var)
+             1
+             0))
+        ((sum? exp)
+         (make-sum (deriv (addend exp) var)
+                   (deriv (augend exp) var)))
+        ((product? exp)
+         (make-sum
+          (make-product
+           (multiplier exp)
+           (deriv (multiplicand exp) var))
+          (make-product
+           (deriv (multiplier exp) var)
+           (multiplicand exp))))
+        ⟨@r{その他のルール}⟩
+        (else (error "unknown expression type:
+                      DERIV" exp))))
+@end lisp
+
+この単純な代数式操作機は、分離された抽象データ表現に基づいて設計されたという意味で汎用であると言えます。また、加算や乗算などの異なる型の式に対する新しい操作をシステムに追加する方法を見てきました。この例では、型の判別が命題の型に基づいて実行され、@code{cond}の節に適切な派生手続きが呼び出されることを意味します。実際、データの型に応じてディスパッチする方法を取得することで、上記の派生手続きの一部を「汎用操作」の項で書き直すことができます。
+
+このアイデアを実装して、微分の基本的なアルゴリズムが次のようになるように手続きを書き直しましょう：
+
+@lisp
+(define (deriv exp var)
+  (cond ((number? exp) 0)
+        ((variable? exp)
+         (if (same-variable? exp var)
+             1
+             0))
+        (else ((get 'deriv (operator exp))
+               (operands exp)
+               var))))
+
+(define (operator exp) (car exp))
+(define (operands exp) (cdr exp))
+@end lisp
+
+@enumerate a
+
+@item
+上記で何が行われたかを説明してください。述語@code{number?}と@code{variable?}をデータ主導の派生に吸収できないのはなぜですか？
+
+@item
+合計と積に対する微分手続き、および上で示した単純な代数式操作機に必要な補助コードを書きなさい。
+
+@item
+さらに多くのルール(べき乗など)をシステムに追加しなさい。
+
+@item
+今回は、手続きが型とは逆の方向にインデックス付けされている場合、つまり微分プロシージャが次のように実装されているとします：
+
+@lisp
+((get (operator exp) 'deriv)
+ (operands exp) var)
+@end lisp
+
+派生システムに対する必要な変更は何ですか？
+@end enumerate
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.74}練習問題 2.74:} Insatiable Enterprises, Inc. は非常に分散化された企業で、多くの独立した部門を持っています。企業の各部門は個別のファイル管理システムを持っており、ファイル管理システムの実装に適した方法で自分たちの人事記録を保持しています。

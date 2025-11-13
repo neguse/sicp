@@ -1,0 +1,70 @@
+(define (right-branch tree) (caddr tree))
+(define (make-tree entry left right)
+  (list entry left right))
+@end lisp
+
+@noindent
+これで、上で説明した戦略を使用して@code{element-of-set?}手続きを書くことができます：
+
+@lisp
+(define (element-of-set? x set)
+  (cond ((null? set) false)
+        ((= x (entry set)) true)
+        ((< x (entry set))
+         (element-of-set?
+          x
+          (left-branch set)))
+        ((> x (entry set))
+         (element-of-set?
+          x
+          (right-branch set)))))
+@end lisp
+
+@noindent
+集合に項目を追加することも同様に実装され、やはり@math{{\Theta(\log n)}}ステップが必要です。項目@code{x}を追加するには、@code{x}をノードエントリと比較して、@code{x}を右枝に追加すべきか左枝に追加すべきかを決定し、適切な枝に@code{x}を追加した後、この新しく構築された枝を元のエントリともう一方の枝と組み合わせます。@code{x}がエントリと等しい場合は、そのノードをそのまま返します。空の木に@code{x}を追加するように求められた場合、@code{x}をエントリとし、空の右枝と左枝を持つ木を生成します。手続きは次のとおりです：
+
+@lisp
+(define (adjoin-set x set)
+  (cond ((null? set) (make-tree x '() '()))
+        ((= x (entry set)) set)
+        ((< x (entry set))
+         (make-tree
+          (entry set)
+          (adjoin-set x (left-branch set))
+          (right-branch set)))
+        ((> x (entry set))
+         (make-tree
+          (entry set)
+          (left-branch set)
+          (adjoin-set x (right-branch set))))))
+@end lisp
+
+@noindent
+木の検索が対数的なステップ数で実行できるという上記の主張は、木が「平衡」しているという仮定に基づいています。つまり、すべての木の左部分木と右部分木がほぼ同じ数の要素を持ち、各部分木が親の約半分の要素を含むということです。しかし、構築する木が平衡していることをどのように確信できるでしょうか？平衡した木から始めても、@code{adjoin-set}で要素を追加すると不平衡な結果になる可能性があります。新しく追加される要素の位置は、要素が集合内の既存の項目とどのように比較されるかに依存するため、要素を「ランダムに」追加すれば平均的に木は平衡する傾向があると期待できます。しかし、これは保証されません。たとえば、空の集合から始めて1から7までの数を順番に追加すると、@ref{Figure 2.17}に示すような非常に不平衡な木になります。この木では、すべての左部分木が空なので、単純な順序付きリストよりも利点がありません。この問題を解決する1つの方法は、任意の木を同じ要素を持つ平衡木に変換する操作を定義することです。そして、数回の@code{adjoin-set}操作の後にこの変換を実行して、集合を平衡に保つことができます。この問題を解決する他の方法もあり、そのほとんどは、検索と挿入の両方を@math{{\Theta(\log n)}}ステップで実行できる新しいデータ構造を設計することを含みます。@footnote{そのような構造の例には@newterm{B木}と@newterm{赤黒木}があります。この問題に特化したデータ構造に関する大量の文献があります。@ref{Cormen et al. 1990}を参照してください。}
+
+@float
+@anchor{Figure 2.17}
+@ifinfo
+@quotation
+@strong{図 2.17:} 1から7を順番に追加して生成された不平衡木。
+
+@example
+1
+ \
+  2
+   \
+    4
+     \
+      5
+       \
+        6
+         \
+          7
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap2/Fig2.17a,68mm,,,.std.svg}
+@caption{@strong{図 2.17:} 1から7を順番に追加して生成された不平衡木。}
+@end iftex
+@end float

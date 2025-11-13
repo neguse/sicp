@@ -1,0 +1,76 @@
+        (append (symbols left)
+                (symbols right))
+        (+ (weight left) (weight right))))
+@end lisp
+
+@noindent
+この方法で木を作成する場合、次のセレクタを持ちます：
+
+@lisp
+(define (left-branch tree) (car tree))
+(define (right-branch tree) (cadr tree))
+
+(define (symbols tree)
+  (if (leaf? tree)
+      (list (symbol-leaf tree))
+      (caddr tree)))
+
+(define (weight tree)
+  (if (leaf? tree)
+      (weight-leaf tree)
+      (cadddr tree)))
+@end lisp
+
+@noindent
+手続き@code{symbols}と@code{weight}は、葉で呼び出されるか一般的な木で呼び出されるかによって、わずかに異なることをしなければなりません。これらは@newterm{汎用手続き}(複数の種類のデータを扱える手続き)の単純な例であり、@ref{2.4}と@ref{2.5}でこれについて多くのことを述べます。
+
+@subsubheading 復号化手続き
+
+次の手続きは復号化アルゴリズムを実装します。0と1のリストとハフマン木を引数として取ります。
+
+@lisp
+(define (decode bits tree)
+  (define (decode-1 bits current-branch)
+    (if (null? bits)
+        '()
+        (let ((next-branch
+               (choose-branch
+                (car bits)
+                current-branch)))
+          (if (leaf? next-branch)
+              (cons
+               (symbol-leaf next-branch)
+               (decode-1 (cdr bits) tree))
+              (decode-1 (cdr bits)
+                        next-branch)))))
+  (decode-1 bits tree))
+
+(define (choose-branch bit branch)
+  (cond ((= bit 0) (left-branch branch))
+        ((= bit 1) (right-branch branch))
+        (else (error "bad bit:
+               CHOOSE-BRANCH" bit))))
+@end lisp
+
+@noindent
+手続き@code{decode-1}は2つの引数を取ります：残りのビットのリストと木内の現在の位置です。リスト内の次のビットが0か1かに応じて、左または右の枝を選択して、木を「下へ」移動し続けます。(これは手続き@code{choose-branch}で行われます。)葉に到達すると、木の根から始めてメッセージの残りを復号化した結果にその葉の記号を@code{cons}することで、その葉の記号をメッセージの次の記号として返します。@code{choose-branch}の最後の節のエラーチェックに注意してください。これは、手続きが入力データ内で0または1以外のものを見つけた場合に文句を言います。
+
+@subsubheading 重み付き要素の集合
+
+木の表現では、各非葉ノードには、単純なリストとして表現した記号の集合が含まれます。ただし、上で説明した木生成アルゴリズムでは、葉と木の集合を扱い、連続して最小の2つの項目をマージする必要があります。集合内の最小の項目を繰り返し見つける必要があるため、この種の集合には順序付き表現を使用すると便利です。
+
+葉と木の集合を、重みの昇順に配列された要素のリストとして表現します。集合を構築するための次の@code{adjoin-set}手続きは、@ref{Exercise 2.61}で説明したものと似ています；ただし、項目は重みで比較され、集合に追加される要素は決して既に集合に含まれていません。
+
+@lisp
+(define (adjoin-set x set)
+  (cond ((null? set) (list x))
+        ((< (weight x) (weight (car set)))
+         (cons x set))
+        (else
+         (cons (car set)
+               (adjoin-set x (cdr set))))))
+@end lisp
+
+@noindent
+次の手続きは、@code{((A 4) (B 2) (C 1) (D 1))}のような記号-頻度ペアのリストを受け取り、ハフマンアルゴリズムに従ってマージされる準備が整った葉の初期順序付き集合を構築します：
+

@@ -1,0 +1,67 @@
+    |            __--         .
+    |        __--             .
+    |   r_--                  .
+    | __/ )A                  .
+    +-------------------------|-----> Real
+  o                           x
+@end example
+@end ifinfo
+@iftex
+@image{fig/chap2/Fig2.20a,75mm,,,.std.svg}
+@caption{@strong{図 2.20:} 平面上の点としての複素数。}
+@end iftex
+@end float
+
+@noindent
+複素数を減算、乗算、除算するとき、複素数を直交形式で指定するよりも極形式(大きさと角度)で指定する方が自然です。実際、複素数の加算では、実部と虚部(直交)を知っていると最も簡単ですが、乗算と除算では、大きさと角度(極)を知っていると最も簡単です。複素数の積または商を計算するとき、数式を使用します
+@ifinfo
+
+@example
+Magnitude(z_1 ⋅ z_2) = Magnitude(z_1) ⋅ Magnitude(z_2)
+Angle(z_1 ⋅ z_2) = Angle(z_1) + Angle(z_2)
+
+Magnitude(z_1 / z_2) = Magnitude(z_1) / Magnitude(z_2)
+Angle(z_1 / z_2) = Angle(z_1) - Angle(z_2)
+@end example
+
+@end ifinfo
+@tex
+\[ % :47:
+\begin{eqnarray}
+\text{Magnitude} (z_1 \cdot z_2)  &=& \text{Magnitude} (z_1) \cdot
+                                   \text{Magnitude} (z_2), \\
+\text{Angle} (z_1 \cdot z_2)      &=& \text{Angle} (z_1) + \text{Angle} (z_2), \\
+\text{Magnitude} (z_1 / z_2)      &=& \text{Magnitude} (z_1) / \text{Magnitude} (z_2), \\
+\text{Angle} (z_1 / z_2)          &=& \text{Angle} (z_1) - \text{Angle} (z_2).
+\end{eqnarray}
+\]
+@end tex
+
+@noindent
+このように、複素数を操作するために2つの異なる表現があります。それぞれの表現が、複素数に対する異なる操作に適しています。しかし、数学的な観点から見ると、複素数はただ1つであり、それを表すための2つの方法に過ぎません。どちらの表現も、抽象層でのシステムの設計から独立したより基本的な層での実装に適しているという意味で「より基本的」ではありません。
+
+この状況を形式化するために、(前述の@ref{Figure 2.1}の有理数の場合のように)複素数演算の実装をデータオブジェクトの表現とは独立のものと見なすことができる抽象データオブジェクトがあると仮定します。このためには、コンストラクタとセレクタを使用してデータオブジェクトにアクセスしなければなりません。
+
+複素数を使用するプログラムは、直交または極で指定された複素数を構築するためのコンストラクタ@code{make-from-real-imag}と@code{make-from-mag-ang}を使用します。また、実部、虚部、大きさ、角度を取得する対応するセレクタ@code{real-part}、@code{imag-part}、@code{magnitude}、@code{angle}も使用します。これらの手続きは次のように記述された算術演算を可能にします。@footnote{@code{add-complex}、@code{sub-complex}、@code{mul-complex}、@code{div-complex}手続きは、実際には「汎用」である必要はないことに注意してください。それらは複素数に対してのみ機能します。ここで説明する問題は、様々なプログラマによって実装された異なる表現を持つ複素数を扱うことです。2.5節では、異なる種類の数を扱う汎用算術演算を開発します。}
+
+@lisp
+(define (add-complex z1 z2)
+  (make-from-real-imag
+   (+ (real-part z1) (real-part z2))
+   (+ (imag-part z1) (imag-part z2))))
+
+(define (sub-complex z1 z2)
+  (make-from-real-imag
+   (- (real-part z1) (real-part z2))
+   (- (imag-part z1) (imag-part z2))))
+
+(define (mul-complex z1 z2)
+  (make-from-mag-ang
+   (* (magnitude z1) (magnitude z2))
+   (+ (angle z1) (angle z2))))
+
+(define (div-complex z1 z2)
+  (make-from-mag-ang
+   (/ (magnitude z1) (magnitude z2))
+   (- (angle z1) (angle z2))))
+@end lisp

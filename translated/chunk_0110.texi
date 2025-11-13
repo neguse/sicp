@@ -1,0 +1,77 @@
+@lisp
+(define (make-leaf-set pairs)
+  (if (null? pairs)
+      '()
+      (let ((pair (car pairs)))
+        (adjoin-set
+         (make-leaf (car pair)    @r{; symbol}
+                    (cadr pair))  @r{; frequency}
+         (make-leaf-set (cdr pairs))))))
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 2.67}練習問題 2.67:} 符号化木とサンプルメッセージを定義しなさい：
+
+@lisp
+(define sample-tree
+  (make-code-tree
+   (make-leaf 'A 4)
+   (make-code-tree
+    (make-leaf 'B 2)
+    (make-code-tree
+     (make-leaf 'D 1)
+     (make-leaf 'C 1)))))
+
+(define sample-message
+  '(0 1 1 0 0 1 0 1 0 1 1 1 0))
+@end lisp
+
+@code{decode}手続きを使用してメッセージを復号化し、結果を示しなさい。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.68}練習問題 2.68:} @code{encode}手続きはメッセージと木を引数として取り、符号化されたメッセージを与えるビットのリストを生成します。
+
+@lisp
+(define (encode message tree)
+  (if (null? message)
+      '()
+      (append
+       (encode-symbol (car message)
+                      tree)
+       (encode (cdr message) tree))))
+@end lisp
+
+@code{Encode-symbol}は、指定された木に従って指定された記号を符号化するビットのリストを返す手続きで、あなたが書かなければなりません。記号が木にまったく含まれていない場合にエラーを通知するように@code{encode-symbol}を設計すべきです。@ref{Exercise 2.67}で取得した結果をサンプル木で符号化し、元のサンプルメッセージと同じかどうかを確認して、手続きをテストしなさい。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.69}練習問題 2.69:} 次の手続きは、記号-頻度ペアのリスト(どの記号も複数のペアに現れない)を引数として取り、ハフマンアルゴリズムに従ってハフマン符号化木を生成します。
+
+@lisp
+(define (generate-huffman-tree pairs)
+  (successive-merge
+   (make-leaf-set pairs)))
+@end lisp
+
+@code{Make-leaf-set}は、ペアのリストを葉の順序付き集合に変換する上で与えられた手続きです。@code{Successive-merge}は、@code{make-code-tree}を使用して、1つの要素だけが残るまで集合の最小重み要素を連続してマージする手続きで、あなたが書かなければなりません。それが望ましいハフマン木です。(この手続きは少し巧妙ですが、本当に複雑ではありません。複雑な手続きを設計していることに気付いたら、ほぼ確実に何か間違ったことをしています。順序付き集合表現を使用しているという事実を大いに活用できます。)
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.70}練習問題 2.70:} 次の8記号のアルファベットと関連する相対頻度は、1950年代のロック曲の歌詞を効率的に符号化するように設計されました。(「アルファベット」の「記号」は個々の文字である必要はないことに注意してください。)
+
+@example
+
+A    2    NA  16
+BOOM 1    SHA  3
+GET  2    YIP  9
+JOB  2    WAH  1
+@end example
+
+@code{generate-huffman-tree}(@ref{Exercise 2.69})を使用して対応するハフマン木を生成し、@code{encode}(@ref{Exercise 2.68})を使用して次のメッセージを符号化しなさい：
+
+@example
+Get a job
+Sha na na na na na na na na
+
+Get a job

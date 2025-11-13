@@ -1,0 +1,86 @@
+
+@quotation
+@strong{@anchor{Exercise 2.63}練習問題 2.63:} 次の2つの手続きはそれぞれ、二分木をリストに変換します。
+
+@lisp
+(define (tree->list-1 tree)
+  (if (null? tree)
+      '()
+      (append
+       (tree->list-1
+        (left-branch tree))
+       (cons (entry tree)
+             (tree->list-1
+              (right-branch tree))))))
+
+(define (tree->list-2 tree)
+  (define (copy-to-list tree result-list)
+    (if (null? tree)
+        result-list
+        (copy-to-list
+         (left-branch tree)
+         (cons (entry tree)
+               (copy-to-list
+                (right-branch tree)
+                result-list)))))
+  (copy-to-list tree '()))
+@end lisp
+
+@enumerate a
+
+@item
+2つの手続きはすべての木に対して同じ結果を生成しますか？もし違うなら、結果はどのように異なりますか？2つの手続きは@ref{Figure 2.16}の木に対してどのようなリストを生成しますか？
+
+@item
+2つの手続きは、@math{n}個の要素を持つ平衡木をリストに変換するのに必要なステップ数の増加の次数が同じですか？もし違うなら、どちらがよりゆっくり増加しますか？
+
+@end enumerate
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.64}練習問題 2.64:} 次の手続き@code{list->tree}は、順序付きリストを平衡二分木に変換します。補助手続き@code{partial-tree}は整数@math{n}と少なくとも@math{n}個の要素を持つリストを引数として取り、リストの最初の@math{n}個の要素を含む平衡木を構築します。@code{partial-tree}が返す結果は(@code{cons}で形成された)ペアで、その@code{car}は構築された木であり、その@code{cdr}は木に含まれない要素のリストです。
+
+@lisp
+(define (list->tree elements)
+  (car (partial-tree
+        elements (length elements))))
+
+(define (partial-tree elts n)
+  (if (= n 0)
+      (cons '() elts)
+      (let ((left-size
+             (quotient (- n 1) 2)))
+        (let ((left-result
+               (partial-tree
+                elts left-size)))
+          (let ((left-tree
+                 (car left-result))
+                (non-left-elts
+                 (cdr left-result))
+                (right-size
+                 (- n (+ left-size 1))))
+            (let ((this-entry
+                   (car non-left-elts))
+                  (right-result
+                   (partial-tree
+                    (cdr non-left-elts)
+                    right-size)))
+              (let ((right-tree
+                     (car right-result))
+                    (remaining-elts
+                     (cdr right-result)))
+                (cons (make-tree this-entry
+                                 left-tree
+                                 right-tree)
+                      remaining-elts))))))))
+@end lisp
+
+@enumerate a
+
+@item
+@code{partial-tree}がどのように動作するかをできるだけ明確に説明する短い段落を書きなさい。リスト@code{(1 3 5 7 9 11)}に対して@code{list->tree}が生成する木を描きなさい。
+
+@item
+@math{n}個の要素のリストを変換するのに@code{list->tree}が必要とするステップ数の増加の次数は何ですか？
+
+@end enumerate

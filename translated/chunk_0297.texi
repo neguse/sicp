@@ -1,0 +1,198 @@
+
+(define (get-indexed-rules pattern)
+  (stream-append
+   (get-stream (index-key-of pattern)
+               'rule-stream)
+   (get-stream '? 'rule-stream)))
+@end lisp
+
+@noindent
+@code{Add-rule-or-assertion!}は、@code{query-driver-loop}によってアサーションと
+規則をデータベースに追加するために使われます。各項目は、適切であればインデックスに
+格納され、データベース内のすべてのアサーションまたは規則のストリームに格納されます。
+
+@lisp
+(define (add-rule-or-assertion! assertion)
+  (if (rule? assertion)
+      (add-rule! assertion)
+      (add-assertion! assertion)))
+
+(define (add-assertion! assertion)
+  (store-assertion-in-index assertion)
+  (let ((old-assertions THE-ASSERTIONS))
+    (set! THE-ASSERTIONS
+          (cons-stream assertion
+                       old-assertions))
+    'ok))
+
+(define (add-rule! rule)
+  (store-rule-in-index rule)
+  (let ((old-rules THE-RULES))
+    (set! THE-RULES
+          (cons-stream rule old-rules))
+    'ok))
+@end lisp
+
+@noindent
+実際にアサーションまたは規則を格納するには、それがインデックス付け可能かどうかを
+チェックします。そうであれば、適切なストリームに格納します。
+
+@lisp
+(define (store-assertion-in-index assertion)
+  (if (indexable? assertion)
+      (let ((key (index-key-of assertion)))
+        (let ((current-assertion-stream
+               (get-stream
+                key 'assertion-stream)))
+          (put key
+               'assertion-stream
+               (cons-stream
+                assertion
+                current-assertion-stream))))))
+
+(define (store-rule-in-index rule)
+  (let ((pattern (conclusion rule)))
+    (if (indexable? pattern)
+        (let ((key (index-key-of pattern)))
+          (let ((current-rule-stream
+                 (get-stream
+                  key 'rule-stream)))
+            (put key
+                 'rule-stream
+                 (cons-stream
+                  rule
+                  current-rule-stream)))))))
+@end lisp
+
+@noindent
+次の手続きは、データベースインデックスがどのように使われるかを定義します。パターン
+（アサーションまたは規則の結論）は、変数または定数シンボルで始まる場合にテーブルに
+格納されます。
+
+@lisp
+(define (indexable? pat)
+  (or (constant-symbol? (car pat))
+      (var? (car pat))))
+@end lisp
+
+@noindent
+パターンがテーブルに格納されるキーは、（変数で始まる場合は）@code{?}か、それが
+始まる定数シンボルです。
+
+@lisp
+(define (index-key-of pat)
+  (let ((key (car pat)))
+    (if (var? key) '? key)))
+@end lisp
+
+@noindent
+インデックスは、パターンが定数シンボルで始まる場合に、パターンにマッチする可能性の
+ある項目を取得するために使われます。
+
+@lisp
+(define (use-index? pat)
+  (constant-symbol? (car pat)))
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 4.70}Exercise 4.70:} 手続き@code{add-assertion!}と
+@code{add-rule!}における@code{let}束縛の目的は何でしょうか？次の@code{add-assertion!}の
+実装では何が問題になるでしょうか？ヒント：@ref{3.5.2}の無限ストリームの定義を
+思い出してください：@code{(define ones (cons-stream 1 ones))}。
+
+@lisp
+(define (add-assertion! assertion)
+  (store-assertion-in-index assertion)
+  (set! THE-ASSERTIONS
+        (cons-stream assertion
+                     THE-ASSERTIONS))
+  'ok)
+@end lisp
+@end quotation
+
+@node 4.4.4.6, 4.4.4.7, 4.4.4.5, 4.4.4
+@subsubsection ストリーム操作
+
+クエリシステムは、@ref{Chapter 3}で提示されなかったいくつかのストリーム操作を
+使います。
+
+@code{Stream-append-delayed}と@code{interleave-delayed}は、@code{stream-append}と
+@code{interleave}（@ref{3.5.3}）とまったく同じですが、（@ref{3.5.4}の@code{integral}
+手続きのように）遅延引数を取る点が異なります。これにより、いくつかのケースで
+ループが延期されます（@ref{Exercise 4.71}を参照）。
+
+@lisp
+(define (stream-append-delayed s1 delayed-s2)
+  (if (stream-null? s1)
+      (force delayed-s2)
+      (cons-stream
+       (stream-car s1)
+       (stream-append-delayed (stream-cdr s1)
+                              delayed-s2))))
+
+(define (interleave-delayed s1 delayed-s2)
+  (if (stream-null? s1)
+      (force delayed-s2)
+      (cons-stream
+       (stream-car s1)
+       (interleave-delayed
+        (force delayed-s2)
+        (delay (stream-cdr s1))))))
+@end lisp
+
+@noindent
+クエリ評価器全体で、フレームのストリーム上で手続きをマップし、結果のフレームの
+ストリームを結合するために使われる@code{Stream-flatmap}は、@ref{2.2.3}で通常の
+リストに対して導入された@code{flatmap}手続きのストリーム版です。しかし、通常の
+@code{flatmap}とは異なり、単に追加するのではなく、インターリーブプロセスで
+ストリームを累積します（@ref{Exercise 4.72}と@ref{Exercise 4.73}を参照）。
+
+@lisp
+(define (stream-flatmap proc s)
+  (flatten-stream (stream-map proc s)))
+
+(define (flatten-stream stream)
+  (if (stream-null? stream)
+      the-empty-stream
+      (interleave-delayed
+       (stream-car stream)
+       (delay (flatten-stream
+               (stream-cdr stream))))))
+@end lisp
+
+@noindent
+評価器はまた、単一の要素からなるストリームを生成するために次の単純な手続きを
+使います：
+
+@lisp
+(define (singleton-stream x)
+  (cons-stream x the-empty-stream))
+@end lisp
+
+@node 4.4.4.7, 4.4.4.8, 4.4.4.6, 4.4.4
+@subsubsection クエリ構文手続き
+
+@code{qeval}（@ref{4.4.4.2}）によって使われる@code{Type}と@code{contents}は、
+特殊形式がその@code{car}内のシンボルによって識別されることを指定します。これらは、
+エラーメッセージを除いて、@ref{2.4.2}の@code{type-tag}と@code{contents}手続きと
+同じです。
+
+@lisp
+(define (type exp)
+  (if (pair? exp)
+      (car exp)
+      (error "Unknown expression TYPE"
+             exp)))
+
+(define (contents exp)
+  (if (pair? exp)
+      (cdr exp)
+      (error "Unknown expression CONTENTS"
+             exp)))
+@end lisp
+
+@noindent
+@code{query-driver-loop}（@ref{4.4.4.1}）によって使われる次の手続きは、規則と
+アサーションが@code{(assert! ⟨@var{rule-or-assertion}⟩)}形式の式によって
+データベースに追加されることを指定します：
+

@@ -1,0 +1,94 @@
+@lisp
+(define (assertion-to-be-added? exp)
+  (eq? (type exp) 'assert!))
+
+(define (add-assertion-body exp)
+  (car (contents exp)))
+@end lisp
+
+@noindent
+@code{and}、@code{or}、@code{not}、@code{lisp-value}特殊形式の構文定義は
+次のとおりです（@ref{4.4.4.2}）：
+
+@lisp
+(define (empty-conjunction? exps) (null? exps))
+(define (first-conjunct exps) (car exps))
+(define (rest-conjuncts exps) (cdr exps))
+(define (empty-disjunction? exps) (null? exps))
+(define (first-disjunct exps) (car exps))
+(define (rest-disjuncts exps) (cdr exps))
+(define (negated-query exps) (car exps))
+(define (predicate exps) (car exps))
+(define (args exps) (cdr exps))
+@end lisp
+
+@noindent
+次の3つの手続きは規則の構文を定義します：
+
+@lisp
+(define (rule? statement)
+  (tagged-list? statement 'rule))
+
+(define (conclusion rule) (cadr rule))
+
+(define (rule-body rule)
+  (if (null? (cddr rule))
+      '(always-true)
+      (caddr rule)))
+@end lisp
+
+@noindent
+@code{Query-driver-loop}（@ref{4.4.4.1}）は、@code{query-syntax-process}を呼び出して、
+式内のパターン変数を変換します。パターン変数は@code{?symbol}の形式で、内部形式
+@code{(? symbol)}に変換されます。つまり、@code{(job ?x ?y)}のようなパターンは、
+実際にはシステムによって@code{(job (? x) (? y))}として内部的に表現されます。
+これにより、システムは式の@code{car}がシンボル@code{?}であるかどうかをチェック
+することで式がパターン変数であるかどうかをチェックできるため、シンボルから文字を
+抽出する必要がなく、クエリ処理の効率が向上します。構文変換は次の手続きによって
+達成されます：@footnote{ほとんどのLispシステムは、@newterm{リーダーマクロ文字}を
+定義することで、通常の@code{read}手続きを変更してそのような変換を実行する機能を
+ユーザーに提供します。引用された式はすでにこの方法で処理されています：リーダーは
+評価器が見る前に@code{'expression}を自動的に@code{(quote expression)}に変換します。
+同じ方法で@code{?expression}を@code{(? expression)}に変換するように手配できます。
+しかし、明確さのために、ここでは変換手続きを明示的に含めました。
+
+@code{Expand-question-mark}と@code{contract-question-mark}は、名前に@code{string}を
+含むいくつかの手続きを使います。これらはSchemeのプリミティブです。}
+
+@lisp
+(define (query-syntax-process exp)
+  (map-over-symbols expand-question-mark exp))
+
+(define (map-over-symbols proc exp)
+  (cond ((pair? exp)
+         (cons (map-over-symbols
+                proc (car exp))
+               (map-over-symbols
+                proc (cdr exp))))
+        ((symbol? exp) (proc exp))
+        (else exp)))
+
+(define (expand-question-mark symbol)
+  (let ((chars (symbol->string symbol)))
+    (if (string=? (substring chars 0 1) "?")
+        (list '? (string->symbol
+                  (substring
+                   chars
+                   1
+                   (string-length chars))))
+        symbol)))
+@end lisp
+
+@noindent
+この方法で変数が変換されると、パターン内の変数は@code{?}で始まるリストになり、
+定数シンボル（データベースインデックス付けのために認識される必要があります、
+@ref{4.4.4.5}）は単なるシンボルです。
+
+@lisp
+(define (var? exp) (tagged-list? exp '?))
+(define (constant-symbol? exp) (symbol? exp))
+@end lisp
+
+@noindent
+一意の変数は、（@ref{4.4.4.4}の）規則適用中に次の手続きによって構築されます。
+規則適用の一意識別子は数値で、規則が適用されるたびに増分されます。

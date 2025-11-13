@@ -1,0 +1,18 @@
+|  +------+
+|  | a<-b |
+|  +---+--+
+|      |
+|      V
+|  +------+
+|  | b<-t |
+|  +---+--+
+|      |
++------+
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap5/Fig5.2a,105mm,,,.std.svg}
+@caption{@strong{Figure 5.2:} @abbr{GCD}マシンのコントローラ。}
+@end iftex
+@end float

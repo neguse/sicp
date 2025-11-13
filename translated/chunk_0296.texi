@@ -1,0 +1,96 @@
+                  frame)
+                 (extend var val frame))))
+          ((depends-on? val var frame)  @r{; ***}
+           'failed)
+          (else (extend var val frame)))))
+@end lisp
+
+@noindent
+@code{Depends-on?}は、パターン変数の値として提案された式がその変数に依存するか
+どうかをテストする述語です。これは現在のフレームに対して行う必要があります。
+なぜなら、式にはすでにテスト変数に依存する値を持つ変数の出現が含まれている可能性が
+あるからです。@code{depends-on?}の構造は、必要に応じて変数の値を置換する単純な
+再帰的なツリーウォークです。
+
+@lisp
+(define (depends-on? exp var frame)
+  (define (tree-walk e)
+    (cond ((var? e)
+           (if (equal? var e)
+               true
+               (let
+                 ((b (binding-in-frame
+                      e
+                      frame)))
+                  (if b
+                      (tree-walk
+                       (binding-value b))
+                      false))))
+          ((pair? e)
+           (or (tree-walk (car e))
+               (tree-walk (cdr e))))
+          (else false)))
+  (tree-walk exp))
+@end lisp
+
+@node 4.4.4.5, 4.4.4.6, 4.4.4.4, 4.4.4
+@subsubsection データベースの維持
+
+論理型プログラミング言語を設計する上での重要な問題の1つは、与えられたパターンを
+チェックする際に、できるだけ少ない無関係なデータベースエントリが検査されるように
+することです。私たちのシステムでは、すべてのアサーションを1つの大きなストリームに
+格納するのに加えて、@code{car}が定数シンボルであるすべてのアサーションを、
+シンボルでインデックス付けされたテーブル内の個別のストリームに格納します。パターンに
+マッチする可能性のあるアサーションを取得するには、まずパターンの@code{car}が
+定数シンボルかどうかをチェックします。そうであれば、同じ@code{car}を持つ格納された
+すべてのアサーションを（マッチャーを使ってテストするために）返します。パターンの
+@code{car}が定数シンボルでない場合は、格納されたすべてのアサーションを返します。
+より賢い方法は、フレーム内の情報を利用したり、パターンの@code{car}が定数シンボル
+でない場合も最適化しようとしたりすることもできます。インデックス付けの基準
+（@code{car}を使用し、定数シンボルのケースのみを処理する）をプログラムに組み込む
+ことは避け、代わりに基準を具現化する述語と選択子を呼び出します。
+
+@lisp
+(define THE-ASSERTIONS the-empty-stream)
+
+(define (fetch-assertions pattern frame)
+  (if (use-index? pattern)
+      (get-indexed-assertions pattern)
+      (get-all-assertions)))
+
+(define (get-all-assertions) THE-ASSERTIONS)
+
+(define (get-indexed-assertions pattern)
+  (get-stream (index-key-of pattern)
+              'assertion-stream))
+@end lisp
+
+@noindent
+@code{Get-stream}はテーブル内のストリームを検索し、何も格納されていない場合は
+空のストリームを返します。
+
+@lisp
+(define (get-stream key1 key2)
+  (let ((s (get key1 key2)))
+    (if s s the-empty-stream)))
+@end lisp
+
+@noindent
+規則は、規則の結論の@code{car}を使って同様に格納されます。しかし、規則の結論は
+任意のパターンなので、変数を含む可能性があるという点でアサーションとは異なります。
+@code{car}が定数シンボルであるパターンは、変数で始まる結論を持つ規則だけでなく、
+同じ@code{car}を持つ結論を持つ規則にもマッチできます。したがって、@code{car}が
+定数シンボルであるパターンにマッチする可能性のある規則を取得するときは、変数で
+始まる結論を持つすべての規則と、パターンと同じ@code{car}を持つ結論を持つ規則を
+取得します。この目的のために、変数で始まる結論を持つすべての規則を、テーブル内の
+個別のストリームに格納し、シンボル@code{?}でインデックス付けします。
+
+@lisp
+(define THE-RULES the-empty-stream)
+
+(define (fetch-rules pattern frame)
+  (if (use-index? pattern)
+      (get-indexed-rules pattern)
+      (get-all-rules)))
+
+(define (get-all-rules) THE-RULES)

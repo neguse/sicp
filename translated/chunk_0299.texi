@@ -1,0 +1,98 @@
+
+@lisp
+(define rule-counter 0)
+
+(define (new-rule-application-id)
+  (set! rule-counter (+ 1 rule-counter))
+  rule-counter)
+
+(define (make-new-variable
+         var rule-application-id)
+  (cons '? (cons rule-application-id
+                 (cdr var))))
+@end lisp
+
+@noindent
+@code{query-driver-loop}が答えを印刷するためにクエリを実体化するとき、
+未束縛のパターン変数を印刷に適した形式に変換します。
+
+@lisp
+(define (contract-question-mark variable)
+  (string->symbol
+   (string-append "?"
+     (if (number? (cadr variable))
+         (string-append
+          (symbol->string (caddr variable))
+          "-"
+          (number->string (cadr variable)))
+         (symbol->string (cadr variable))))))
+@end lisp
+
+@node 4.4.4.8, Chapter 5, 4.3, 4.4.4
+@subsubsection フレームと束縛
+
+フレームは束縛のリストとして表現されます。束縛は変数-値ペアです：
+
+@lisp
+(define (make-binding variable value)
+  (cons variable value))
+
+(define (binding-variable binding)
+  (car binding))
+
+(define (binding-value binding)
+  (cdr binding))
+
+(define (binding-in-frame variable frame)
+  (assoc variable frame))
+
+(define (extend variable value frame)
+  (cons (make-binding variable value) frame))
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 4.71}Exercise 4.71:} Louis Reasonerは、@code{simple-query}と
+@code{disjoin}手続き（@ref{4.4.4.2}）が明示的な@code{delay}操作を使って実装されて
+いるのはなぜか疑問に思っています。次のように定義する代わりに：
+
+@lisp
+(define (simple-query
+         query-pattern frame-stream)
+  (stream-flatmap
+   (lambda (frame)
+     (stream-append
+      (find-assertions query-pattern frame)
+      (apply-rules query-pattern frame)))
+   frame-stream))
+
+(define (disjoin disjuncts frame-stream)
+  (if (empty-disjunction? disjuncts)
+      the-empty-stream
+      (interleave
+       (qeval (first-disjunct disjuncts)
+              frame-stream)
+       (disjoin (rest-disjuncts disjuncts)
+                frame-stream))))
+@end lisp
+
+これらのより単純な定義が望ましくない動作につながるクエリの例を挙げることが
+できますか？
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.72}Exercise 4.72:} @code{disjoin}と@code{stream-flatmap}が
+単に追加するのではなく、ストリームをインターリーブするのはなぜでしょうか？
+インターリーブがより良く機能する理由を示す例を挙げてください。（ヒント：
+@ref{3.5.3}で@code{interleave}を使ったのはなぜでしょうか？）
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.73}Exercise 4.73:} @code{flatten-stream}が明示的に
+@code{delay}を使うのはなぜでしょうか？次のように定義すると何が問題になるでしょうか：
+
+@lisp
+(define (flatten-stream stream)
+  (if (stream-null? stream)
+      the-empty-stream
+      (interleave (stream-car stream)
+                  (flatten-stream

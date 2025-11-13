@@ -1,0 +1,91 @@
+the source to ``flow'' into the designated register.  The label next to each
+button is the name we will use to refer to the button.  The names are
+arbitrary, and can be chosen to have mnemonic value (for example, @code{a<-b}
+denotes pushing the button that assigns the contents of register @code{b} to
+register @code{a}).  The source of data for a register can be another register
+(as in the @code{a<-b} assignment), an operation result (as in the @code{t<-r}
+assignment), or a constant (a built-in value that cannot be changed,
+represented in a data-path diagram by a triangle containing the constant).
+
+@float
+@anchor{Figure 5.1}
+@ifinfo
+@quotation
+@strong{Figure 5.1:} Data paths for a @abbr{GCD} machine.
+
+@example
+                              ___
++-----+          +-----+     /   \
+|  a  |<--(X)----|  b  +--->|  =  |
++--+--+   a<-b   +-+---+     \___/
+   |               |  ^        ^
+   +------+   +----+  |        |
+          |   |      (X) b<-t  |
+       .--+---+--.    |       / \
+        \  rem  /     |      / O \
+         \_____/      |     +-----+
+            |         |
+           (X) t<-r   |
+            |         |
+            V         |
+         +-----+      |
+         |  t  +------+
+         +-----+
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap5/Fig5.1a,105mm,,,.std.svg}
+@caption{@strong{Figure 5.1:} @abbr{GCD}マシンのデータパス。}
+@end iftex
+@end float
+
+定数とレジスタの内容から値を計算する操作は、データパス図では、操作の名前を
+含む台形で表されます。たとえば、@ref{Figure 5.1}の@code{rem}とマークされた
+ボックスは、それに接続されているレジスタ@code{a}と@code{b}の内容の余りを
+計算する操作を表します。矢印（ボタンなし）は入力レジスタと定数からボックスへ
+指し、矢印は操作の出力値をレジスタに接続します。テストは、テストの名前を含む
+円で表されます。たとえば、@abbr{GCD}マシンには、レジスタ@code{b}の内容が
+ゼロかどうかをテストする操作があります。テストには入力レジスタと定数からの矢印も
+ありますが、出力矢印はありません。その値はデータパスではなくコントローラに
+よって使われます。全体として、データパス図はマシンに必要なレジスタと操作、
+およびそれらをどのように接続する必要があるかを示します。矢印をワイヤと考え、
+@code{X}ボタンをスイッチと考えると、データパス図は電気部品から構築できるマシンの
+配線図によく似ています。
+
+@noindent
+データパスが実際に@abbr{GCD}を計算するためには、ボタンを正しい順序で押さ
+なければなりません。このシーケンスを、@ref{Figure 5.2}に示すコントローラ図の
+観点から説明します。コントローラ図の要素は、データパスコンポーネントをどのように
+操作すべきかを示します。コントローラ図の長方形のボックスは、押されるデータパス
+ボタンを識別し、矢印はあるステップから次へのシーケンスを記述します。図のひし形は
+決定を表します。ひし形で識別されたデータパステストの値に応じて、2つのシーケンス
+矢印の1つが続きます。コントローラは物理的な類似で解釈できます：図を、ビー玉が
+転がっている迷路と考えてください。ビー玉がボックスに転がると、ボックスで指定
+されたデータパスボタンを押します。ビー玉が決定ノード（@code{b} = 0のテストなど）に
+転がると、指定されたテストの結果によって決定されたパスでノードを離れます。全体と
+して、データパスとコントローラは、@abbr{GCD}を計算するためのマシンを完全に記述
+します。レジスタ@code{a}と@code{b}に数値を配置した後、@code{start}とマークされた
+場所でコントローラ（転がるビー玉）を開始します。コントローラが@code{done}に
+到達すると、レジスタ@code{a}に@abbr{GCD}の値が見つかります。
+
+@float
+@anchor{Figure 5.2}
+@ifinfo
+@quotation
+@strong{Figure 5.2:} @abbr{GCD}マシンのコントローラ。
+
+@example
+     start
+       |
+       V
+      / \ yes
++--->< = >-----> done
+|     \ /
+|      | no
+|      V
+|  +------+
+|  | t<-r |
+|  +---+--+
+|      |
+|      V

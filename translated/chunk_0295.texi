@@ -1,0 +1,96 @@
+@code{(?x ?x)}と@code{(?y ⟨@var{@code{?y}を含む式}⟩)}を、@code{?x}と@code{?y}の両方が
+未束縛のフレームで単一化することを考えてみましょう。最初に@code{?x}が@code{?y}に
+マッチされ、@code{?x}の@code{?y}への束縛が作られます。次に、同じ@code{?x}が
+@code{?y}を含む与えられた式に対してマッチされます。@code{?x}はすでに@code{?y}に
+束縛されているので、これは@code{?y}を式に対してマッチさせることになります。
+単一化器がパターンを同じにするパターン変数の値の集合を見つけるものと考えると、
+これらのパターンは、@code{?y}が@code{?y}を含む式と等しいような@code{?y}を見つける
+命令を意味します。そのような方程式を解く一般的な方法はないので、そのような束縛を
+拒否します。これらのケースは述語@code{depends-on?}によって認識されます。
+@footnote{一般に、@code{?y}を@code{?y}を含む式と単一化するには、方程式@code{?y} =
+@code{⟨}@var{@code{?y}を含む式}@code{⟩}の不動点を見つけることができる必要があります。
+解のように見える式を構文的に形成することが可能な場合もあります。たとえば、
+@code{?y} = @code{(f ?y)}は不動点@code{(f (f (f @r{…} )))}を持つように見え、
+これは式@code{(f ?y)}から始めて、@code{?y}に対して@code{(f ?y)}を繰り返し
+置換することで生成できます。残念ながら、そのようなすべての方程式が意味のある
+不動点を持つわけではありません。ここで生じる問題は、数学における無限級数の
+操作の問題と似ています。たとえば、方程式@math{{y = 1 + y / 2}}の解が2であることを
+知っています。式@math{{1 + y / 2}}から始めて、@math{y}に対して@math{{1 + y / 2}}を
+繰り返し置換すると
+@ifinfo
+
+@example
+2 = y = 1 + y/2 = 1 + (1 + y/2)/2 = 1 + 1/2 + y/4 = ...
+@end example
+
+@end ifinfo
+@tex
+\[ % :78:
+  2 = y = 1 + {y \over 2} = 1 + {{1\over2}\left(1 + {y \over 2}\right)} =
+  1 + {1\over2} + {y \over 4} = {\dots,}  \]
+@end tex
+@noindent
+が得られ、これは
+@ifinfo
+
+@example
+2 = 1 + 1/2 + 1/4 + 1/8 + ...
+@end example
+
+@end ifinfo
+@tex
+\[ % :79:
+  2 = 1 + {1\over2} + {1\over4} + {1\over8} + {\dots.}  \]
+@end tex
+@noindent
+につながります。しかし、方程式@math{{y = 1 + 2y}}の解が@math{{−1}}であるという
+観察から始めて同じ操作を試みると、
+@ifinfo
+
+@example
+-1 = y = 1 + 2y = 1 + 2(1 + 2y) = 1 + 2 + 4y = ...
+@end example
+
+@end ifinfo
+@tex
+\[ % :80:
+  {-1} = y = 1 + {2y} = 1 + {2(1 + 2y)} = 1 + 2 + {4y} = {\dots,}  \]
+@end tex
+@noindent
+が得られ、これは
+@ifinfo
+
+@example
+-1 = 1 + 2 + 4 + 8 + ...
+@end example
+
+@end ifinfo
+@tex
+\[ % :81:
+  -1 = 1 + 2 + 4 + 8 + {\dots.}  \]
+@end tex
+@noindent
+につながります。これら2つの方程式を導出するために使われた形式的操作は同一ですが、
+最初の結果は無限級数についての有効な主張ですが、2番目はそうではありません。
+同様に、私たちの単一化の結果では、任意の構文的に構築された式での推論はエラーに
+つながる可能性があります。}一方、変数をそれ自身に束縛する試みを拒否したくは
+ありません。たとえば、@code{(?x ?x)}と@code{(?y ?y)}を単一化することを考えて
+みましょう。@code{?x}を@code{?y}に束縛する2回目の試みは、@code{?y}（@code{?x}の
+格納された値）を@code{?y}（@code{?x}の新しい値）に対してマッチさせます。これは
+@code{unify-match}の@code{equal?}節によって処理されます。
+
+@lisp
+(define (extend-if-possible var val frame)
+  (let ((binding (binding-in-frame var frame)))
+    (cond (binding
+           (unify-match
+            (binding-value binding) val frame))
+          ((var? val)                   @r{; ***}
+           (let ((binding
+                  (binding-in-frame
+                   val
+                   frame)))
+             (if binding
+                 (unify-match
+                  var
+                  (binding-value binding)

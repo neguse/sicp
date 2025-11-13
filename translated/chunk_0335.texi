@@ -1,0 +1,92 @@
+  (assign  oldcr
+           (op vector-ref)
+           (reg the-cdrs)
+           (reg old))
+  (perform (op vector-set!)
+           (reg new-cdrs)
+           (reg new)
+           (reg oldcr))
+  @r{;; 壊れたハートを構築する。}
+  (perform (op vector-set!)
+           (reg the-cars)
+           (reg old)
+           (const broken-heart))
+  (perform (op vector-set!)
+           (reg the-cdrs)
+           (reg old)
+           (reg new))
+  (goto (reg relocate-continue))
+already-moved
+  (assign  new
+           (op vector-ref)
+           (reg the-cdrs)
+           (reg old))
+  (goto (reg relocate-continue))
+@end lisp
+
+@noindent
+ガベージコレクションプロセスの最後に、ポインタを交換することによって、古いメモリと
+新しいメモリの役割を交換します。つまり、@code{the-cars}と@code{new-cars}を交換し、
+@code{the-cdrs}と@code{new-cdrs}を交換します。その後、次にメモリが不足したときに
+別のガベージコレクションを実行する準備が整います。
+
+@lisp
+gc-flip
+  (assign temp (reg the-cdrs))
+  (assign the-cdrs (reg new-cdrs))
+  (assign new-cdrs (reg temp))
+  (assign temp (reg the-cars))
+  (assign the-cars (reg new-cars))
+  (assign new-cars (reg temp))
+@end lisp
+
+@node	5.4, 5.5, 5.3, Chapter 5
+@section 明示的制御の評価器
+
+@ref{5.1}では、単純なSchemeプログラムをレジスタマシンの記述に変換する方法を
+見ました。ここでは、より複雑なプログラムであるメタ循環評価器
+（@ref{4.1.1}--@ref{4.1.4}）に対してこの変換を実行します。このメタ循環評価器は、
+Schemeインタプリタの動作が手続き@code{eval}と@code{apply}の観点からどのように
+記述できるかを示しています。このセクションで開発する@newterm{明示的制御の評価器}
+（explicit-control evaluator）は、評価プロセスで使用される手続き呼び出しと
+引数渡しの基礎となる機構が、レジスタとスタック上の操作の観点からどのように記述
+できるかを示します。さらに、明示的制御の評価器は、従来のコンピュータのネイティブ
+マシン語に非常に似た言語で書かれたSchemeインタプリタの実装として機能できます。
+この評価器は、@ref{5.2}のレジスタマシンシミュレータで実行できます。あるいは、
+Scheme評価器のマシン語実装を構築するための出発点として、またはScheme式を評価する
+ための特殊用途マシンとしても使用できます。@ref{Figure 5.16}は、そのような
+ハードウェア実装を示しています。Schemeの評価器として機能するシリコンチップです。
+チップ設計者は、このセクションで説明する評価器に似たレジスタマシンのデータパスと
+コントローラの仕様から始めて、設計自動化プログラムを使用して集積回路レイアウトを
+構築しました。@footnote{チップとその設計方法の詳細については、@ref{Batali et al. 1982}
+を参照してください。}
+
+@float
+@anchor{Figure 5.16}
+@ifinfo
+@quotation
+@strong{Figure 5.16:} Schemeの評価器のシリコンチップ実装。
+
+[チップレイアウトの写真]
+
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap5/chip,,,,.std.svg}
+@caption{@strong{Figure 5.16:} Schemeの評価器のシリコンチップ実装。}
+@end iftex
+@end float
+
+@subsubheading レジスタと操作
+
+明示的制御の評価器を設計する際、レジスタマシンで使用する操作を指定する必要が
+あります。メタ循環評価器は、@code{quoted?}や@code{make-procedure}などの手続きを
+使用して、抽象構文の観点から記述しました。レジスタマシンを実装する際、これらの
+手続きを基本的なリスト構造メモリ操作のシーケンスに展開し、これらの操作をレジスタ
+マシン上に実装することができます。しかし、これは評価器を非常に長くし、基本構造を
+詳細で覆い隠してしまいます。提示を明確にするために、@ref{4.1.2}で示した構文手続きと、
+@ref{4.1.3}および@ref{4.1.4}で示した環境やその他の実行時データを表現するための
+手続きを、レジスタマシンの基本操作として含めます。低レベルのマシン語でプログラム
+できる、またはハードウェアに実装できる評価器を完全に指定するためには、@ref{5.3}で
+記述したリスト構造実装を使用して、これらの操作をより基本的な操作に置き換える
+必要があります。

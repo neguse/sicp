@@ -1,0 +1,93 @@
+
+私たちのScheme評価器レジスタマシンには、スタックと7つのレジスタが含まれています。
+@code{exp}、@code{env}、@code{val}、@code{continue}、@code{proc}、@code{argl}、
+および@code{unev}です。@code{Exp}は評価される式を保持するために使用され、
+@code{env}には評価が実行される環境が含まれます。評価の終了時に、@code{val}には
+指定された環境で式を評価することによって得られた値が含まれます。@code{continue}
+レジスタは、@ref{5.1.4}で説明されているように、再帰を実装するために使用されます。
+（評価器は再帰的に自分自身を呼び出す必要があります。式を評価するには、その
+部分式を評価する必要があるためです。）レジスタ@code{proc}、@code{argl}、
+@code{unev}は、組み合わせの評価に使用されます。
+
+評価器のレジスタと操作がどのように接続されているかを示すデータパス図は提供せず、
+マシン操作の完全なリストも示しません。これらは、詳細に提示される評価器の
+コントローラに暗黙的に含まれています。
+
+@menu
+* 5.4.1::            明示的制御の評価器の核心
+* 5.4.2::            シーケンスの評価と末尾再帰
+* 5.4.3::            条件式、代入、定義
+* 5.4.4::            評価器の実行
+@end menu
+
+@node	5.4.1, 5.4.2, 5.4, 5.4
+@subsection 明示的制御の評価器の核心
+
+評価器の中心的要素は、@code{eval-dispatch}から始まる命令のシーケンスです。
+これは、@ref{4.1.1}で説明したメタ循環評価器の@code{eval}手続きに対応します。
+コントローラが@code{eval-dispatch}で開始すると、@code{env}で指定された環境で
+@code{exp}で指定された式を評価します。評価が完了すると、コントローラは
+@code{continue}に格納されたエントリポイントに移動し、@code{val}レジスタには
+式の値が保持されます。メタ循環の@code{eval}と同様に、@code{eval-dispatch}の
+構造は、評価される式の構文型に関するケース分析です。@footnote{私たちの
+コントローラでは、ディスパッチは@code{test}と@code{branch}命令のシーケンスとして
+書かれています。あるいは、順次テストを実行する必要性を回避し、新しい式型の定義を
+容易にするために、データ主導スタイルで書くこともできます（実際のシステムでは
+おそらくそうされるでしょう）。Lispを実行するように設計されたマシンには、おそらく
+このようなデータ主導のディスパッチを効率的に実行する@code{dispatch-on-type}命令が
+含まれるでしょう。}
+
+@lisp
+eval-dispatch
+  (test (op self-evaluating?) (reg exp))
+  (branch (label ev-self-eval))
+  (test (op variable?) (reg exp))
+  (branch (label ev-variable))
+  (test (op quoted?) (reg exp))
+  (branch (label ev-quoted))
+  (test (op assignment?) (reg exp))
+  (branch (label ev-assignment))
+  (test (op definition?) (reg exp))
+  (branch (label ev-definition))
+  (test (op if?) (reg exp))
+  (branch (label ev-if))
+  (test (op lambda?) (reg exp))
+  (branch (label ev-lambda))
+  (test (op begin?) (reg exp))
+  (branch (label ev-begin))
+  (test (op application?) (reg exp))
+  (branch (label ev-application))
+  (goto (label unknown-expression-type))
+@end lisp
+
+@subsubheading 単純な式の評価
+
+数値と文字列（自己評価的）、変数、引用、および@code{lambda}式には、評価すべき
+部分式がありません。これらについて、評価器は単に正しい値を@code{val}レジスタに
+配置し、@code{continue}で指定されたエントリポイントで実行を継続します。単純な式の
+評価は、次のコントローラコードで実行されます。
+
+@lisp
+ev-self-eval
+  (assign val (reg exp))
+  (goto (reg continue))
+ev-variable
+  (assign val
+          (op lookup-variable-value)
+          (reg exp)
+          (reg env))
+  (goto (reg continue))
+ev-quoted
+  (assign val
+          (op text-of-quotation)
+          (reg exp))
+  (goto (reg continue))
+ev-lambda
+  (assign unev
+          (op lambda-parameters)
+          (reg exp))
+  (assign exp
+          (op lambda-body)
+          (reg exp))
+  (assign val
+          (op make-procedure)

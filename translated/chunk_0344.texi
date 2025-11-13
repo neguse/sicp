@@ -1,0 +1,95 @@
+
+@i{;;; EC-Eval input:}
+(define (append x y)
+  (if (null? x)
+      y
+      (cons (car x) (append (cdr x) y))))
+
+@i{;;; EC-Eval value:}
+@i{ok}
+
+@i{;;; EC-Eval input:}
+(append '(a b c) '(d e f))
+
+@i{;;; EC-Eval value:}
+@i{(a b c d e f)}
+@end lisp
+
+@noindent
+もちろん、この方法で式を評価すると、Schemeに直接入力した場合よりもはるかに時間が
+かかります。複数レベルのシミュレーションが関与するためです。私たちの式は明示的
+制御の評価器マシンによって評価され、それはSchemeプログラムによってシミュレートされ、
+それ自体がSchemeインタプリタによって評価されています。
+
+@subsubheading 評価器のパフォーマンスの監視
+
+シミュレーションは、評価器の実装を導く強力なツールになる可能性があります。
+シミュレーションにより、レジスタマシン設計のバリエーションを探求するだけでなく、
+シミュレートされた評価器のパフォーマンスを監視することも簡単になります。例えば、
+パフォーマンスの重要な要素の1つは、評価器がスタックをどれだけ効率的に使用するかです。
+スタック使用に関する統計を収集するバージョンのシミュレータ（@ref{5.2.4}）で評価器
+レジスタマシンを定義し、評価器の@code{print-result}エントリポイントに統計を出力する
+命令を追加することによって、さまざまな式を評価するために必要なスタック操作の数を
+観察できます。
+
+@lisp
+print-result
+  @r{; 追加された命令:}
+  (perform (op print-stack-statistics))
+  (perform (op announce-output)
+           (const ";;; EC-Eval value:"))
+  @r{…} @r{; 以前と同じ}
+@end lisp
+
+@noindent
+評価器とのインタラクションは次のようになります。
+
+@lisp
+@i{;;; EC-Eval input:}
+(define (factorial n)
+  (if (= n 1) 1 (* (factorial (- n 1)) n)))
+@i{(total-pushes = 3, maximum-depth = 3)}
+
+@i{;;; EC-Eval value:}
+@i{ok}
+
+@i{;;; EC-Eval input:}
+(factorial 5)
+@i{(total-pushes = 144, maximum-depth = 28)}
+
+@i{;;; EC-Eval value:}
+@i{120}
+@end lisp
+
+@noindent
+評価器のドライバループは、各インタラクションの開始時にスタックを再初期化するため、
+出力される統計は、前の式を評価するために使用されたスタック操作のみを参照します。
+
+@quotation
+@strong{@anchor{Exercise 5.26}練習問題 5.26:} 監視されたスタックを使用して、
+評価器の末尾再帰的性質を探求してください（@ref{5.4.2}）。評価器を起動し、
+@ref{1.2.1}の反復的な@code{factorial}手続きを定義します。
+
+@lisp
+(define (factorial n)
+  (define (iter product counter)
+    (if (> counter n)
+        product
+        (iter (* counter product)
+              (+ counter 1))))
+  (iter 1 1))
+@end lisp
+
+いくつかの小さな@math{n}の値で手続きを実行します。これらの各値について、
+@math{{n!}}を計算するために必要な最大スタック深度とプッシュ数を記録します。
+
+@enumerate a
+
+@item
+@math{{n!}}を評価するために必要な最大深度は@math{n}に依存しないことがわかります。
+その深度は何ですか？
+
+@item
+データから、任意の@math{{n \ge 1}}について@math{{n!}}を評価する際に使用される
+プッシュ操作の総数の@math{n}に関する式を決定してください。使用される操作の数は
+@math{n}の線形関数であり、したがって

@@ -1,0 +1,90 @@
+配置し、@code{continue}を設定して引数蓄積フェーズで実行が再開されるようにした後、
+@code{eval-dispatch}に移動します。しかし、最初にこれまでに蓄積された引数
+（@code{argl}に保持）、環境（@code{env}に保持）、および評価される残りのオペランド
+（@code{unev}に保持）を保存します。最後のオペランドの評価には特別なケースが作られ、
+@code{ev-appl-last-arg}で処理されます。
+
+@lisp
+ev-appl-operand-loop
+  (save argl)
+  (assign exp
+          (op first-operand)
+          (reg unev))
+  (test (op last-operand?) (reg unev))
+  (branch (label ev-appl-last-arg))
+  (save env)
+  (save unev)
+  (assign continue
+          (label ev-appl-accumulate-arg))
+  (goto (label eval-dispatch))
+@end lisp
+
+@noindent
+オペランドが評価されると、その値は@code{argl}に保持されるリストに蓄積されます。
+次に、オペランドは@code{unev}の未評価オペランドのリストから削除され、引数評価が
+続行されます。
+
+@lisp
+ev-appl-accumulate-arg
+  (restore unev)
+  (restore env)
+  (restore argl)
+  (assign argl
+          (op adjoin-arg)
+          (reg val)
+          (reg argl))
+  (assign unev
+          (op rest-operands)
+          (reg unev))
+  (goto (label ev-appl-operand-loop))
+@end lisp
+
+@noindent
+最後の引数の評価は異なる方法で処理されます。最後のオペランドが評価された後には
+不要になるため、@code{eval-dispatch}に移動する前に環境または未評価オペランドの
+リストを保存する必要はありません。したがって、評価から特別なエントリポイント
+@code{ev-appl-accum-last-arg}に戻ります。これは引数リストを復元し、新しい引数を
+蓄積し、保存された手続きを復元して、適用を実行します。@footnote{最後のオペランドを
+特別に扱う最適化は、@newterm{evlis末尾再帰}（evlis tail recursion）として知られて
+います（@ref{Wand 1980}参照）。最初のオペランドを特別なケースにした場合、引数評価
+ループでより効率的になる可能性があります。これにより、最初のオペランドを評価した後まで
+@code{argl}の初期化を延期できるため、この場合に@code{argl}を保存することを回避
+できます。@ref{5.5}のコンパイラはこの最適化を実行します。（@ref{5.5.3}の
+@code{construct-arglist}手続きと比較してください。）}
+
+@lisp
+ev-appl-last-arg
+  (assign continue
+          (label ev-appl-accum-last-arg))
+  (goto (label eval-dispatch))
+ev-appl-accum-last-arg
+  (restore argl)
+  (assign argl
+          (op adjoin-arg)
+          (reg val)
+          (reg argl))
+  (restore proc)
+  (goto (label apply-dispatch))
+@end lisp
+
+@noindent
+引数評価ループの詳細は、インタプリタが組み合わせのオペランドを評価する順序
+（例えば、左から右または右から左---@ref{Exercise 3.8}参照）を決定します。この順序は
+メタ循環評価器では決定されません。メタ循環評価器は、実装されている基礎となる
+Schemeから制御構造を継承します。@footnote{メタ循環評価器でのオペランド評価の順序は、
+@ref{4.1.1}の手続き@code{list-of-values}の@code{cons}への引数の評価順序によって
+決定されます（@ref{Exercise 4.1}参照）。}@code{first-operand}セレクタ
+（@code{ev-appl-operand-loop}で@code{unev}から連続するオペランドを抽出するために
+使用される）が@code{car}として実装され、@code{rest-operands}セレクタが@code{cdr}と
+して実装されているため、明示的制御の評価器は、組み合わせのオペランドを左から右の
+順序で評価します。
+
+@subsubheading 手続き適用
+
+エントリポイント@code{apply-dispatch}は、メタ循環評価器の@code{apply}手続きに
+対応します。@code{apply-dispatch}に到達する時点で、@code{proc}レジスタには適用
+する手続きが含まれ、@code{argl}には適用する必要がある評価済み引数のリストが含まれて
+います。@code{continue}の保存された値（元々@code{eval-dispatch}に渡され、
+@code{ev-application}で保存された）は、手続き適用の結果をどこに返すかを示し、
+スタック上にあります。適用が完了すると、コントローラは保存された@code{continue}に
+よって指定されたエントリポイントに転送され、@code{val}に適用の結果が入ります。

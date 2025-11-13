@@ -1,0 +1,90 @@
+ある場合は、未評価の式の残り（@code{unev}に保持）と、これらを評価する必要がある
+環境（@code{env}に保持）を保存し、@code{eval-dispatch}を呼び出して式を評価します。
+2つの保存されたレジスタは、@code{ev-sequence-continue}で、この評価から戻ると復元
+されます。
+
+シーケンスの最後の式は、エントリポイント@code{ev-sequence-last-exp}で異なる方法で
+処理されます。この式の後に評価する式はもうないため、@code{eval-dispatch}に移動する
+前に@code{unev}または@code{env}を保存する必要はありません。シーケンス全体の値は
+最後の式の値であるため、最後の式の評価後、スタック上に現在保持されているエントリ
+ポイント（@code{ev-application}または@code{ev-begin}によって保存された）で継続する
+以外に何もすることはありません。@code{eval-dispatch}がここに戻るように
+@code{continue}を設定し、その後スタックから@code{continue}を復元してそのエントリ
+ポイントで継続する代わりに、@code{eval-dispatch}に移動する前にスタックから
+@code{continue}を復元します。これにより、@code{eval-dispatch}は式を評価した後、
+そのエントリポイントで継続します。
+
+@lisp
+ev-sequence
+  (assign exp (op first-exp) (reg unev))
+  (test (op last-exp?) (reg unev))
+  (branch (label ev-sequence-last-exp))
+  (save unev)
+  (save env)
+  (assign continue
+          (label ev-sequence-continue))
+  (goto (label eval-dispatch))
+ev-sequence-continue
+  (restore env)
+  (restore unev)
+  (assign unev
+          (op rest-exps)
+          (reg unev))
+  (goto (label ev-sequence))
+ev-sequence-last-exp
+  (restore continue)
+  (goto (label eval-dispatch))
+@end lisp
+
+@subsubheading 末尾再帰
+
+@ref{Chapter 1}で、次のような手続きによって記述されるプロセスは
+
+@lisp
+(define (sqrt-iter guess x)
+  (if (good-enough? guess x)
+      guess
+      (sqrt-iter (improve guess x) x)))
+@end lisp
+
+@noindent
+反復的プロセスであると述べました。手続きは構文的に再帰的（それ自体の観点から定義
+されている）ですが、@code{sqrt-iter}の1回の呼び出しから次の呼び出しに移るときに
+評価器が情報を保存することは論理的に必要ではありません。@footnote{@ref{5.1}で、
+スタックのないレジスタマシンでこのようなプロセスを実装する方法を見ました。プロセスの
+状態は固定されたレジスタセットに格納されていました。}手続きが自分自身を呼び出し
+続けるときに、増加するストレージを必要とせずに@code{sqrt-iter}のような手続きを実行
+できる評価器は、@newterm{末尾再帰的}（tail-recursive）評価器と呼ばれます。
+@ref{Chapter 4}の評価器のメタ循環実装は、評価器が末尾再帰的であるかどうかを指定
+しません。その評価器は、基礎となるSchemeから状態を保存する機構を継承するためです。
+しかし、明示的制御の評価器では、評価プロセスをトレースして、手続き呼び出しが
+スタック上の情報の正味の蓄積を引き起こすときを確認できます。
+
+私たちの評価器は末尾再帰的です。なぜなら、シーケンスの最後の式を評価するために、
+スタックに情報を保存せずに直接@code{eval-dispatch}に転送するからです。したがって、
+シーケンスの最後の式を評価すること---それが手続き呼び出しである場合でも（@code{sqrt-iter}
+のように、手続き本体の最後の式である@code{if}式が@code{sqrt-iter}の呼び出しに還元
+される場合）---は、スタック上に情報が蓄積されることはありません。@footnote{@code{ev-sequence}
+でのこの末尾再帰の実装は、多くのコンパイラで使用される有名な最適化技術の1つの
+バリエーションです。手続き呼び出しで終わる手続きをコンパイルする際、呼び出しを
+呼び出される手続きのエントリポイントへのジャンプで置き換えることができます。
+このセクションで行ったように、この戦略をインタプリタに組み込むことで、言語全体に
+わたって最適化を均一に提供します。}
+
+この場合に情報を保存する必要がないという事実を利用することを考えなかった場合、
+シーケンス内のすべての式を同じ方法で扱うことによって@code{eval-sequence}を実装した
+可能性があります---レジスタを保存し、式を評価し、戻ってレジスタを復元し、すべての
+式が評価されるまでこれを繰り返します。@footnote{@code{no-more-exps?}は次のように
+定義できます。
+
+@lisp
+(define (no-more-exps? seq) (null? seq))
+@end lisp
+}
+
+@lisp
+ev-sequence
+  (test (op no-more-exps?) (reg unev))
+  (branch (label ev-sequence-end))
+  (assign exp (op first-exp) (reg unev))
+  (save unev)

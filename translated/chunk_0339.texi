@@ -1,0 +1,92 @@
+メタ循環の@code{apply}と同様に、考慮すべきケースが2つあります。適用される
+手続きが基本手続きであるか、または複合手続きであるかのいずれかです。
+
+@lisp
+apply-dispatch
+  (test (op primitive-procedure?) (reg proc))
+  (branch (label primitive-apply))
+  (test (op compound-procedure?) (reg proc))
+  (branch (label compound-apply))
+  (goto (label unknown-procedure-type))
+@end lisp
+
+@noindent
+各基本手続きは、@code{argl}から引数を取得し、その結果を@code{val}に配置するように
+実装されていると仮定します。マシンが基本手続きを処理する方法を指定するには、各
+基本手続きを実装するコントローラ命令のシーケンスを提供し、@code{primitive-apply}が
+@code{proc}の内容によって識別される基本手続きの命令にディスパッチするように手配する
+必要があります。基本手続きの詳細ではなく評価プロセスの構造に関心があるため、代わりに
+@code{proc}の手続きを@code{argl}の引数に適用する@code{apply-primitive-procedure}
+操作を使用します。@ref{5.2}のシミュレータで評価器をシミュレートする目的で、
+@ref{4.1.4}のメタ循環評価器で行ったのと同じように、基礎となるSchemeシステムを
+呼び出して適用を実行する手続き@code{apply-primitive-procedure}を使用します。
+基本手続き適用の値を計算した後、@code{continue}を復元し、指定されたエントリポイントに
+移動します。
+
+@lisp
+primitive-apply
+  (assign val (op apply-primitive-procedure)
+              (reg proc)
+              (reg argl))
+  (restore continue)
+  (goto (reg continue))
+@end lisp
+
+@noindent
+複合手続きを適用するには、メタ循環評価器と同じように進めます。手続きのパラメータを
+引数にバインドするフレームを構築し、このフレームを使用して手続きによって運ばれる
+環境を拡張し、この拡張された環境で手続きの本体を形成する式のシーケンスを評価します。
+@ref{5.4.2}で後述する@code{Ev-sequence}は、シーケンスの評価を処理します。
+
+@lisp
+compound-apply
+  (assign unev
+          (op procedure-parameters)
+          (reg proc))
+  (assign env
+          (op procedure-environment)
+          (reg proc))
+  (assign env
+          (op extend-environment)
+          (reg unev)
+          (reg argl)
+          (reg env))
+  (assign unev
+          (op procedure-body)
+          (reg proc))
+  (goto (label ev-sequence))
+@end lisp
+
+@noindent
+@code{Compound-apply}は、インタプリタで@code{env}レジスタが新しい値を割り当てられる
+唯一の場所です。メタ循環評価器と同様に、新しい環境は、手続きによって運ばれる環境と、
+引数リストおよびバインドされる変数の対応するリストから構築されます。
+
+@node	5.4.2, 5.4.3, 5.4.1, 5.4
+@subsection シーケンスの評価と末尾再帰
+
+明示的制御の評価器の@code{ev-sequence}の部分は、メタ循環評価器の
+@code{eval-sequence}手続きに類似しています。手続き本体または明示的な@code{begin}式の
+式のシーケンスを処理します。
+
+明示的な@code{begin}式は、評価される式のシーケンスを@code{unev}に配置し、
+@code{continue}をスタックに保存し、@code{ev-sequence}にジャンプすることによって
+評価されます。
+
+@lisp
+ev-begin
+  (assign unev
+          (op begin-actions)
+          (reg exp))
+  (save continue)
+  (goto (label ev-sequence))
+@end lisp
+
+@noindent
+手続き本体の暗黙のシーケンスは、@code{compound-apply}から@code{ev-sequence}に
+ジャンプすることによって処理されます。この時点で、@code{continue}は
+@code{ev-application}で保存されたため、既にスタック上にあります。
+
+@code{ev-sequence}と@code{ev-sequence-continue}のエントリは、シーケンス内の各式を
+順次評価するループを形成します。未評価の式のリストは@code{unev}に保持されます。
+各式を評価する前に、シーケンスで評価すべき追加の式があるかどうかを確認します。

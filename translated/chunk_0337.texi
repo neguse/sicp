@@ -1,0 +1,88 @@
+          (reg unev)
+          (reg exp)
+          (reg env))
+  (goto (reg continue))
+@end lisp
+
+@noindent
+@code{ev-lambda}が@code{unev}と@code{exp}レジスタを使用してラムダ式のパラメータと
+本体を保持し、それらを@code{env}の環境とともに@code{make-procedure}操作に渡す方法を
+観察してください。
+
+@subsubheading 手続き適用の評価
+
+手続き適用は、演算子とオペランドを含む組み合わせによって指定されます。演算子は、
+その値が手続きである部分式であり、オペランドは、その値が手続きを適用すべき引数で
+ある部分式です。メタ循環の@code{eval}は、組み合わせの各要素を評価するために再帰的に
+自分自身を呼び出し、その後結果を@code{apply}に渡すことによって適用を処理します。
+@code{apply}は実際の手続き適用を実行します。明示的制御の評価器も同じことを行います。
+これらの再帰呼び出しは、@code{goto}命令によって実装され、再帰呼び出しから戻った後に
+復元されるレジスタを保存するためのスタックの使用と組み合わされます。各呼び出しの
+前に、保存する必要があるレジスタを注意深く識別します（後で値が必要になるため）。
+@footnote{これは、Lispなどの手続き型言語からレジスタマシン言語にアルゴリズムを
+変換する際の重要だが微妙なポイントです。必要なものだけを保存する代わりに、各再帰
+呼び出しの前にすべてのレジスタ（@code{val}を除く）を保存することもできます。これは
+@newterm{フレームスタック}（framed-stack）規律と呼ばれます。これは機能しますが、
+必要以上のレジスタを保存する可能性があります。スタック操作が高価なシステムでは、
+これは重要な考慮事項になる可能性があります。後で必要とされないレジスタを保存すると、
+ガベージコレクションされる可能性のある無駄なデータを保持し、再利用される空間を
+解放できなくなる可能性もあります。}
+
+適用の評価を開始するには、演算子を評価して手続きを生成します。これは後で評価された
+オペランドに適用されます。演算子を評価するために、それを@code{exp}レジスタに移動し、
+@code{eval-dispatch}に移動します。@code{env}レジスタの環境は、演算子を評価するため
+の正しい環境です。ただし、後でオペランドを評価するために必要になるため、@code{env}を
+保存します。また、オペランドを@code{unev}に抽出し、これをスタックに保存します。
+演算子が評価された後に@code{eval-dispatch}が@code{ev-appl-did-operator}で再開する
+ように@code{continue}を設定します。ただし、最初に@code{continue}の古い値を保存します。
+これは、適用後にコントローラがどこで継続するかを伝えます。
+
+@lisp
+ev-application
+  (save continue)
+  (save env)
+  (assign unev (op operands) (reg exp))
+  (save unev)
+  (assign exp (op operator) (reg exp))
+  (assign
+   continue (label ev-appl-did-operator))
+  (goto (label eval-dispatch))
+@end lisp
+
+@noindent
+演算子部分式の評価から戻ると、組み合わせのオペランドを評価し、結果の引数を
+@code{argl}に保持されるリストに蓄積します。最初に、未評価のオペランドと環境を
+復元します。@code{argl}を空のリストに初期化します。次に、演算子を評価することに
+よって生成された手続きを@code{proc}レジスタに割り当てます。オペランドがない場合は、
+@code{apply-dispatch}に直接移動します。それ以外の場合は、@code{proc}をスタックに
+保存し、引数評価ループを開始します。@footnote{@ref{4.1.3}の評価器データ構造手続きに、
+引数リストを操作するための次の2つの手続きを追加します。
+
+@lisp
+(define (empty-arglist) '())
+(define (adjoin-arg arg arglist)
+  (append arglist (list arg)))
+@end lisp
+
+@noindent
+また、組み合わせの最後のオペランドをテストするための追加の構文手続きも使用します。
+
+@lisp
+(define (last-operand? ops) (null? (cdr ops)))
+@end lisp
+}
+
+@lisp
+ev-appl-did-operator
+  (restore unev)             @r{; オペランド}
+  (restore env)
+  (assign argl (op empty-arglist))
+  (assign proc (reg val))    @r{; 演算子}
+  (test (op no-operands?) (reg unev))
+  (branch (label apply-dispatch))
+  (save proc)
+@end lisp
+
+@noindent
+引数評価ループの各サイクルは、@code{unev}のリストからオペランドを評価し、結果を
+@code{argl}に蓄積します。オペランドを評価するために、それを@code{exp}レジスタに

@@ -1,0 +1,93 @@
+          (reg exp))
+  (save unev)   @r{; 後で使うために変数を保存}
+  (assign exp
+          (op assignment-value)
+          (reg exp))
+  (save env)
+  (save continue)
+  (assign continue
+          (label ev-assignment-1))
+  @r{; 代入値を評価:}
+  (goto (label eval-dispatch))
+ev-assignment-1
+  (restore continue)
+  (restore env)
+  (restore unev)
+  (perform (op set-variable-value!)
+           (reg unev)
+           (reg val)
+           (reg env))
+  (assign val
+          (const ok))
+  (goto (reg continue))
+@end lisp
+
+@noindent
+定義も同様の方法で処理されます。
+
+@lisp
+ev-definition
+  (assign unev
+          (op definition-variable)
+          (reg exp))
+  (save unev)   @r{; 後で使うために変数を保存}
+  (assign exp
+          (op definition-value)
+          (reg exp))
+  (save env)
+  (save continue)
+  (assign continue (label ev-definition-1))
+  @r{; 定義値を評価:}
+  (goto (label eval-dispatch))
+ev-definition-1
+  (restore continue)
+  (restore env)
+  (restore unev)
+  (perform (op define-variable!)
+           (reg unev)
+           (reg val)
+           (reg env))
+  (assign val (const ok))
+  (goto (reg continue))
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 5.23}練習問題 5.23:} @code{cond}、@code{let}などの派生式を
+処理するように評価器を拡張してください（@ref{4.1.2}）。@code{cond->if}などの
+構文変換器がマシン操作として使用可能であると仮定して「ズル」することができます。
+@footnote{これは実際にはズルではありません。ゼロから構築された実際の実装では、
+実行前に実行される構文フェーズで@code{cond->if}のようなソースレベルの変換を実行する
+Schemeプログラムを解釈するために、明示的制御の評価器を使用します。}
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.24}練習問題 5.24:} @code{cond}を@code{if}に還元せずに、
+新しい基本的な特殊形式として実装してください。真である述語を見つけるまで連続する
+@code{cond}節の述語をテストするループを構築し、次に@code{ev-sequence}を使用して
+節のアクションを評価する必要があります。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.25}練習問題 5.25:} @ref{4.2}の遅延評価器に基づいて、
+正規順序評価を使用するように評価器を変更してください。
+@end quotation
+
+@node	5.4.4, 5.5, 5.3, 5.4
+@subsection 評価器の実行
+
+明示的制御の評価器の実装により、@ref{Chapter 1}で始まった開発の終わりに到達します。
+この開発では、評価プロセスの連続的により正確なモデルを探求してきました。比較的
+非形式的な置換モデルから始まり、@ref{Chapter 3}でこれを環境モデルに拡張しました。
+これにより、状態と変化を扱うことができるようになりました。@ref{Chapter 4}の
+メタ循環評価器では、Scheme自体を、式の評価中に構築される環境構造をより明示的に
+するための言語として使用しました。今、レジスタマシンを使用して、ストレージ管理、
+引数渡し、制御のための評価器の機構を詳しく調べました。記述の各新しいレベルで、
+以前のより正確でない評価の扱いでは明らかでなかった問題を提起し、曖昧さを解決
+しなければなりませんでした。明示的制御の評価器の動作を理解するために、それを
+シミュレートし、そのパフォーマンスを監視できます。
+
+評価器マシンにドライバループをインストールします。これは、@ref{4.1.4}の
+@code{driver-loop}手続きの役割を果たします。評価器は、プロンプトを繰り返し
+出力し、式を読み取り、@code{eval-dispatch}に移動して式を評価し、結果を出力します。
+次の命令は、明示的制御の評価器のコントローラシーケンスの始まりを形成します。
+@footnote{ここでは、@code{read}とさまざまな出力操作が基本マシン操作として使用可能

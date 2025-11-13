@@ -1,0 +1,91 @@
+  (save env)
+  (assign continue
+          (label ev-sequence-continue))
+  (goto (label eval-dispatch))
+ev-sequence-continue
+  (restore env)
+  (restore unev)
+  (assign unev (op rest-exps) (reg unev))
+  (goto (label ev-sequence))
+ev-sequence-end
+  (restore continue)
+  (goto (reg continue))
+@end lisp
+
+@noindent
+これは、シーケンスの評価のための以前のコードへの小さな変更のように見えるかもしれ
+ません。唯一の違いは、シーケンスの最後の式についても、他の式と同様に保存-復元
+サイクルを実行することです。インタプリタは、どの式に対しても同じ値を与えます。
+しかし、この変更は末尾再帰的実装にとって致命的です。なぜなら、（無駄な）レジスタ
+保存を元に戻すために、シーケンスの最後の式を評価した後に戻る必要があるからです。
+これらの余分な保存は、手続き呼び出しのネスト中に蓄積されます。その結果、
+@code{sqrt-iter}のようなプロセスは、一定の空間を必要とするのではなく、反復回数に
+比例した空間を必要とします。この違いは重要です。例えば、末尾再帰を使用すると、
+手続き呼び出し機構のみを使用して無限ループを表現できます。
+
+@lisp
+(define (count n)
+  (newline)
+  (display n)
+  (count (+ n 1)))
+@end lisp
+
+@noindent
+末尾再帰がないと、このような手続きは最終的にスタック空間を使い果たし、真の反復を
+表現するには手続き呼び出し以外の制御機構が必要になります。
+
+@node	5.4.3, 5.4.4, 5.4.2, 5.4
+@subsection 条件式、代入、定義
+
+メタ循環評価器と同様に、特殊形式は式のフラグメントを選択的に評価することによって
+処理されます。@code{if}式の場合、述語を評価し、述語の値に基づいて、帰結または
+代替を評価するかどうかを決定する必要があります。
+
+述語を評価する前に、後で帰結または代替を抽出できるように、@code{if}式自体を保存
+します。また、後で帰結または代替を評価するために必要な環境と、@code{if}の値を
+待っている式の評価に戻るために後で必要な@code{continue}も保存します。
+
+@lisp
+ev-if
+  (save exp)   @r{; 後で使うために式を保存}
+  (save env)
+  (save continue)
+  (assign continue (label ev-if-decide))
+  (assign exp (op if-predicate) (reg exp))
+  @r{; 述語を評価:}
+  (goto (label eval-dispatch))
+@end lisp
+
+@noindent
+述語の評価から戻ると、それが真か偽かをテストし、結果に応じて、@code{eval-dispatch}に
+移動する前に、帰結または代替を@code{exp}に配置します。ここで@code{env}と
+@code{continue}を復元することにより、@code{eval-dispatch}が正しい環境を持ち、
+@code{if}式の値を受け取るための正しい場所で継続するように設定されることに注意して
+ください。
+
+@lisp
+ev-if-decide
+  (restore continue)
+  (restore env)
+  (restore exp)
+  (test (op true?) (reg val))
+  (branch (label ev-if-consequent))
+ev-if-alternative
+  (assign exp (op if-alternative) (reg exp))
+  (goto (label eval-dispatch))
+ev-if-consequent
+  (assign exp (op if-consequent) (reg exp))
+  (goto (label eval-dispatch))
+@end lisp
+
+@subsubheading 代入と定義
+
+代入は@code{ev-assignment}によって処理されます。これは、代入式が@code{exp}にある
+状態で@code{eval-dispatch}から到達されます。@code{ev-assignment}のコードは、最初に
+式の値部分を評価し、次に新しい値を環境にインストールします。@code{Set-variable-value!}は、
+マシン操作として使用可能であると仮定します。
+
+@lisp
+ev-assignment
+  (assign unev
+          (op assignment-variable)

@@ -1,0 +1,96 @@
+であると仮定します。これはシミュレーションには有用ですが、実際には完全に非現実的です。
+これらは実際には非常に複雑な操作です。実際には、デバイスとの間で単一の文字を転送
+するなどの低レベルの入出力操作を使用して実装されます。
+
+@code{get-global-environment}操作をサポートするために、次のように定義します。
+
+@lisp
+(define the-global-environment
+  (setup-environment))
+
+(define (get-global-environment)
+  the-global-environment)
+@end lisp
+}
+
+@lisp
+read-eval-print-loop
+  (perform (op initialize-stack))
+  (perform (op prompt-for-input)
+           (const ";;; EC-Eval input:"))
+  (assign exp (op read))
+  (assign env (op get-global-environment))
+  (assign continue (label print-result))
+  (goto (label eval-dispatch))
+print-result
+  (perform (op announce-output)
+           (const ";;; EC-Eval value:"))
+  (perform (op user-print) (reg val))
+  (goto (label read-eval-print-loop))
+@end lisp
+
+@noindent
+手続きでエラーに遭遇した場合（@code{apply-dispatch}で示される「未知の手続き型
+エラー」など）、エラーメッセージを出力し、ドライバループに戻ります。@footnote{インタプリタが
+処理してほしい他のエラーもありますが、これらはそれほど単純ではありません。
+@ref{Exercise 5.30}を参照してください。}
+
+@lisp
+unknown-expression-type
+  (assign
+   val
+   (const unknown-expression-type-error))
+  (goto (label signal-error))
+unknown-procedure-type
+  @r{; スタックをクリーンアップ (@code{apply-dispatch}から):}
+  (restore continue)
+  (assign
+   val
+   (const unknown-procedure-type-error))
+  (goto (label signal-error))
+signal-error
+  (perform (op user-print) (reg val))
+  (goto (label read-eval-print-loop))
+@end lisp
+
+@noindent
+シミュレーションの目的で、ドライバループを通過するたびにスタックを初期化します。
+エラー（未定義変数など）が評価を中断した後、スタックが空でない可能性があるためです。
+@footnote{スタック初期化はエラーの後にのみ実行できますが、以下で説明するように、
+評価器のパフォーマンスを監視するのに便利なため、ドライバループで実行します。}
+
+@ref{5.4.1}--@ref{5.4.4}で提示したすべてのコードフラグメントを組み合わせると、
+@ref{5.2}のレジスタマシンシミュレータを使用して実行できる評価器マシンモデルを
+作成できます。
+
+@lisp
+(define eceval
+  (make-machine
+   '(exp env val proc argl continue unev)
+   eceval-operations
+   '(read-eval-print-loop
+     ⟨@emph{上記のように与えられた}
+      @emph{マシンコントローラ全体}⟩)))
+@end lisp
+
+@noindent
+評価器によって基本として使用される操作をシミュレートするScheme手続きを定義する
+必要があります。これらは、@ref{4.1}のメタ循環評価器で使用した手続きと、
+@ref{5.4}全体の脚注で定義された追加の手続きと同じです。
+
+@lisp
+(define eceval-operations
+  (list (list 'self-evaluating?
+              self-evaluating)
+        ⟨@emph{ecevalマシンの操作の}
+         @emph{完全なリスト}⟩))
+@end lisp
+
+@noindent
+最後に、グローバル環境を初期化し、評価器を実行できます。
+
+@lisp
+(define the-global-environment
+  (setup-environment))
+
+(start eceval)

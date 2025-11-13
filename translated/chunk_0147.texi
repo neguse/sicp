@@ -1,0 +1,70 @@
+@i{5}
+
+(D 10)
+@i{15}
+@end lisp
+
+@noindent
+置換モデルを使って@code{make-decrementer}がどのように機能するかを説明できます。たとえば、式の評価を分析してみましょう
+
+@lisp
+((make-decrementer 25) 20)
+@end lisp
+
+@noindent
+最初に、@code{make-decrementer}の本体の@code{balance}を25で置き換えることによって、組み合わせの演算子を簡略化します。これにより式は次のように簡約されます
+
+@lisp
+((lambda (amount) (- 25 amount)) 20)
+@end lisp
+
+@noindent
+次に、@code{lambda}式の本体の@code{amount}を20で置き換えることによって演算子を適用します：
+
+@lisp
+(- 25 20)
+@end lisp
+
+@noindent
+最終的な答えは5です。
+
+しかし、@code{make-simplified-withdraw}で同様の置換分析を試みると何が起こるかを観察してください：
+
+@lisp
+((make-simplified-withdraw 25) 20)
+@end lisp
+
+@noindent
+最初に、@code{make-simplified-withdraw}の本体の@code{balance}を25で置き換えることによって演算子を簡略化します。これにより式は次のように簡約されます@footnote{@code{set!}式の@code{balance}の出現を置き換えないのは、@code{set!}の@code{⟨}@var{name}@code{⟩}は評価されないためです。もし置き換えたとすると、@code{(set! 25 (- 25 amount))}が得られますが、これは意味をなしません。}
+
+@lisp
+((lambda (amount)
+   (set! balance (- 25 amount)) 25)
+ 20)
+@end lisp
+
+@noindent
+次に、@code{lambda}式の本体の@code{amount}を20で置き換えることによって演算子を適用します：
+
+@lisp
+(set! balance (- 25 20)) 25
+@end lisp
+
+@noindent
+置換モデルに固執するなら、手続き適用の意味は最初に@code{balance}を5に設定し、次に式の値として25を返すことだと言わなければなりません。これは間違った答えを得ます。正しい答えを得るには、何らかの方法で@code{balance}の最初の出現（@code{set!}の効果の前）と@code{balance}の2番目の出現（@code{set!}の効果の後）を区別しなければなりませんが、置換モデルはこれを行うことができません。
+
+ここでの問題は、置換が最終的には、言語のシンボルが本質的に値の名前であるという概念に基づいているということです。しかし、@code{set!}と変数の値が変化できるという考えを導入するとすぐに、変数は単なる名前ではなくなります。今や変数は何らかの方法で、値を格納できる場所を指し、この場所に格納された値は変化できます。@ref{3.2}では、環境が計算モデルでこの「場所」の役割を果たす方法を見ます。
+
+@subsubheading 同一性と変化
+
+ここで浮上している問題は、特定の計算モデルの単なる破綻よりも深遠です。計算モデルに変化を導入するとすぐに、以前は単純明快だった多くの概念が問題となります。2つのものが「同じである」という概念を考えてみましょう。
+
+同じ引数で@code{make-decrementer}を2回呼び出して2つの手続きを作るとします：
+
+@lisp
+(define D1 (make-decrementer 25))
+(define D2 (make-decrementer 25))
+@end lisp
+
+@noindent
+@code{D1}と@code{D2}は同じでしょうか？受け入れられる答えは「はい」です。なぜなら、@code{D1}と@code{D2}は同じ計算上の振る舞いを持つからです---それぞれは入力から25を引く手続きです。実際、@code{D1}は結果を変えることなくどんな計算でも@code{D2}の代わりに使えます。

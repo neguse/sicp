@@ -1,0 +1,57 @@
+反対の角が(2, 4)と(8, 10)にある長方形は、上記の円を含みます。望む積分は、領域内にある長方形の部分の面積です。長方形内にあるランダムな点@math{{(x, y)}}を選び、各点について@math{{P(x, y)}}をテストして、点が領域内にあるかどうかを判定することによって積分を推定できます。これを多くの点で試みると、領域内に入る点の割合が、領域内にある長方形の割合の推定値を与えるはずです。したがって、この割合に長方形全体の面積を掛けると、積分の推定値が得られるはずです。
+
+述語@code{P}、長方形の上限と下限@code{x1}、@code{x2}、@code{y1}、@code{y2}、および推定値を生成するために実行する試行回数を引数として取る手続き@code{estimate-integral}として、モンテカルロ積分を実装してください。あなたの手続きは、@math{\pi}を推定するために上で使われたのと同じ@code{monte-carlo}手続きを使うべきです。単位円の面積を測定することによって@math{\pi}の推定値を生成するために、あなたの@code{estimate-integral}を使ってください。
+
+与えられた範囲からランダムに選ばれた数を返す手続きがあると便利です。次の@code{random-in-range}手続きは、@ref{1.2.6}で使われた@code{random}手続きの観点からこれを実装します。この手続きは入力未満の非負数を返します。@footnote{@abbr{MIT} Schemeはそのような手続きを提供します。@code{random}に正確な整数（@ref{1.2.6}のように）が与えられると正確な整数を返しますが、10進値（この練習問題のように）が与えられると10進値を返します。}
+
+@lisp
+(define (random-in-range low high)
+  (let ((range (- high low)))
+    (+ low (random range))))
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.6}練習問題 3.6:} 乱数生成器を与えられた値から始まる列を生成するようにリセットできると便利です。シンボル@code{generate}またはシンボル@code{reset}のいずれかである引数で呼び出される新しい@code{rand}手続きを設計し、次のように振る舞うようにしてください：@code{(rand 'generate)}は新しい乱数を生成します；@code{((rand 'reset) ⟨@var{new-value}⟩)}は内部状態変数を指定された@code{⟨}@var{new-value}@code{⟩}にリセットします。したがって、状態をリセットすることによって、反復可能な列を生成できます。これらは乱数を使うプログラムをテストおよびデバッグするときに非常に便利です。
+@end quotation
+
+@node	3.1.3, 3.2, Chapter 3, 3.1
+@subsection 代入導入のコスト
+
+見てきたように、@code{set!}演算はローカル状態を持つオブジェクトをモデル化することを可能にします。しかし、この利点には代償が伴います。私たちのプログラミング言語は、@ref{1.1.5}で導入した手続き適用の置換モデルの観点から解釈できなくなります。さらに、「素晴らしい」数学的性質を持つ単純なモデルは、プログラミング言語でオブジェクトと代入を扱うための適切な枠組みにはなりません。
+
+代入を使わない限り、同じ手続きの同じ引数での2つの評価は同じ結果を生成するので、手続きは数学的関数を計算していると見なすことができます。本書の最初の2章を通じて行ったように、代入を全く使わないプログラミングは、したがって@newterm{関数型プログラミング}として知られています。
+
+代入がいかに問題を複雑にするかを理解するために、不十分な金額をチェックすることを気にしない@ref{3.1.1}の@code{make-withdraw}手続きの簡略版を考えてみましょう：
+
+@lisp
+(define (make-simplified-withdraw balance)
+  (lambda (amount)
+    (set! balance (- balance amount))
+    balance))
+
+(define W (make-simplified-withdraw 25))
+
+(W 20)
+@i{5}
+
+(W 10)
+@i{-5}
+@end lisp
+
+@noindent
+この手続きを、@code{set!}を使わない次の@code{make-decrementer}手続きと比較してください：
+
+@lisp
+(define (make-decrementer balance)
+  (lambda (amount)
+    (- balance amount)))
+@end lisp
+
+@noindent
+@code{Make-decrementer}は、指定された金額@code{balance}から入力を引く手続きを返しますが、@code{make-simplified-withdraw}のように連続した呼び出しにわたって累積効果はありません：
+
+@lisp
+(define D (make-decrementer 25))
+
+(D 20)

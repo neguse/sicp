@@ -1,0 +1,58 @@
+私たちのプログラムの中核は@code{monte-carlo}手続きで、実験を試行する回数を引数として取り、実験は実行されるたびに真か偽を返す引数なしの手続きとして表されます。@code{Monte-carlo}は指定された試行回数で実験を実行し、実験が真であることが判明した試行の割合を示す数を返します。
+
+@lisp
+(define (estimate-pi trials)
+  (sqrt (/ 6 (monte-carlo trials
+                          cesaro-test))))
+(define (cesaro-test)
+   (= (gcd (rand) (rand)) 1))
+
+(define (monte-carlo trials experiment)
+  (define (iter trials-remaining trials-passed)
+    (cond ((= trials-remaining 0)
+           (/ trials-passed trials))
+          ((experiment)
+           (iter (- trials-remaining 1)
+                 (+ trials-passed 1)))
+          (else
+           (iter (- trials-remaining 1)
+                 trials-passed))))
+  (iter trials 0))
+@end lisp
+
+@noindent
+次に、ローカル状態をモデル化するために代入を使わなかった場合に強制されるように、@code{rand}ではなく@code{rand-update}を直接使って同じ計算を試みてみましょう：
+
+@lisp
+(define (estimate-pi trials)
+  (sqrt (/ 6 (random-gcd-test trials
+                              random-init))))
+
+(define (random-gcd-test trials initial-x)
+  (define (iter trials-remaining
+                trials-passed
+                x)
+    (let ((x1 (rand-update x)))
+      (let ((x2 (rand-update x1)))
+        (cond ((= trials-remaining 0)
+               (/ trials-passed trials))
+              ((= (gcd x1 x2) 1)
+               (iter (- trials-remaining 1)
+                     (+ trials-passed 1)
+                     x2))
+              (else
+               (iter (- trials-remaining 1)
+                     trials-passed
+                     x2))))))
+  (iter trials 0 initial-x))
+@end lisp
+
+@noindent
+プログラムはまだ単純ですが、モジュール性のいくつかの痛ましい違反を露呈しています。@code{rand}を使った最初のバージョンのプログラムでは、任意の@code{experiment}手続きを引数として取る一般的な@code{monte-carlo}手続きとして、モンテカルロ法を直接表現できます。乱数生成器のローカル状態がないプログラムの第2のバージョンでは、@code{random-gcd-test}は乱数@code{x1}と@code{x2}を明示的に操作し、@code{x2}を@code{rand-update}への新しい入力として反復ループを通じて再利用しなければなりません。この乱数の明示的な処理は、テスト結果を蓄積する構造と、特定の実験が2つの乱数を使うという事実を絡め合わせます。一方、他のモンテカルロ実験では1つの乱数または3つの乱数を使うかもしれません。最上位の手続き@code{estimate-pi}でさえ、初期乱数を供給することに関心を持たなければなりません。乱数生成器の内部がプログラムの他の部分に漏れ出しているという事実は、モンテカルロのアイデアを分離して他のタスクに適用できるようにすることを困難にします。プログラムの最初のバージョンでは、代入が@code{rand}手続き内で乱数生成器の状態をカプセル化するので、乱数生成の詳細がプログラムの残りから独立したままになります。
+
+モンテカルロの例によって示される一般的な現象は次のとおりです：複雑なプロセスの一部の視点から、他の部分は時間とともに変化するように見えます。それらは隠れた時間変化するローカル状態を持っています。この分解を反映した構造を持つコンピュータプログラムを書きたい場合、私たちは時間とともに振る舞いが変わる計算オブジェクト（銀行口座や乱数生成器など）を作ります。ローカル状態変数で状態をモデル化し、それらの変数への代入で状態の変化をモデル化します。
+
+代入とローカル変数に状態を隠す技法を導入することによって、すべての状態を追加のパラメータを渡すことによって明示的に操作しなければならない場合よりもモジュラーな方法でシステムを構造化できると結論づけたくなります。残念ながら、これから見るように、話はそれほど単純ではありません。
+
+@quotation
+@strong{@anchor{Exercise 3.5}練習問題 3.5:} @newterm{モンテカルロ積分}は、モンテカルロシミュレーションによって定積分を推定する方法です。領域内の点@math{{(x, y)}}について真で、領域外の点について偽である述語@math{{P(x, y)}}によって記述される空間の領域の面積を計算することを考えます。たとえば、(5, 7)を中心とする半径3の円に含まれる領域は、@math{{(x - 5)^2} + {(y - 7)^2 \le 3^2}}かどうかをテストする述語によって記述されます。そのような述語によって記述される領域の面積を推定するには、領域を含む長方形を選ぶことから始めます。たとえば、対角の

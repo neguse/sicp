@@ -1,0 +1,95 @@
+これら3つの手続きは、明らかに共通の基礎となるパターンを共有している。大部分が
+同一であり、手続きの名前、項を計算するために使われる@code{a}の関数、そして
+@code{a}の次の値を提供する関数だけが異なる。同じテンプレートのスロットを
+埋めることによって、各手続きを生成できる。
+
+@lisp
+(define (⟨@var{name}⟩ a b)
+  (if (> a b)
+      0
+      (+ (⟨@var{term}⟩ a)
+         (⟨@var{name}⟩ (⟨@var{next}⟩ a) b))))
+@end lisp
+
+@noindent
+そのような共通パターンの存在は、表面に引き出されるのを待っている有用な抽象が
+あるという強い証拠である。実際、数学者は昔から@newterm{級数の総和}の抽象を
+同定し、この概念を表現するために「シグマ記法」を発明した。例えば
+@ifinfo
+
+@example
+  b
+ ---
+ >    f(n) = f(a) + ... + f(b)
+ ---
+ n=a
+@end example
+
+@end ifinfo
+@tex
+
+\[ % :18:
+
+{\sum_{n = a}^b f(n)} \,=\, {f(a)} + \dots + {f(b),}
+\]
+
+@end tex
+@noindent
+である。シグマ記法の力は、数学者が総和そのものの概念を扱うことを可能にし、
+特定の和だけではないことである。例えば、総和される特定の級数に依存しない
+和に関する一般的な結果を定式化できる。
+
+同様に、プログラム設計者として、特定の和を計算する手続きだけでなく、総和
+そのものの概念を表現する手続きを書けるほど強力な言語が欲しい。上に示した
+共通テンプレートを取り、「スロット」を仮引数に変換することによって、手続き型
+言語でそれを容易に行うことができる。
+
+@lisp
+(define (sum term a next b)
+  (if (> a b)
+      0
+      (+ (term a)
+         (sum term (next a) next b))))
+@end lisp
+
+@noindent
+@code{sum}は、下限と上限@code{a}と@code{b}を手続き@code{term}と@code{next}と
+ともに引数として取ることに注意せよ。@code{sum}は、他の手続きと同じように
+使える。例えば、それを（引数を1増やす@code{inc}手続きとともに）使って
+@code{sum-cubes}を定義できる。
+
+@lisp
+(define (inc n) (+ n 1))
+
+(define (sum-cubes a b)
+  (sum cube a inc b))
+@end lisp
+
+@noindent
+これを使って、1から10までの整数の立方の和を計算できる。
+
+@lisp
+(sum-cubes 1 10)
+@i{3025}
+@end lisp
+
+@noindent
+項を計算する恒等関数の助けを借りて、@code{sum}の観点で@code{sum-integers}を
+定義できる。
+
+@lisp
+(define (identity x) x)
+
+(define (sum-integers a b)
+  (sum identity a inc b))
+@end lisp
+
+@noindent
+それから1から10までの整数を足し合わせることができる。
+
+@lisp
+(sum-integers 1 10)
+@i{55}
+@end lisp
+
+@noindent

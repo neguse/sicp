@@ -1,0 +1,98 @@
+                 (- counter 1)
+                 (* b product))))
+@end lisp
+
+@noindent
+このバージョンは@math{{\Theta(n)}}ステップと@math{{\Theta(1)}}空間を必要とする。
+
+逐次平方を使うことで、より少ないステップで指数を計算できる。例えば、
+@math{b^8}を次のように計算する代わりに
+@ifinfo
+
+@example
+b * (b * (b * (b * (b * (b * (b * b))))))
+@end example
+
+@end ifinfo
+@tex
+
+\[ % :14:
+
+{b\cdot (b\cdot (b}\cdot {(b\cdot (b\cdot (b}\cdot {(b\cdot b)))))),}
+\]
+
+@end tex
+3回の乗算で計算できる。
+@ifinfo
+
+@example
+b^2 = b * b
+b^4 = b^2 * b^2
+b^8 = b^4 * b^4
+@end example
+
+@end ifinfo
+@tex
+
+\[ % :15:
+
+\begin{array}{l}
+  b^2 \,=\, b\cdot b, \\
+  b^4 \,=\, b^2\cdot b^2, \\
+  b^8 \,=\, b^4\cdot b^4.
+\end{array}
+\]
+
+@end tex
+この方法は、指数が2の累乗のときにうまく機能する。規則
+@ifinfo
+
+@example
+b^n = (b^(n/2))^2    if n is even
+b^n = b * b^(n - 1)  if n is odd
+@end example
+
+@end ifinfo
+@tex
+
+\[ % :16:
+
+\begin{array}{ll}
+  b^n \,=\, (b^{n / 2})^2   & \text{if} \; n \; \text{is even}, \\
+  b^n \,=\, b\cdot b^{n-1}  & \text{if} \; n \; \text{is odd}.
+\end{array}
+\]
+
+@end tex
+を使えば、一般に指数を計算する際にも逐次平方を利用できる。
+この方法を手続きとして表現できる。
+
+@lisp
+(define (fast-expt b n)
+  (cond ((= n 0)
+         1)
+        ((even? n)
+         (square (fast-expt b (/ n 2))))
+        (else
+         (* b (fast-expt b (- n 1))))))
+@end lisp
+
+@noindent
+ここで、整数が偶数かどうかをテストする述語は、基本手続き@code{remainder}
+を使って次のように定義される。
+
+@lisp
+(define (even? n)
+  (= (remainder n 2) 0))
+@end lisp
+
+@noindent
+@code{fast-expt}が展開するプロセスは、空間とステップ数の両方で@math{n}に
+対して対数的に増加する。これを理解するには、@code{fast-expt}を使って
+@math{b^{2n}}を計算するには、@math{b^n}を計算するよりも1回多くの乗算しか
+必要ないことに注目せよ。したがって、計算できる指数のサイズは、許される
+新しい乗算ごとに（およそ）2倍になる。したがって、指数@math{n}に必要な
+乗算の回数は、@math{n}の底2に対する対数とほぼ同じ速さで増加する。
+プロセスは@math{{\Theta(\log n)}}の増加を持つ。@footnote{より正確には、
+必要な乗算の回数は、@math{n}の底2に対する対数より1少ない数に、
+@math{n}の2進表現における1の数を加えたものに等しい。この合計は常に

@@ -1,0 +1,96 @@
+この予想は確認されるか？そうでなければ、2つのアルゴリズムの速度の観測された
+比率は何で、それが2と異なるという事実をどう説明するか？
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.24}Exercise 1.24:} @ref{Exercise 1.22}の
+@code{timed-prime-test}手続きを@code{fast-prime?}（フェルマー法）を使う
+ように修正し、その演習で見つけた12個の素数それぞれをテストせよ。フェルマー
+テストは@math{{\Theta(\log n)}}の増加を持つので、1,000,000付近の素数を
+テストする時間を1000付近の素数をテストする時間とどのように比較すると予想
+するか？データはこれを裏付けているか？発見した不一致を説明できるか？
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.25}Exercise 1.25:} Alyssa P. Hackerは、
+@code{expmod}を書くのに多くの余分な作業をしたと不満を言う。結局のところ、
+彼女は言う、すでに指数を計算する方法を知っているのだから、単純に次のように
+書けばよかった。
+
+@lisp
+(define (expmod base exp m)
+  (remainder (fast-expt base exp) m))
+@end lisp
+
+彼女は正しいか？この手続きは高速素数テスターにとって同じように機能するか？
+説明せよ。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.26}Exercise 1.26:} Louis Reasonerは
+@ref{Exercise 1.24}を行うのに大きな困難を抱えている。彼の@code{fast-prime?}
+テストは、彼の@code{prime?}テストよりも遅く実行されるようである。Louisは
+友人のEva Lu Atorを呼んで助けを求める。彼らがLouisのコードを調べると、彼が
+@code{square}を呼び出す代わりに明示的な乗算を使うように@code{expmod}手続きを
+書き直していることを発見する。
+
+@lisp
+(define (expmod base exp m)
+  (cond ((= exp 0) 1)
+        ((even? exp)
+         (remainder
+          (* (expmod base (/ exp 2) m)
+             (expmod base (/ exp 2) m))
+          m))
+        (else
+         (remainder
+          (* base
+             (expmod base (- exp 1) m))
+          m))))
+@end lisp
+
+「それがどんな違いを生むのかわからない」とLouisは言う。@w{「わかるわ。」}
+とEvaは言う。「手続きをそのように書くことで、@math{{\Theta(\log n)}}プロセスを
+@math{{\Theta(n)}}プロセスに変換してしまったのよ。」説明せよ。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.27}Exercise 1.27:} @ref{Footnote 47}にリストされた
+カーマイケル数が実際にフェルマーテストを欺くことを実証せよ。つまり、整数
+@math{n}を取り、すべての@math{{a < n}}に対して@math{a^n}が@math{n}を法として
+@math{a}と合同であるかどうかをテストする手続きを書き、与えられたカーマイケル数
+でその手続きを試せ。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.28}Exercise 1.28:} フェルマーテストを欺くことが
+できないフェルマーテストの一つのバリアントは@newterm{Miller-Rabinテスト}と
+呼ばれる（@ref{Miller 1976}、@ref{Rabin 1980}）。これはフェルマーの小定理の
+別の形式から始まる。これは、もし@math{n}が素数で、@math{a}が@math{n}より
+小さい任意の正の整数であれば、@math{a}を@math{{(n-1)}}乗した数は@math{n}を
+法として1と合同であると述べる。Miller-Rabinテストによって数@math{n}の素数性を
+テストするために、@math{{a < n}}のランダムな数を選び、@code{expmod}手続きを
+使って@math{a}を@math{{(n-1)}}乗した数を@math{n}を法として求める。しかし、
+@code{expmod}で平方ステップを実行するときはいつでも、「@math{n}を法とする1の
+非自明な平方根」を発見したかどうか、つまり1または@math{{n-1}}に等しくないが、
+その平方が@math{n}を法として1に等しい数を発見したかどうかをチェックする。
+そのような1の非自明な平方根が存在すれば、@math{n}は素数ではないことを証明
+できる。また、もし@math{n}が素数ではない奇数であれば、@math{{a < n}}の数の
+少なくとも半分について、この方法で@math{a^{n-1}}を計算すると@math{n}を法と
+する1の非自明な平方根が明らかになることを証明できる。（これがMiller-Rabin
+テストが欺かれることができない理由である。）@code{expmod}手続きを、1の非自明な
+平方根を発見したら信号を送るように修正し、これを使って@code{fermat-test}に
+類似した手続きでMiller-Rabinテストを実装せよ。既知のさまざまな素数と非素数を
+テストして手続きをチェックせよ。ヒント：@code{expmod}に信号を送らせる便利な
+方法の一つは、0を返させることである。
+@end quotation
+
+@node	1.3, Chapter 2, 1.2, Chapter 1
+@section 高階手続きによる抽象の定式化
+
+手続きは、実際には、特定の数に依存しない数に対する複合演算を記述する抽象で
+あることを見てきた。例えば、次のようにするとき
+
+@lisp
+(define (cube x) (* x x x))
+@end lisp

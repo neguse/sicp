@@ -1,0 +1,186 @@
+@math{{(a_{k+1}, b_{k+1})} \to {(a_k, b_k)} \to {(a_{k-1}, b_{k-1})}}を縮小
+プロセスにおける連続したペアとする。帰納法の仮定により、
+@math{b_{k-1} \ge {\text{Fib}(k - 1)}}かつ@math{b_k \ge {\text{Fib}(k)}}である。
+したがって、ちょうど証明した主張をフィボナッチ数の定義とともに適用すると、
+@math{b_{k+1} \ge b_k + b_{k-1} \ge {\text{Fib}(k)} + {\text{Fib}(k-1)} = {\text{Fib}(k+1)}}
+となり、Lam@'eの定理の証明が完成する。}
+@end quotation
+
+@noindent
+この定理を使って、ユークリッドの互除法の増加のオーダーを推定できる。
+@math{n}を手続きへの2つの入力の小さい方とする。プロセスが@math{k}ステップを
+取るなら、@math{n \ge {\text{Fib}(k)} \approx {\varphi^k / \sqrt{5}}}でなければ
+ならない。したがってステップ数@math{k}は、@math{n}の（底@math{\varphi}に対する）
+対数として増加する。したがって、増加のオーダーは@math{{\Theta(\log n)}}である。
+
+@quotation
+@strong{@anchor{Exercise 1.20}Exercise 1.20:} 手続きが生成するプロセスは、
+もちろんインタプリタが使用する規則に依存する。例として、上で与えられた
+反復的な@code{gcd}手続きを考えよ。@ref{1.1.5}で議論された正規順序評価を
+使ってこの手続きを解釈したとしよう。（@code{if}の正規順序評価規則は
+@ref{Exercise 1.5}で説明されている。）置換法（正規順序用）を使って、
+@code{(gcd 206 40)}を評価する際に生成されるプロセスを図示し、実際に実行される
+@code{remainder}演算を示せ。正規順序評価での@code{(gcd 206 40)}では、
+@code{remainder}演算は実際に何回実行されるか？適用順序評価では？
+@end quotation
+
+@node	1.2.6, 1.3, 1.1, 1.2
+@subsection 例: 素数性テスト
+
+このセクションでは、整数@math{n}の素数性をチェックする2つの方法を説明する。
+1つは増加のオーダーが@math{{\Theta(\sqrt{n})}}のもの、もう1つは増加のオーダーが
+@math{{\Theta(\log n)}}の「確率的」アルゴリズムである。このセクションの最後の
+演習は、これらのアルゴリズムに基づくプログラミングプロジェクトを提案している。
+
+@subsubheading 約数の探索
+
+古代から、数学者は素数に関する問題に魅了されており、多くの人々が数が素数で
+あるかどうかをテストする方法を決定する問題に取り組んできた。数が素数である
+かどうかをテストする一つの方法は、その数の約数を見つけることである。次の
+プログラムは、与えられた数@math{n}の最小の整数約数（1より大きい）を見つける。
+これは、@math{n}を2から始まる連続した整数で割り切れるかテストするという
+直接的な方法で行う。
+
+@lisp
+(define (smallest-divisor n)
+  (find-divisor n 2))
+
+(define (find-divisor n test-divisor)
+  (cond ((> (square test-divisor) n)
+         n)
+        ((divides? test-divisor n)
+         test-divisor)
+        (else (find-divisor
+               n
+               (+ test-divisor 1)))))
+
+(define (divides? a b)
+  (= (remainder b a) 0))
+@end lisp
+
+@noindent
+数が素数であるかどうかを次のようにテストできる。@math{n}は、@math{n}がそれ
+自身の最小約数である場合に限り素数である。
+
+@lisp
+(define (prime? n)
+  (= n (smallest-divisor n)))
+@end lisp
+
+@noindent
+@code{find-divisor}の終了テストは、もし@math{n}が素数でなければ、
+@math{\sqrt{n}}以下の約数を持たなければならないという事実に基づいている。
+@footnote{もし@math{d}が@math{n}の約数であれば、@math{{n \,/\, d}}も約数である。
+しかし@math{d}と@math{{n \,/\, d}}の両方が@math{\sqrt{n}}より大きくなることは
+できない。}これは、アルゴリズムが1と@math{\sqrt{n}}の間の約数だけをテスト
+すればよいことを意味する。したがって、@math{n}を素数と識別するのに必要な
+ステップ数は、増加のオーダーが@math{{\Theta(\sqrt{n})}}である。
+
+@subsubheading フェルマーテスト
+
+@math{{\Theta(\log n)}}素数性テストは、フェルマーの小定理として知られる
+数論の結果に基づいている。@footnote{Pierre de Fermat（1601-1665）は近代
+数論の創始者と見なされている。彼は多くの重要な数論的結果を得たが、通常は
+証明なしに結果だけを発表した。フェルマーの小定理は1640年に書いた手紙で述べられた。
+最初に公表された証明はEulerによって1736年に与えられた（そしてそれ以前の同一の
+証明がLeibnizの未公表の原稿で発見された）。フェルマーの最も有名な結果
+---フェルマーの最終定理として知られる---は、3世紀のギリシャの数学者Diophantusの
+本@cite{算術}の彼の写しに1637年に書き込まれ、「私は真に驚くべき証明を発見
+したが、この余白はそれを含むには小さすぎる」という言葉が添えられた。
+フェルマーの最終定理の証明を見つけることは、数論における最も有名な課題の一つと
+なった。完全な解決は1995年にPrinceton大学のAndrew Wilesによってついに与えられた。}
+
+@quotation
+@strong{フェルマーの小定理:} もし@math{n}が素数で、@math{a}が@math{n}より
+小さい任意の正の整数であれば、@math{a}を@math{n^{\text{th}}}乗した数は、
+@math{n}を法として@math{a}と合同である。
+@end quotation
+
+@noindent
+（2つの数は、@math{n}で割ったときに両方とも同じ余りを持つ場合、
+@math{n}@newterm{を法として合同}であると言われる。数@math{a}を@math{n}で
+割ったときの余りは、@math{a}@newterm{を法とする}@math{n}@newterm{の余り}、
+または単に@math{a}@newterm{を法とする}@math{n}とも呼ばれる。）
+
+もし@math{n}が素数でなければ、一般に、ほとんどの数@math{{a < n}}は上記の
+関係を満たさない。これは、次の素数性テストアルゴリズムにつながる。数@math{n}
+が与えられたとき、@math{{a < n}}のランダムな数を選び、@math{a^n}を@math{n}で
+割った余りを計算する。結果が@math{a}に等しくなければ、@math{n}は確かに
+素数ではない。もし@math{a}であれば、@math{n}が素数である可能性が高い。
+ここで別のランダムな数@math{a}を選び、同じ方法でテストする。これも方程式を
+満たせば、@math{n}が素数であることにさらに確信を持てる。@math{a}の値をますます
+多く試すことで、結果への確信を高めることができる。このアルゴリズムは
+フェルマーテストとして知られている。
+
+フェルマーテストを実装するには、ある数を別の数で割った余りの指数を計算する
+手続きが必要である。
+
+@lisp
+(define (expmod base exp m)
+  (cond ((= exp 0) 1)
+        ((even? exp)
+         (remainder
+          (square (expmod base (/ exp 2) m))
+          m))
+        (else
+         (remainder
+          (* base (expmod base (- exp 1) m))
+          m))))
+@end lisp
+
+@noindent
+これは@ref{1.2.4}の@code{fast-expt}手続きと非常に似ている。逐次平方を使うので、
+ステップ数は指数に対して対数的に増加する。@footnote{指数@math{e}が1より大きい
+場合の縮小ステップは、任意の整数@math{x}、@math{y}、@math{m}に対して、
+@math{x}と@math{y}を@math{m}で割った余りを別々に計算し、これらを掛け合わせ、
+その結果を@math{m}で割った余りを取ることによって、@math{x}と@math{y}を掛けた
+ものの@math{m}を法とする余りを見つけることができるという事実に基づいている。
+例えば、@math{e}が偶数の場合、@math{b^{e / 2}}を@math{m}で割った余りを計算し、
+これを2乗して、@math{m}を法とする余りを取る。この技法は、@math{m}よりはるかに
+大きい数を扱うことなく計算を実行できることを意味するので有用である。
+（@ref{Exercise 1.25}と比較せよ。）}
+
+フェルマーテストは、1から@math{{n-1}}までの間のランダムな数@math{a}を選び、
+@math{a}の@math{n^{\text{th}}}乗を@math{n}で割った余りが@math{a}に等しいか
+どうかをチェックすることによって実行される。ランダムな数@math{a}は、Schemeに
+基本手続きとして含まれていると仮定する@code{random}手続きを使って選ばれる。
+@code{Random}は、整数入力より小さい非負整数を返す。したがって、1から
+@math{{n-1}}の間のランダムな数を取得するには、@math{{n-1}}の入力で
+@code{random}を呼び出し、結果に1を加える。
+
+@lisp
+(define (fermat-test n)
+  (define (try-it a)
+    (= (expmod a n n) a))
+  (try-it (+ 1 (random (- n 1)))))
+@end lisp
+
+@noindent
+次の手続きは、パラメータで指定された回数だけテストを実行する。その値は、
+テストが毎回成功すればtrueであり、そうでなければfalseである。
+
+@lisp
+(define (fast-prime? n times)
+  (cond ((= times 0) true)
+        ((fermat-test n)
+         (fast-prime? n (- times 1)))
+        (else false)))
+@end lisp
+
+@subsubheading 確率的方法
+
+フェルマーテストは、ほとんどのよく知られたアルゴリズムとは性格が異なる。
+通常のアルゴリズムでは、正しいことが保証された答えを計算する。ここでは、
+得られた答えはおそらく正しいだけである。より正確には、もし@math{n}が
+フェルマーテストに失敗すれば、@math{n}が素数ではないことを確信できる。
+しかしテストに合格するという事実は、極めて強い指標ではあるが、依然として
+@math{n}が素数であることの保証ではない。私たちが言いたいことは、任意の
+数@math{n}に対して、テストを十分な回数実行し、@math{n}が常にテストに合格する
+ことを発見すれば、素数性テストにおける誤りの確率を好きなだけ小さくできる
+ということである。
+
+残念ながら、この主張は完全には正しくない。フェルマーテストを欺く数が存在する。
+素数ではないのに、@math{{a < n}}のすべての整数@math{a}に対して@math{a^n}が
+@math{n}を法として@math{a}と合同であるという性質を持つ数@math{n}である。
+そのような数は極めてまれであるため、フェルマーテストは実際には非常に信頼できる。
+@footnote{@anchor{Footnote 47}

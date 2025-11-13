@@ -1,0 +1,94 @@
+
+@quotation
+@strong{@anchor{Exercise 1.15}Exercise 1.15:} 角度の正弦（ラジアンで指定）は、
+@math{x}が十分小さければ、近似式@math{{\sin x  \approx x}}と、
+三角関数の恒等式
+@ifinfo
+
+@example
+               x             x
+sin x = 3 sin --- - 4 sin^3 ---
+               3             3
+@end example
+
+@end ifinfo
+@tex
+
+\[ % :12:
+
+{\sin x} \,=\, {3\sin \frac{x}{3}} \,-\, {4\sin^3 \frac{x}{3}}
+\]
+
+@end tex
+@noindent
+を使ってsinの引数のサイズを減らすことで計算できる。（この演習の目的のため、
+角度の大きさが0.1ラジアンを超えなければ「十分小さい」と見なす。）これらの
+考え方が次の手続きに組み込まれている。
+
+@lisp
+(define (cube x) (* x x x))
+(define (p x) (- (* 3 x) (* 4 (cube x))))
+(define (sine angle)
+   (if (not (> (abs angle) 0.1))
+       angle
+       (p (sine (/ angle 3.0)))))
+@end lisp
+
+@enumerate a
+
+@item
+@code{(sine 12.15)}を評価するとき、手続き@code{p}は何回適用されるか？
+
+@item
+@code{(sine a)}を評価するとき、@code{sine}手続きが生成するプロセスが使用する
+空間とステップ数（@math{a}の関数として）の増加のオーダーは何か？
+
+@end enumerate
+@end quotation
+
+@node	1.2.4, 1.2.5, 1.2.3, 1.2
+@subsection 冪乗
+
+与えられた数の指数を計算する問題を考えよう。底@math{b}と正の整数の
+指数@math{n}を引数として取り、@math{b^n}を計算する手続きが欲しい。
+これを行う一つの方法は、再帰的定義
+@ifinfo
+
+@example
+b^n = b * b^(n - 1)
+b^0 = 1
+@end example
+
+@end ifinfo
+@tex
+
+\[ % :13:
+
+\begin{array}{l}
+  b^n \,=\, b\cdot b^{n-1}, \\
+  b^0 \,=\, 1,
+\end{array}
+\]
+
+@end tex
+による方法であり、これは容易に次の手続きに変換できる。
+
+@lisp
+(define (expt b n)
+  (if (= n 0)
+      1
+      (* b (expt b (- n 1)))))
+@end lisp
+
+@noindent
+これは線形再帰プロセスで、@math{{\Theta(n)}}ステップと@math{{\Theta(n)}}
+空間を必要とする。階乗と同様に、等価な線形反復を容易に定式化できる。
+
+@lisp
+(define (expt b n)
+  (expt-iter b n 1))
+
+(define (expt-iter b counter product)
+  (if (= counter 0)
+      product
+      (expt-iter b

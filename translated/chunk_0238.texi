@@ -1,0 +1,75 @@
+(define primitive-procedures
+  (list (list 'car car)
+        (list 'cdr cdr)
+        (list 'cons cons)
+        (list 'null? null?)
+        ⟨@var{more primitives}⟩ ))
+
+(define (primitive-procedure-names)
+  (map car primitive-procedures))
+
+(define (primitive-procedure-objects)
+  (map (lambda (proc)
+         (list 'primitive (cadr proc)))
+       primitive-procedures))
+@end lisp
+
+@noindent
+基本手続きを適用するには、基礎となるLispシステムを使って、単に実装手続きを引数に適用するだけです：@footnote{@code{Apply-in-underlying-scheme} は、前の章で使用した @code{apply} 手続きです。メタ循環評価器の @code{apply} 手続き（@ref{4.1.1}）は、この基本手続きの動作をモデル化します。@code{apply} と呼ばれる2つの異なるものを持つことは、メタ循環評価器を実行する際の技術的な問題を引き起こします。なぜなら、メタ循環評価器の @code{apply} を定義すると、基本手続きの定義がマスクされてしまうからです。これを回避する1つの方法は、基本手続きの名前との衝突を避けるためにメタ循環 @code{apply} の名前を変更することです。代わりに、次のようにして基礎となる @code{apply} への参照を保存したと仮定しています
+
+@lisp
+(define apply-in-underlying-scheme apply)
+@end lisp
+
+@noindent
+メタ循環 @code{apply} を定義する前に。これにより、@code{apply} の元のバージョンに別の名前でアクセスできます。}
+
+@lisp
+(define (apply-primitive-procedure proc args)
+  (apply-in-underlying-scheme
+   (primitive-implementation proc) args))
+@end lisp
+
+@noindent
+メタ循環評価器を実行するのを便利にするために、基礎となるLispシステムの読み取り-評価-印刷ループをモデル化する @newterm{ドライバループ} を提供します。これは @newterm{プロンプト} を印刷し、入力式を読み取り、この式を大域環境で評価し、結果を印刷します。各印刷結果の前に @newterm{出力プロンプト} を付けて、式の値を印刷される可能性のある他の出力と区別します。@footnote{基本手続き @code{read} はユーザーからの入力を待ち、入力される次の完全な式を返します。例えば、ユーザーが @code{(+ 23 x)} と入力すると、@code{read} はシンボル @code{+}、数値 23、シンボル @code{x} を含む3要素のリストを返します。ユーザーが @code{'x} と入力すると、@code{read} はシンボル @code{quote} とシンボル @code{x} を含む2要素のリストを返します。}
+
+@lisp
+(define input-prompt  ";;; M-Eval input:")
+(define output-prompt ";;; M-Eval value:")
+
+(define (driver-loop)
+  (prompt-for-input input-prompt)
+  (let ((input (read)))
+    (let ((output
+           (eval input
+                 the-global-environment)))
+      (announce-output output-prompt)
+      (user-print output)))
+  (driver-loop))
+
+(define (prompt-for-input string)
+  (newline) (newline)
+  (display string) (newline))
+
+(define (announce-output string)
+  (newline) (display string) (newline))
+@end lisp
+
+@noindent
+特別な印刷手続き @code{user-print} を使って、複合手続きの環境部分の印刷を避けます。これは非常に長いリストになる可能性があります（あるいは循環を含むことさえあります）。
+
+@lisp
+(define (user-print object)
+  (if (compound-procedure? object)
+      (display
+       (list 'compound-procedure
+             (procedure-parameters object)
+             (procedure-body object)
+             '<procedure-env>))
+      (display object)))
+@end lisp
+
+@noindent
+今や評価器を実行するために必要なのは、大域環境を初期化してドライバループを開始することだけです。これは対話の例です：
+
+@lisp

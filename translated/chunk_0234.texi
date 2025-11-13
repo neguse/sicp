@@ -1,0 +1,68 @@
+式の種類を識別することになります。
+
+@enumerate a
+
+@item
+Louisの計画の何が問題でしょうか？（ヒント：Louisの評価器は式 @code{(define x 3)} をどう処理するでしょうか？）
+
+@item
+Louisは自分の計画がうまくいかなかったことに腹を立てています。彼は、評価器が手続き適用を他のほとんどの種類の式をチェックする前に認識するよう、どんな手段を使ってでも実現しようとしています。評価される言語の構文を変更して、手続き適用が @code{call} で始まるようにすることで、彼を助けてください。例えば、@code{(factorial 3)} の代わりに @code{(call factorial 3)} と書き、@code{(+ 1 2)} の代わりに @code{(call + 1 2)} と書くことになります。
+
+@end enumerate
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.3}練習問題 4.3:} @code{eval} を書き直して、ディスパッチがデータ主導スタイルで行われるようにしてください。これを @ref{Exercise 2.73} のデータ主導微分手続きと比較してください。（このセクションで実装された構文に適しているように、複合式の @code{car} を式の型として使用してもかまいません。）
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.4}練習問題 4.4:} @ref{Chapter 1} から特殊形式 @code{and} と @code{or} の定義を思い出してください：
+
+@itemize @bullet
+
+@item
+@code{and}: 式は左から右へ評価されます。いずれかの式が偽と評価されれば、偽が返され、残りの式は評価されません。すべての式が真の値と評価されれば、最後の式の値が返されます。式がない場合は真が返されます。
+
+@item
+@code{or}: 式は左から右へ評価されます。いずれかの式が真の値と評価されれば、その値が返され、残りの式は評価されません。すべての式が偽と評価されるか、式がない場合は、偽が返されます。
+
+@end itemize
+
+@code{and} と @code{or} を評価器の新しい特殊形式として、適切な構文手続きと評価手続き @code{eval-and} および @code{eval-or} を定義してインストールしてください。あるいは、@code{and} と @code{or} を派生式としてどのように実装するかを示してください。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.5}練習問題 4.5:} Schemeでは @code{cond} 節に追加の構文 @code{(⟨@var{test}⟩ => ⟨@var{recipient}⟩)} が許されています。@code{⟨}@var{test}@code{⟩} が真の値と評価されれば、@code{⟨}@var{recipient}@code{⟩} が評価されます。その値は1つの引数を取る手続きでなければなりません。この手続きは @code{⟨}@var{test}@code{⟩} の値に対して呼び出され、その結果が @code{cond} 式の値として返されます。例えば
+
+@lisp
+(cond ((assoc 'b '((a 1) (b 2))) => cadr)
+      (else false))
+@end lisp
+
+@noindent
+は 2 を返します。この拡張構文をサポートするように @code{cond} の処理を修正してください。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.6}練習問題 4.6:} @code{Let} 式は派生式です。なぜなら
+
+@lisp
+(let ((⟨@var{var₁}⟩ ⟨@var{exp₁}⟩) @r{…} (⟨@var{varₙ}⟩ ⟨@var{expₙ}⟩))
+  ⟨@var{body}⟩)
+@end lisp
+
+@noindent
+は次と等価だからです
+
+@lisp
+((lambda (⟨@var{var₁}⟩ @r{…} ⟨@var{varₙ}⟩)
+   ⟨@var{body}⟩)
+ ⟨@var{exp₁}⟩
+ @r{…}
+ ⟨@var{expₙ}⟩)
+@end lisp
+
+@code{let} 式の評価を上に示した型の組み合わせの評価に還元する構文変換 @code{let->combination} を実装し、@code{let} 式を扱うために @code{eval} に適切な節を追加してください。
+@end quotation
+
+@quotation

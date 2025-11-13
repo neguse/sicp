@@ -1,0 +1,135 @@
+  (set-cdr! frame (cons val (cdr frame))))
+@end lisp
+
+@noindent
+変数を値に関連付ける新しいフレームで環境を拡張するには、変数のリストと値のリストからなるフレームを作り、これを環境に追加します。変数の数が値の数と一致しない場合はエラーを通知します。
+
+@lisp
+(define (extend-environment vars vals base-env)
+  (if (= (length vars) (length vals))
+      (cons (make-frame vars vals) base-env)
+      (if (< (length vars) (length vals))
+          (error "Too many arguments supplied"
+                 vars
+                 vals)
+          (error "Too few arguments supplied"
+                 vars
+                 vals))))
+@end lisp
+
+@noindent
+環境内で変数を調べるには、最初のフレーム内の変数のリストを走査します。目的の変数が見つかれば、値のリスト内の対応する要素を返します。現在のフレームで変数が見つからなければ、外側の環境を検索し、以下同様に続けます。空の環境に到達したら、「未束縛変数」エラーを通知します。
+
+@lisp
+(define (lookup-variable-value var env)
+  (define (env-loop env)
+    (define (scan vars vals)
+      (cond ((null? vars)
+             (env-loop
+              (enclosing-environment env)))
+            ((eq? var (car vars))
+             (car vals))
+            (else (scan (cdr vars)
+                        (cdr vals)))))
+    (if (eq? env the-empty-environment)
+        (error "Unbound variable" var)
+        (let ((frame (first-frame env)))
+          (scan (frame-variables frame)
+                (frame-values frame)))))
+  (env-loop env))
+@end lisp
+
+@noindent
+指定された環境内で変数を新しい値に設定するには、@code{lookup-variable-value} と同じように変数を走査し、それを見つけたら対応する値を変更します。
+
+@lisp
+(define (set-variable-value! var val env)
+  (define (env-loop env)
+    (define (scan vars vals)
+      (cond ((null? vars)
+             (env-loop
+              (enclosing-environment env)))
+            ((eq? var (car vars))
+             (set-car! vals val))
+            (else (scan (cdr vars)
+                        (cdr vals)))))
+    (if (eq? env the-empty-environment)
+        (error "Unbound variable: SET!" var)
+        (let ((frame (first-frame env)))
+          (scan (frame-variables frame)
+                (frame-values frame)))))
+  (env-loop env))
+@end lisp
+
+@noindent
+変数を定義するには、最初のフレームで変数の束縛を検索し、それが存在すれば束縛を変更します（@code{set-variable-value!} と同じように）。そのような束縛が存在しなければ、最初のフレームに追加します。
+
+@lisp
+(define (define-variable! var val env)
+  (let ((frame (first-frame env)))
+    (define (scan vars vals)
+      (cond ((null? vars)
+             (add-binding-to-frame!
+              var val frame))
+            ((eq? var (car vars))
+             (set-car! vals val))
+            (else (scan (cdr vars)
+                        (cdr vals)))))
+    (scan (frame-variables frame)
+          (frame-values frame))))
+@end lisp
+
+@noindent
+ここで説明した方法は、環境を表現する多くのもっともらしい方法の1つにすぎません。データ抽象を使って評価器の残りの部分を表現の詳細な選択から分離したので、望めば環境の表現を変更できます（@ref{Exercise 4.11} を参照）。製品品質のLispシステムでは、評価器の環境操作（特に変数の検索）の速度がシステムの性能に大きな影響を与えます。ここで説明した表現は、概念的には単純ですが効率的ではなく、通常は製品システムでは使用されません。@footnote{この表現（および @ref{Exercise 4.11} の変種）の欠点は、評価器が与えられた変数の束縛を見つけるために多くのフレームを検索しなければならない可能性があることです（このようなアプローチは @newterm{深い束縛} と呼ばれます）。この非効率性を避ける1つの方法は、@newterm{字句アドレス指定} と呼ばれる戦略を利用することです。これについては @ref{5.5.6} で説明します。}
+
+@quotation
+@strong{@anchor{Exercise 4.11}練習問題 4.11:} フレームを2つのリストの対として表現する代わりに、フレームを束縛のリストとして表現できます。各束縛は名前と値の対です。この代替表現を使用するように環境操作を書き直してください。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.12}練習問題 4.12:} 手続き @code{define-variable!}、@code{set-variable-value!}、@code{lookup-variable-value} は、環境構造を走査するためのより抽象的な手続きで表現できます。共通のパターンを捕捉する抽象を定義し、これらの抽象を使って3つの手続きを再定義してください。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.13}練習問題 4.13:} Schemeでは @code{define} によって変数の新しい束縛を作成できますが、束縛を取り除く方法は提供されていません。評価器のために、@code{make-unbound!} 式が評価される環境から与えられたシンボルの束縛を削除する特殊形式 @code{make-unbound!} を実装してください。この問題は完全には規定されていません。例えば、環境の最初のフレームの束縛だけを削除すべきでしょうか？仕様を完成させ、あなたが行う選択を正当化してください。
+@end quotation
+
+@node	4.1.4, 4.1.5, 4.1.3, 4.1
+@subsection 評価器をプログラムとして実行する
+
+評価器が与えられれば、Lisp式がどのように評価されるかのプロセスの記述（Lispで表現された）を手に入れたことになります。評価器をプログラムとして表現することの1つの利点は、プログラムを実行できることです。これにより、Lisp内で実行されている、Lisp自身が式をどのように評価するかの動作モデルが得られます。これは、この章で後ほど行うように、評価規則を実験するためのフレームワークとして役立ちます。
+
+評価器プログラムは、最終的には基本手続きの適用に式を還元します。したがって、評価器を実行するために必要なのは、基本手続きの適用をモデル化するために基礎となるLispシステムを呼び出す機構を作成することだけです。
+
+各基本手続き名には束縛が存在しなければなりません。そうすれば、@code{eval} が基本手続きの適用の演算子を評価するとき、@code{apply} に渡すオブジェクトを見つけられます。したがって、評価する式に現れうる基本手続きの名前に一意のオブジェクトを関連付ける大域環境を設定します。大域環境には、シンボル @code{true} と @code{false} の束縛も含まれ、評価される式で変数として使用できるようになります。
+
+@lisp
+(define (setup-environment)
+  (let ((initial-env
+         (extend-environment
+          (primitive-procedure-names)
+          (primitive-procedure-objects)
+          the-empty-environment)))
+    (define-variable! 'true true initial-env)
+    (define-variable! 'false false initial-env)
+    initial-env))
+
+(define the-global-environment
+  (setup-environment))
+@end lisp
+
+@noindent
+基本手続きオブジェクトをどのように表現するかは問題ではありません。@code{apply} が @code{primitive-procedure?} と @code{apply-primitive-procedure} を使ってそれらを識別して適用できる限り。私たちは基本手続きをシンボル @code{primitive} で始まり、その基本手続きを実装する基礎となるLispの手続きを含むリストとして表現することを選択しました。
+
+@lisp
+(define (primitive-procedure? proc)
+  (tagged-list? proc 'primitive))
+
+(define (primitive-implementation proc)
+  (cadr proc))
+@end lisp
+
+@noindent
+@code{Setup-environment} は、リストから基本手続きの名前と実装手続きを取得します：@footnote{基礎となるLispで定義された任意の手続きを、メタ循環評価器の基本手続きとして使用できます。評価器にインストールされる基本手続きの名前は、基礎となるLispでのその実装の名前と同じである必要はありません。ここで名前が同じなのは、メタ循環評価器がScheme自体を実装しているからです。したがって、例えば @code{(list 'first car)} や @code{(list 'square (lambda (x) (* x x)))} を @code{primitive-procedures} のリストに入れることができます。}
+
+@lisp

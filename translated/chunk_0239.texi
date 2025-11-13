@@ -1,0 +1,83 @@
+(define the-global-environment
+  (setup-environment))
+
+(driver-loop)
+
+@i{;;; M-Eval input:}
+(define (append x y)
+  (if (null? x)
+      y
+      (cons (car x) (append (cdr x) y))))
+
+@i{;;; M-Eval value:}
+@i{ok}
+
+@i{;;; M-Eval input:}
+(append '(a b c) '(d e f))
+
+@i{;;; M-Eval value:}
+@i{(a b c d e f)}
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 4.14}練習問題 4.14:} Eva Lu AtorとLouis Reasonerはそれぞれメタ循環評価器を実験しています。Evaは @code{map} の定義を入力し、それを使ういくつかのテストプログラムを実行します。それらはうまく動作します。対照的に、Louisはシステムバージョンの @code{map} をメタ循環評価器の基本手続きとしてインストールしました。彼がそれを試すと、ひどくうまくいきません。Evaの @code{map} が動作するのに、Louisの @code{map} が失敗する理由を説明してください。
+@end quotation
+
+@node	4.1.5, 4.1.6, 4.1.4, 4.1
+@subsection プログラムとしてのデータ
+
+Lisp式を評価するLispプログラムについて考えるとき、類推が役立つかもしれません。プログラムの意味の1つの操作的見方は、プログラムが抽象的な（おそらく無限に大きい）機械の記述であるということです。例えば、階乗を計算するおなじみのプログラムを考えてみましょう：
+
+@lisp
+(define (factorial n)
+  (if (= n 1)
+      1
+      (* (factorial (- n 1)) n)))
+@end lisp
+
+@noindent
+このプログラムを、減算、乗算、等価性のテストを行う部品と、2位置スイッチと別の階乗機械を含む機械の記述とみなすことができます（階乗機械は無限です。なぜなら、その中に別の階乗機械を含んでいるからです）。@ref{Figure 4.2} は、部品がどのように配線されているかを示す階乗機械のフロー図です。
+
+@float
+@anchor{Figure 4.2}
+@ifinfo
+@strong{図 4.2:} 抽象機械として見た階乗プログラム。
+
+@example
+    +-----------------------------------+
+    | factorial                   |1    |
+    |              |1             V     |
+    |              |           +-----+  |
+    |              V           | #   |  |
+    |           +-----+        |     |  |
+6 --------*-----|  =  |------->|   #-+-----> 720
+    |     |     +-----+        |  /  |  |
+    |     |                    | #   |  |
+    |     |                    +-----+  |
+    |     |                       ^     |
+    |     |                       |     |
+    |     |                    +--+--+  |
+    |     *------------------->|  *  |  |
+    |     |                    +-----+  |
+    |     V                       ^     |
+    |  +-----+    +-----------+   |     |
+    |  |  -  +--->| factorial +---+     |
+    |  +-----+    +-----------+         |
+    |     ^                             |
+    |     |1                            |
+    +-----------------------------------+
+@end example
+@end ifinfo
+@iftex
+@image{fig/chap4/Fig4.2a,143mm,,,.std.svg}
+@caption{@strong{図 4.2:} 抽象機械として見た階乗プログラム。}
+@end iftex
+@end float
+
+同様に、評価器を、機械の記述を入力として受け取る非常に特別な機械とみなすことができます。この入力が与えられると、評価器は記述された機械をエミュレートするように自身を設定します。例えば、@ref{Figure 4.3} に示すように、評価器に @code{factorial} の定義を与えると、評価器は階乗を計算できるようになります。
+
+@float
+@anchor{Figure 4.3}
+@ifinfo
+@strong{図 4.3:} 階乗機械をエミュレートする評価器。
+

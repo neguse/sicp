@@ -1,0 +1,107 @@
+Consider, for example, evaluating @code{(factorial 4)} using the following
+definition of @code{factorial}:
+
+@lisp
+(define (factorial n)
+  (if (= n 1)
+      1
+      (* (factorial (- n 1)) n)))
+@end lisp
+
+Each time @code{factorial} is called, the evaluator must determine that the
+body is an @code{if} expression and extract the predicate.  Only then can it
+evaluate the predicate and dispatch on its value.  Each time it evaluates the
+expression @code{(* (factorial (- n 1)) n)}, or the subexpressions
+@code{(factorial (- n 1))} and @code{(- n 1)}, the evaluator must perform the
+case analysis in @code{eval} to determine that the expression is an application,
+and must extract its operator and operands.  This analysis is expensive.
+Performing it repeatedly is wasteful.
+
+We can transform the evaluator to be significantly more efficient by arranging
+things so that syntactic analysis is performed only once.@footnote{This
+technique is an integral part of the compilation process, which we shall
+discuss in @ref{Chapter 5}.  Jonathan Rees wrote a Scheme interpreter like
+this in about 1982 for the T project (@ref{Rees and Adams 1982}).  @ref{Marc Feeley 1986}
+(see also @ref{Feeley and Lapalme 1987}) independently invented this technique in his master's
+thesis.} We split @code{eval}, which takes an expression and an environment,
+into two parts.  The procedure @code{analyze} takes only the expression.  It
+performs the syntactic analysis and returns a new procedure, the
+@newterm{execution procedure}, that encapsulates the work to be done in
+executing the analyzed expression.  The execution procedure takes an environment
+as its argument and completes the evaluation.  This saves work because
+@code{analyze} will be called only once on an expression, while the execution
+procedure may be called many times.
+
+With the separation into analysis and execution, @code{eval} now becomes
+
+@lisp
+(define (eval exp env)
+  ((analyze exp) env))
+@end lisp
+
+@noindent
+The result of calling @code{analyze} is the execution procedure to be applied
+to the environment.  The @code{analyze} procedure is the same case analysis as
+performed by the original @code{eval} of @ref{4.1.1}, except that the
+procedures to which we dispatch perform only analysis, not full evaluation:
+
+@lisp
+(define (analyze exp)
+  (cond ((self-evaluating? exp)
+         (analyze-self-evaluating exp))
+        ((quoted? exp)
+         (analyze-quoted exp))
+        ((variable? exp)
+         (analyze-variable exp))
+        ((assignment? exp)
+         (analyze-assignment exp))
+        ((definition? exp)
+         (analyze-definition exp))
+        ((if? exp)
+         (analyze-if exp))
+        ((lambda? exp)
+         (analyze-lambda exp))
+        ((begin? exp)
+         (analyze-sequence
+          (begin-actions exp)))
+        ((cond? exp)
+         (analyze (cond->if exp)))
+        ((application? exp)
+         (analyze-application exp))
+        (else
+         (error "Unknown expression
+                 type: ANALYZE"
+                exp))))
+@end lisp
+
+@noindent
+Here is the simplest syntactic analysis procedure, which handles
+self-evaluating expressions.  It returns an execution procedure that ignores
+its environment argument and just returns the expression:
+
+@lisp
+(define (analyze-self-evaluating exp)
+  (lambda (env) exp))
+@end lisp
+
+@noindent
+For a quoted expression, we can gain a little efficiency by extracting the text
+of the quotation only once, in the analysis phase, rather than in the execution
+phase.
+
+@lisp
+(define (analyze-quoted exp)
+  (let ((qval (text-of-quotation exp)))
+    (lambda (env) qval)))
+@end lisp
+
+@noindent
+Looking up a variable value must still be done in the execution phase, since
+this depends upon knowing the environment.@footnote{@footnoteref{footnote-6b}}
+
+@lisp
+(define (analyze-variable exp)
+  (lambda (env)
+    (lookup-variable-value exp env)))
+@end lisp
+

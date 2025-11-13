@@ -1,0 +1,70 @@
+@strong{@anchor{Exercise 4.7}練習問題 4.7:} @code{Let*} は @code{let} に似ていますが、@code{let*} の変数の束縛が左から右に順次実行され、各束縛はすべての前の束縛が可視な環境で行われる点が異なります。例えば
+
+@lisp
+(let* ((x 3)
+       (y (+ x 2))
+       (z (+ x y 5)))
+  (* x z))
+@end lisp
+
+@noindent
+は 39 を返します。@code{let*} 式がどのようにネストした @code{let} 式の集合として書き直せるかを説明し、この変換を実行する手続き @code{let*->nested-lets} を書いてください。すでに @code{let} を実装していて（@ref{Exercise 4.6}）、評価器を拡張して @code{let*} を扱いたい場合、@code{eval} に次のような動作をする節を追加するだけで十分でしょうか？
+
+@lisp
+(eval (let*->nested-lets exp) env)
+@end lisp
+
+@noindent
+それとも、@code{let*} を非派生式の形で明示的に展開しなければならないでしょうか？
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.8}練習問題 4.8:} 「名前付き @code{let}」は @code{let} の変種で、次の形式を持ちます
+
+@lisp
+(let ⟨@var{var}⟩ ⟨@var{bindings}⟩ ⟨@var{body}⟩)
+@end lisp
+
+@code{⟨}@var{bindings}@code{⟩} と @code{⟨}@var{body}@code{⟩} は通常の @code{let} と同じですが、@code{⟨}@var{var}@code{⟩} が @code{⟨}@var{body}@code{⟩} 内で、本体が @code{⟨}@var{body}@code{⟩} でパラメータが @code{⟨}@var{bindings}@code{⟩} 内の変数である手続きに束縛される点が異なります。したがって、@code{⟨}@var{var}@code{⟩} という名前の手続きを呼び出すことで、@code{⟨}@var{body}@code{⟩} を繰り返し実行できます。例えば、反復的なフィボナッチ手続き（@ref{1.2.2}）は、名前付き @code{let} を使って次のように書き直せます：
+
+@lisp
+(define (fib n)
+  (let fib-iter ((a 1) (b 0) (count n))
+    (if (= count 0)
+        b
+        (fib-iter (+ a b)
+                  a
+                  (- count 1)))))
+@end lisp
+
+@ref{Exercise 4.6} の @code{let->combination} を修正して、名前付き @code{let} もサポートするようにしてください。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.9}練習問題 4.9:} 多くの言語は @code{do}、@code{for}、@code{while}、@code{until} などのさまざまな反復構造をサポートしています。Schemeでは、反復プロセスは通常の手続き呼び出しで表現できるため、特別な反復構造は計算能力において本質的な利点をもたらしません。一方で、そのような構造はしばしば便利です。いくつかの反復構造を設計し、それらの使用例を示し、派生式としてそれらをどのように実装するかを示してください。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.10}練習問題 4.10:} データ抽象を使用することで、評価される言語の特定の構文から独立した @code{eval} 手続きを書くことができました。これを説明するために、このセクションの手続きを修正してSchemeの新しい構文を設計して実装してください。ただし @code{eval} や @code{apply} は変更しないでください。
+@end quotation
+
+@node	4.1.3, 4.1.4, 4.1.2, 4.1
+@subsection 評価器のデータ構造
+
+評価器の実装は、式の外部構文を定義することに加えて、プログラムの実行の一部として評価器が内部で操作するデータ構造（手続きや環境の表現、真と偽の表現など）も定義しなければなりません。
+
+@subsubheading 述語のテスト
+
+条件式については、明示的な @code{false} オブジェクトでないものはすべて真として受け入れます。
+
+@lisp
+(define (true? x)
+  (not (eq? x false)))
+
+(define (false? x)
+  (eq? x false))
+@end lisp
+
+@subsubheading 手続きの表現
+
+基本手続きを扱うために、次の手続きが利用可能であると仮定します：

@@ -1,0 +1,79 @@
+
+@itemize @bullet
+
+@item
+@code{(apply-primitive-procedure ⟨@var{proc}⟩ ⟨@var{args}⟩)}
+
+@noindent
+リスト @code{⟨}@var{args}@code{⟩} 内の引数値に与えられた基本手続きを適用し、適用の結果を返します。
+
+@item
+@code{(primitive-procedure? ⟨@var{proc}⟩)}
+
+@noindent
+@code{⟨}@var{proc}@code{⟩} が基本手続きかどうかをテストします。
+
+@end itemize
+
+@noindent
+基本手続きを扱うこれらの機構については @ref{4.1.4} でさらに説明します。
+
+複合手続きは、パラメータ、手続き本体、環境からコンストラクタ @code{make-procedure} を使って構築されます：
+
+@lisp
+(define (make-procedure parameters body env)
+  (list 'procedure parameters body env))
+(define (compound-procedure? p)
+  (tagged-list? p 'procedure))
+(define (procedure-parameters p) (cadr p))
+(define (procedure-body p) (caddr p))
+(define (procedure-environment p) (cadddr p))
+@end lisp
+
+@subsubheading 環境に対する操作
+
+評価器は環境を操作するための操作を必要とします。@ref{3.2} で説明したように、環境はフレームの列であり、各フレームは変数とそれに対応する値を関連付ける束縛の表です。環境を操作するために次の操作を使用します：
+
+@itemize @bullet
+
+@item
+@code{(lookup-variable-value ⟨@var{var}⟩ ⟨@var{env}⟩)}
+
+環境 @code{⟨}@var{env}@code{⟩} 内でシンボル @code{⟨}@var{var}@code{⟩} に束縛されている値を返します。変数が未束縛の場合はエラーを通知します。
+
+@item
+@code{(extend-environment ⟨@var{variables}⟩ ⟨@var{values}⟩ ⟨@var{base-env}⟩)}
+
+リスト @code{⟨}@var{variables}@code{⟩} 内のシンボルがリスト @code{⟨}@var{values}@code{⟩} 内の対応する要素に束縛される新しいフレームからなる新しい環境を返します。外側の環境は環境 @code{⟨}@var{base-env}@code{⟩} です。
+
+@item
+@code{(define-variable! ⟨@var{var}⟩ ⟨@var{value}⟩ ⟨@var{env}⟩)}
+
+環境 @code{⟨}@var{env}@code{⟩} の最初のフレームに、変数 @code{⟨}@var{var}@code{⟩} を値 @code{⟨}@var{value}@code{⟩} に関連付ける新しい束縛を追加します。
+
+@item
+@code{(set-variable-value! ⟨@var{var}⟩ ⟨@var{value}⟩ ⟨@var{env}⟩)}
+
+環境 @code{⟨}@var{env}@code{⟩} 内の変数 @code{⟨}@var{var}@code{⟩} の束縛を変更して、変数が今や値 @code{⟨}@var{value}@code{⟩} に束縛されるようにします。変数が未束縛の場合はエラーを通知します。
+
+@end itemize
+
+@noindent
+これらの操作を実装するために、環境をフレームのリストとして表現します。環境の外側の環境は、リストの @code{cdr} です。空の環境は単に空のリストです。
+
+@lisp
+(define (enclosing-environment env) (cdr env))
+(define (first-frame env) (car env))
+(define the-empty-environment '())
+@end lisp
+
+@noindent
+環境の各フレームは、2つのリストの対として表現されます：そのフレームで束縛された変数のリストと、関連する値のリスト。@footnote{フレームは次のコードでは実際にはデータ抽象ではありません：@code{Set-variable-value!} と @code{define-variable!} は @code{set-car!} を使ってフレーム内の値を直接修正します。フレーム手続きの目的は、環境操作手続きを読みやすくすることです。}
+
+@lisp
+(define (make-frame variables values)
+  (cons variables values))
+(define (frame-variables frame) (car frame))
+(define (frame-values frame) (cdr frame))
+(define (add-binding-to-frame! var val frame)
+  (set-car! frame (cons var (car frame)))

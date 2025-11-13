@@ -1,0 +1,91 @@
+     1→  (define (add-complex z1 z2)
+     2→    (make-from-real-imag
+     3→     (+ (real-part z1) (real-part z2))
+     4→     (+ (imag-part z1) (imag-part z2))))
+     5→  (define (sub-complex z1 z2)
+     6→    (make-from-real-imag
+     7→     (- (real-part z1) (real-part z2))
+     8→     (- (imag-part z1) (imag-part z2))))
+     9→  (define (mul-complex z1 z2)
+    10→    (make-from-mag-ang
+    11→     (* (magnitude z1) (magnitude z2))
+    12→     (+ (angle z1) (angle z2))))
+    13→  (define (div-complex z1 z2)
+    14→    (make-from-mag-ang
+    15→     (/ (magnitude z1) (magnitude z2))
+    16→     (- (angle z1) (angle z2))))
+    17→  @r{;; interface to rest of the system}
+    18→  (define (tag z) (attach-tag 'complex z))
+    19→  (put 'add '(complex complex)
+    20→       (lambda (z1 z2)
+    21→         (tag (add-complex z1 z2))))
+    22→  (put 'sub '(complex complex)
+    23→       (lambda (z1 z2)
+    24→         (tag (sub-complex z1 z2))))
+    25→  (put 'mul '(complex complex)
+    26→       (lambda (z1 z2)
+    27→         (tag (mul-complex z1 z2))))
+    28→  (put 'div '(complex complex)
+    29→       (lambda (z1 z2)
+    30→         (tag (div-complex z1 z2))))
+    31→  (put 'make-from-real-imag 'complex
+    32→       (lambda (x y)
+    33→         (tag (make-from-real-imag x y))))
+    34→  (put 'make-from-mag-ang 'complex
+    35→       (lambda (r a)
+    36→         (tag (make-from-mag-ang r a))))
+    37→  'done)
+    38→@end lisp
+    39→
+    40→@noindent
+    41→複素数パッケージの外部のプログラムは、実部と虚部から、または絶対値と偏角から複素数を構成できます。もともと直交座標パッケージと極座標パッケージで定義された基礎となる手続きが、複素数パッケージにエクスポートされ、そこから
+    42→外部世界にエクスポートされる方法に注目してください。
+    43→
+    44→@lisp
+    45→(define (make-complex-from-real-imag x y)
+    46→  ((get 'make-from-real-imag 'complex) x y))
+    47→(define (make-complex-from-mag-ang r a)
+    48→  ((get 'make-from-mag-ang 'complex) r a))
+    49→@end lisp
+    50→
+    51→@noindent
+    52→ここにあるのは二段階のタグシステムです。典型的な複素数、たとえば直交座標形式の
+    53→@math{{3 + 4i}}は、@ref{図2.24}に示されるように表現されます。
+    54→外側のタグ（@code{complex}）は、数値を複素数パッケージに向けるために使用されます。複素数パッケージ内に入ると、次のタグ
+    55→（@code{rectangular}）が数値を直交座標パッケージに向けるために使用されます。
+    56→大規模で複雑なシステムには多くのレベルがあり、各レベルはジェネリック演算によって次のレベルとインターフェースされているかもしれません。データオブジェクトが
+    57→「下方」に渡されるにつれて、それを適切なパッケージに向けるために使用される外側のタグは（@code{contents}を適用することによって）剥ぎ取られ、次のレベルのタグ
+    58→（もしあれば）がさらなるディスパッチに使用されるために見えるようになります。
+    59→
+    60→@float
+    61→@anchor{Figure 2.24}
+    62→@ifinfo
+    63→@quotation
+    64→@strong{図2.24:} 直交座標形式での@math{{3 + 4i}}の表現。
+    65→
+    66→@example
+    67→     +---+---+     +---+---+     +---+---+
+    68→---->| * | *-+---->| * | *-+---->| * | * |
+    69→     +-|-+---+     +-|-+---+     +-|-+-|-+
+    70→       |             |             |   |
+    71→       V             V             V   V
+    72→ +---------+   +-------------+  +---+ +---+
+    73→ | complex |   | rectangular |  | 3 | | 4 |
+    74→ +---------+   +-------------+  +---+ +---+
+    75→@end example
+    76→@end quotation
+    77→@end ifinfo
+    78→@iftex
+    79→@image{fig/chap2/Fig2.24d,108mm,,,.std.svg}
+    80→@caption{@strong{図2.24:} 直交座標形式での@math{{3 + 4i}}の表現。}
+    81→@end iftex
+    82→@end float
+    83→
+    84→@noindent
+    85→上記のパッケージでは、@code{add-rat}、@code{add-complex}、およびその他の算術手続きを、最初に書かれたとおりに正確に使用しました。しかし、これらの定義が異なるインストール手続きの内部にあれば、互いに区別される名前を持つ必要はなくなります。両方のパッケージで、単に
+    86→@code{add}、@code{sub}、@code{mul}、@code{div}と名付けることができます。
+    87→
+    88→@quotation
+    89→@strong{@anchor{Exercise 2.77}練習問題2.77:} Louis Reasonerは、
+    90→@code{z}が@ref{図2.24}に示されているオブジェクトである式@code{(magnitude z)}を評価しようとしています。彼は、答え5を得ることを期待していましたが、驚いたことに
+    91→

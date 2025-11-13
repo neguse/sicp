@@ -1,0 +1,73 @@
+     1→次に、多項式に対する算術を実行する方法を考える必要があります。この
+     2→単純なシステムでは、加算と乗算のみを考慮します。さらに、
+     3→結合される2つの多項式は同じ不定元を持つ必要があると主張します。
+     4→
+     5→データ抽象化の馴染みのある規律に従って、システムの設計にアプローチします。
+     6→@newterm{poly}と呼ばれるデータ構造を使用して多項式を表現します。これは変数と項の集合で構成されます。polyからそれらの部分を抽出するセレクター@code{variable}と@code{term-list}、および与えられた変数と項リストからpolyを組み立てるコンストラクター@code{make-poly}があると仮定します。変数は単なるシンボルなので、@ref{2.3.2}の@code{same-variable?}手続きを使用して変数を比較できます。次の手続きは、polyの加算と乗算を定義します：
+     7→
+     8→@lisp
+     9→(define (add-poly p1 p2)
+    10→  (if (same-variable? (variable p1)
+    11→                      (variable p2))
+    12→      (make-poly
+    13→       (variable p1)
+    14→       (add-terms (term-list p1)
+    15→                  (term-list p2)))
+    16→      (error "Polys not in same var:
+    17→              ADD-POLY"
+    18→             (list p1 p2))))
+    19→
+    20→(define (mul-poly p1 p2)
+    21→  (if (same-variable? (variable p1)
+    22→                      (variable p2))
+    23→      (make-poly
+    24→       (variable p1)
+    25→       (mul-terms (term-list p1)
+    26→                  (term-list p2)))
+    27→      (error "Polys not in same var:
+    28→              MUL-POLY"
+    29→             (list p1 p2))))
+    30→@end lisp
+    31→
+    32→@noindent
+    33→多項式をジェネリック算術システムに組み込むには、型タグを提供する必要があります。タグ@code{polynomial}を使用し、演算テーブルにタグ付き多項式に対する適切な演算をインストールします。すべてのコードを、@ref{2.5.1}のものと同様の多項式パッケージのインストール手続きに埋め込みます：
+    34→
+    35→@lisp
+    36→(define (install-polynomial-package)
+    37→  @r{;; internal procedures}
+    38→  @r{;; representation of poly}
+    39→  (define (make-poly variable term-list)
+    40→    (cons variable term-list))
+    41→  (define (variable p) (car p))
+    42→  (define (term-list p) (cdr p))
+    43→  ⟨@emph{procedures @code{same-variable?}
+    44→   and @code{variable?} from section 2.3.2}⟩
+    45→
+    46→  @r{;; representation of terms and term lists}
+    47→  ⟨@emph{procedures @code{adjoin-term} @r{…} @code{coeff}
+    48→  from text below}⟩
+    49→
+    50→  (define (add-poly p1 p2) @r{…})
+    51→  ⟨@emph{procedures used by @code{add-poly}}⟩
+    52→  (define (mul-poly p1 p2) @r{…})
+    53→  ⟨@emph{procedures used by @code{mul-poly}}⟩
+    54→
+    55→  @r{;; interface to rest of the system}
+    56→  (define (tag p) (attach-tag 'polynomial p))
+    57→  (put 'add '(polynomial polynomial)
+    58→       (lambda (p1 p2)
+    59→         (tag (add-poly p1 p2))))
+    60→  (put 'mul '(polynomial polynomial)
+    61→       (lambda (p1 p2)
+    62→         (tag (mul-poly p1 p2))))
+    63→  (put 'make 'polynomial
+    64→       (lambda (var terms)
+    65→         (tag (make-poly var terms))))
+    66→  'done)
+    67→@end lisp
+    68→
+    69→@noindent
+    70→多項式の加算は項ごとに実行されます。同じ次数（つまり、不定元の同じ累乗）の項を結合する必要があります。これは、係数が被加数の係数の和である同じ次数の新しい項を形成することによって行われます。一方の被加数に同じ次数の項がない他方の被加数の項は、単に構成されている和の多項式に累積されます。
+    71→
+    72→項リストを操作するために、空の項リストを返すコンストラクター@code{the-empty-termlist}と、新しい項を項リストに追加するコンストラクター@code{adjoin-term}があると仮定します。また、与えられた項リストが空かどうかを判定する述語@code{empty-termlist?}、項リストから最高次の項を抽出するセレクター@code{first-term}、最高次の項を除くすべてを返すセレクター@code{rest-terms}があると仮定します。項を操作するために、与えられた次数と係数を持つ項を構成するコンストラクター@code{make-term}と、それぞれ項の次数と係数を返すセレクター@code{order}と@code{coeff}があると仮定します。これらの演算により、項と項リストの両方をデータ抽象化として考えることができ、その具体的な表現については別途心配できます。
+    73→

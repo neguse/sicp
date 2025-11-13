@@ -1,0 +1,95 @@
+     1→つまり、我々の言語の基本的な数値です。これらには
+     2→@code{scheme-number}というシンボルでタグ付けします。このパッケージの算術演算は
+     3→基本的な算術手続き（したがって、タグなしの数値を扱うための追加の手続きを定義する必要はありません）です。これらの演算はそれぞれ2つの
+     4→引数を取るため、リスト
+     5→@code{(scheme-number scheme-number)}をキーとしてテーブルにインストールされます：
+     6→
+     7→@lisp
+     8→(define (install-scheme-number-package)
+     9→  (define (tag x)
+    10→    (attach-tag 'scheme-number x))
+    11→  (put 'add '(scheme-number scheme-number)
+    12→       (lambda (x y) (tag (+ x y))))
+    13→  (put 'sub '(scheme-number scheme-number)
+    14→       (lambda (x y) (tag (- x y))))
+    15→  (put 'mul '(scheme-number scheme-number)
+    16→       (lambda (x y) (tag (* x y))))
+    17→  (put 'div '(scheme-number scheme-number)
+    18→       (lambda (x y) (tag (/ x y))))
+    19→  (put 'make 'scheme-number
+    20→       (lambda (x) (tag x)))
+    21→  'done)
+    22→@end lisp
+    23→
+    24→@noindent
+    25→Scheme-numberパッケージのユーザーは、次の手続きによって（タグ付きの）通常の数値を作成します：
+    26→
+    27→@lisp
+    28→(define (make-scheme-number n)
+    29→  ((get 'make 'scheme-number) n))
+    30→@end lisp
+    31→
+    32→@noindent
+    33→ジェネリック算術システムのフレームワークが整ったので、
+    34→新しい種類の数値を容易に含めることができます。次に示すのは、有理数演算を実行するパッケージです。加法性の利点として、@ref{2.1.1}の有理数コードを変更せずに
+    35→パッケージ内の内部手続きとして使用できることに注目してください：
+    36→
+    37→@lisp
+    38→(define (install-rational-package)
+    39→  @r{;; internal procedures}
+    40→  (define (numer x) (car x))
+    41→  (define (denom x) (cdr x))
+    42→  (define (make-rat n d)
+    43→    (let ((g (gcd n d)))
+    44→      (cons (/ n g) (/ d g))))
+    45→  (define (add-rat x y)
+    46→    (make-rat (+ (* (numer x) (denom y))
+    47→                 (* (numer y) (denom x)))
+    48→              (* (denom x) (denom y))))
+    49→  (define (sub-rat x y)
+    50→    (make-rat (- (* (numer x) (denom y))
+    51→                 (* (numer y) (denom x)))
+    52→              (* (denom x) (denom y))))
+    53→  (define (mul-rat x y)
+    54→    (make-rat (* (numer x) (numer y))
+    55→              (* (denom x) (denom y))))
+    56→  (define (div-rat x y)
+    57→    (make-rat (* (numer x) (denom y))
+    58→              (* (denom x) (numer y))))
+    59→  @r{;; interface to rest of the system}
+    60→  (define (tag x) (attach-tag 'rational x))
+    61→  (put 'add '(rational rational)
+    62→       (lambda (x y) (tag (add-rat x y))))
+    63→  (put 'sub '(rational rational)
+    64→       (lambda (x y) (tag (sub-rat x y))))
+    65→  (put 'mul '(rational rational)
+    66→       (lambda (x y) (tag (mul-rat x y))))
+    67→  (put 'div '(rational rational)
+    68→       (lambda (x y) (tag (div-rat x y))))
+    69→  (put 'make 'rational
+    70→       (lambda (n d) (tag (make-rat n d))))
+    71→  'done)
+    72→
+    73→(define (make-rational n d)
+    74→  ((get 'make 'rational) n d))
+    75→@end lisp
+    76→
+    77→@noindent
+    78→複素数を扱うために、タグ
+    79→@code{complex}を使用して、同様のパッケージをインストールできます。パッケージを作成する際に、直交座標パッケージと極座標パッケージによって定義された演算
+    80→@code{make-from-real-imag}と@code{make-from-mag-ang}をテーブルから抽出します。加法性により、@ref{2.4.1}の同じ@code{add-complex}、@code{sub-complex}、
+    81→@code{mul-complex}、@code{div-complex}手続きを内部演算として使用できます。
+    82→
+    83→@lisp
+    84→(define (install-complex-package)
+    85→  @r{;; imported procedures from rectangular}
+    86→  @r{;; and polar packages}
+    87→  (define (make-from-real-imag x y)
+    88→    ((get 'make-from-real-imag
+    89→          'rectangular)
+    90→     x y))
+    91→  (define (make-from-mag-ang r a)
+    92→    ((get 'make-from-mag-ang 'polar)
+    93→     r a))
+    94→  @r{;; internal procedures}
+    95→

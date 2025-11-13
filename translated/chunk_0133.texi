@@ -1,0 +1,80 @@
+     1→
+     2→次に示すのは、2つの多項式の和の項リストを構成する手続きです：@footnote{この演算は、@ref{練習問題2.62}で開発した順序付き@code{union-set}演算と非常によく似ています。実際、多項式の項を不定元の累乗に従って順序付けられた集合と考えると、和を生成する項リストを生成するプログラムは@code{union-set}とほぼ同一です。}
+     3→
+     4→@lisp
+     5→(define (add-terms L1 L2)
+     6→  (cond ((empty-termlist? L1) L2)
+     7→        ((empty-termlist? L2) L1)
+     8→        (else
+     9→         (let ((t1 (first-term L1))
+    10→               (t2 (first-term L2)))
+    11→           (cond ((> (order t1) (order t2))
+    12→                  (adjoin-term
+    13→                   t1
+    14→                   (add-terms (rest-terms L1)
+    15→                              L2)))
+    16→                 ((< (order t1) (order t2))
+    17→                  (adjoin-term
+    18→                   t2
+    19→                   (add-terms
+    20→                    L1
+    21→                    (rest-terms L2))))
+    22→                 (else
+    23→                  (adjoin-term
+    24→                   (make-term
+    25→                    (order t1)
+    26→                    (add (coeff t1)
+    27→                         (coeff t2)))
+    28→                   (add-terms
+    29→                    (rest-terms L1)
+    30→                    (rest-terms L2)))))))))
+    31→@end lisp
+    32→
+    33→@noindent
+    34→ここで注目すべき最も重要な点は、結合される項の係数を加算するためにジェネリック加算手続き@code{add}を使用したことです。これは、以下に見るように、強力な結果をもたらします。
+    35→
+    36→2つの項リストを乗算するために、最初のリストの各項を他方のリストのすべての項で乗算します。これには、与えられた項を与えられた項リストのすべての項で乗算する@code{mul-term-by-all-terms}を繰り返し使用します。結果として得られる項リスト（最初のリストの各項に対して1つ）は和に累積されます。
+    37→2つの項を乗算すると、次数が因数の次数の和であり、係数が因数の係数の積である項が形成されます：
+    38→
+    39→@lisp
+    40→(define (mul-terms L1 L2)
+    41→  (if (empty-termlist? L1)
+    42→      (the-empty-termlist)
+    43→      (add-terms
+    44→       (mul-term-by-all-terms
+    45→        (first-term L1) L2)
+    46→       (mul-terms (rest-terms L1) L2))))
+    47→
+    48→(define (mul-term-by-all-terms t1 L)
+    49→  (if (empty-termlist? L)
+    50→      (the-empty-termlist)
+    51→      (let ((t2 (first-term L)))
+    52→        (adjoin-term
+    53→         (make-term
+    54→          (+ (order t1) (order t2))
+    55→          (mul (coeff t1) (coeff t2)))
+    56→         (mul-term-by-all-terms
+    57→          t1
+    58→          (rest-terms L))))))
+    59→@end lisp
+    60→
+    61→@noindent
+    62→これが多項式の加算と乗算のすべてです。ジェネリック手続き@code{add}と@code{mul}を使用して項に対して演算するため、我々の多項式パッケージは、ジェネリック算術パッケージによって知られている任意の型の係数を自動的に処理できます。@ref{2.5.2}で説明したような型変換メカニズムを含めると、次のような異なる係数型の多項式に対する演算も自動的に処理できます
+    63→@ifinfo
+    64→
+    65→@example
+    66→                         /        2                 \
+    67→[3x^2 + (2 + 3i)x + 7] * | x^4 + --- x^2 + (5 + 3i) |
+    68→                         \        3                 /
+    69→@end example
+    70→
+    71→@end ifinfo
+    72→@tex
+    73→\[ % :52:
+    74→  {[3x^2 + (2 + 3i)x + 7] \cdot} {\left[ x^4 + {2\over3} x^2 + (5 + 3i) \right].}  \]
+    75→@end tex
+    76→多項式の加算と乗算の手続き@code{add-poly}と@code{mul-poly}を型@code{polynomial}の@code{add}と@code{mul}演算としてジェネリック算術システムにインストールしたため、我々のシステムは次のような多項式演算も自動的に処理できます
+    77→@ifinfo
+    78→
+    79→@example
+    80→

@@ -1,0 +1,94 @@
+@quotation
+@strong{@anchor{Exercise 1.30}Exercise 1.30:} 上の@code{sum}手続きは線形再帰を
+生成する。和が反復的に実行されるように手続きを書き直すことができる。次の
+定義の欠けている式を埋めることによって、これを行う方法を示せ。
+
+@lisp
+(define (sum term a next b)
+  (define (iter a result)
+    (if ⟨??⟩
+        ⟨??⟩
+        (iter ⟨??⟩ ⟨??⟩)))
+  (iter ⟨??⟩ ⟨??⟩))
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.31}Exercise 1.31:}
+
+@enumerate a
+
+@item
+@code{sum}手続きは、高階手続きとして捉えることができる類似の抽象化の膨大な
+数の中で最も単純なものに過ぎない。@footnote{@ref{Exercise 1.31}から
+@ref{Exercise 1.33}までの意図は、適切な抽象化を使って多くの一見異なる演算を
+統合することによって得られる表現力を実証することである。しかし、蓄積と
+フィルタリングはエレガントなアイデアであるが、これらの抽象化のための
+適切な結合手段を提供するデータ構造をまだ持っていないため、この時点で
+それらを使うには多少手を縛られている。これらのアイデアは@ref{2.2.3}で、
+フィルタとアキュムレータを結合してさらに強力な抽象化を構築するための
+インターフェースとして@newterm{シーケンス}を使う方法を示すときに戻る。
+これらの方法がプログラムを設計するための強力でエレガントなアプローチ
+として本当に真価を発揮する様子をそこで見る。}与えられた範囲の点における
+関数の値の積を返す@code{product}という類似の手続きを書け。@code{product}の
+観点で@code{factorial}を定義する方法を示せ。また、@code{product}を使って
+次の公式で@math{\pi}の近似値を計算せよ。@footnote{この公式は17世紀の
+イギリスの数学者John Wallisによって発見された。}
+@ifinfo
+
+@example
+pi   2 * 4 * 4 * 6 * 6 * 8 ...
+-- = -------------------------
+ 4   3 * 3 * 5 * 5 * 7 * 7 ...
+@end example
+
+@end ifinfo
+@tex
+
+\[ % :21:
+
+\frac{\pi}{4} \,=\, {\frac{2\cdot 4\cdot 4\cdot 6\cdot 6\cdot 8\cdot\cdots}
+                     {3\cdot 3\cdot 5\cdot 5\cdot 7\cdot 7\cdot\cdots}.}
+\]
+
+@end tex
+@item
+@code{product}手続きが再帰プロセスを生成する場合、反復プロセスを生成する
+ものを書け。反復プロセスを生成する場合、再帰プロセスを生成するものを書け。
+
+@end enumerate
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.32}Exercise 1.32:}
+
+@enumerate a
+
+@item
+@code{sum}と@code{product}（@ref{Exercise 1.31}）が両方とも、何らかの一般的な
+蓄積関数を使って項の集合を結合する@code{accumulate}と呼ばれるさらに一般的な
+概念の特殊ケースであることを示せ。
+
+@lisp
+(accumulate
+ combiner null-value term a next b)
+@end lisp
+
+@code{Accumulate}は、@code{sum}と@code{product}と同じ項と範囲の仕様を引数
+として取り、現在の項が先行する項の蓄積とどのように結合されるべきかを指定する
+@code{combiner}手続き（2引数の）と、項が尽きたときに使用すべき基本値を指定する
+@code{null-value}とともに取る。@code{accumulate}を書き、@code{sum}と
+@code{product}の両方が@code{accumulate}への単純な呼び出しとして定義できる
+ことを示せ。
+
+@item
+@code{accumulate}手続きが再帰プロセスを生成する場合、反復プロセスを生成する
+ものを書け。反復プロセスを生成する場合、再帰プロセスを生成するものを書け。
+
+@end enumerate
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.33}Exercise 1.33:} 結合される項に@newterm{フィルタ}
+の概念を導入することによって、@code{accumulate}（@ref{Exercise 1.32}）の
+さらに一般的なバージョンを得ることができる。つまり、

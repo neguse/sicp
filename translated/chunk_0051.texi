@@ -1,0 +1,187 @@
+不動点を得るまで繰り返し@code{cos}ボタンを押す。}
+
+@lisp
+(fixed-point cos 1.0)
+@i{.7390822985224023}
+@end lisp
+
+@noindent
+同様に、方程式@math{{y = \sin y + \cos y}}の解を見つけることができる。
+
+@lisp
+(fixed-point (lambda (y) (+ (sin y) (cos y)))
+             1.0)
+@i{1.2587315962971173}
+@end lisp
+
+@noindent
+不動点プロセスは、@ref{1.1.7}で平方根を見つけるために使ったプロセスを
+思い起こさせる。両方とも、結果が何らかの基準を満たすまで推測を繰り返し
+改善するというアイデアに基づいている。実際、平方根計算を不動点探索として
+容易に定式化できる。ある数@math{x}の平方根を計算するには、@math{{y^2 = x}}
+となる@math{y}を見つける必要がある。この方程式を等価な形式
+@math{{y = x / y}}にすると、関数@footnote{@math{\mapsto}（「写像する」と
+発音）は数学者が@code{lambda}を書く方法である。@math{{y \mapsto x / y}}は
+@code{(lambda (y) (/ x y))}を意味する。つまり、@math{y}での値が@math{{x / y}}
+である関数である。}@math{{y \mapsto x / y}}の不動点を探していることがわかり、
+したがって平方根を次のように計算しようとすることができる。
+
+@lisp
+(define (sqrt x)
+  (fixed-point (lambda (y) (/ x y))
+               1.0))
+@end lisp
+
+@noindent
+残念ながら、この不動点探索は収束しない。初期推測@math{y_1}を考えよ。
+次の推測は@math{{y_2 = x / y_1}}であり、次の推測は@math{y_3 = {x / y_2} =
+{x / (x / y_1)} = y_1}である。これにより、2つの推測@math{y_1}と@math{y_2}が
+答えの周りで振動しながら何度も繰り返される無限ループになる。
+
+そのような振動を制御する一つの方法は、推測があまり変化しないようにすることで
+ある。答えは常に推測@math{y}と@math{{x / y}}の間にあるため、@math{y}と
+@math{{x / y}}を平均することによって、@math{{x / y}}ほど@math{y}から遠くない
+新しい推測を作ることができる。したがって、@math{y}の次の推測は
+@math{{x / y}}の代わりに@math{{{1\over2}(y + x / y)}}である。そのような
+推測の列を作るプロセスは、単に@math{y \mapsto {{1\over2}(y + x / y)}}の
+不動点を探すプロセスである。
+
+@lisp
+(define (sqrt x)
+  (fixed-point
+   (lambda (y) (average y (/ x y)))
+   1.0))
+@end lisp
+
+@noindent
+（@math{y = {{1\over2}(y + x / y)}}は方程式@math{{y = x / y}}の単純な変換で
+ある。それを導出するには、方程式の両辺に@math{y}を加えて2で割る。）
+
+この修正により、平方根手続きは機能する。実際、定義を解きほぐすと、ここで
+生成される平方根への近似の列は、@ref{1.1.7}の元の平方根手続きが生成する
+ものと正確に同じであることがわかる。解への連続した近似を平均化するこの
+アプローチは、@newterm{平均緩和}と呼ぶ技法であり、しばしば不動点探索の
+収束を助ける。
+
+@quotation
+@strong{@anchor{Exercise 1.35}Exercise 1.35:} 黄金比@math{\varphi}
+（@ref{1.2.2}）が変換@math{{x \mapsto 1 + 1 / x}}の不動点であることを示し、
+この事実を使って@code{fixed-point}手続きによって@math{\varphi}を計算せよ。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.36}Exercise 1.36:} @code{fixed-point}を修正して、
+@ref{Exercise 1.22}で示された@code{newline}と@code{display}基本手続きを
+使って、生成する近似の列を表示するようにせよ。それから、@math{x \mapsto
+{\log(1000) / \log(x)}}の不動点を見つけることによって@math{{x^x = 1000}}の
+解を見つけよ。（Schemeの基本手続き@code{log}を使え。これは自然対数を計算
+する。）平均緩和を使う場合と使わない場合で、これにかかるステップ数を比較せよ。
+（@math{{\log(1) = 0}}による除算を引き起こすため、1の推測で@code{fixed-point}を
+開始できないことに注意せよ。）
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.37}Exercise 1.37:}
+
+@enumerate a
+
+@item
+無限@newterm{連分数}は次の形式の式である。
+@ifinfo
+
+@example
+           N_1
+f = ---------------------
+               N_2
+    D_1 + ---------------
+                   N_3
+          D_2 + ---------
+                D_3 + ...
+@end example
+
+@end ifinfo
+@tex
+
+\[ % :25:
+
+f \,=\, {\frac{N_1}{D_1 + \frac{N_2}{D_2 + \frac{N_3}{D_3 + \dots}}}.}
+\]
+
+@end tex
+例として、@math{N_i}と@math{D_i}がすべて1に等しい無限連分数展開が
+@math{{1 / \varphi}}を生成することを示すことができる。ここで@math{\varphi}は
+黄金比である（@ref{1.2.2}で説明）。無限連分数を近似する一つの方法は、
+与えられた項数の後で展開を切り捨てることである。そのような切り捨て---いわゆる
+@newterm{@i{k}項の有限連分数}---は次の形式を持つ。
+@ifinfo
+
+@example
+       N_1
+-----------------
+          N_2
+D_1 + -----------
+      ...    N_K
+          + -----
+             D_K
+@end example
+
+@end ifinfo
+@tex
+
+\[ % :26:
+
+{\frac{N_1}{D_1 + \frac{N_2}{\ddots + \frac{N_k}{D_k}}}.}
+\]
+
+@end tex
+@code{n}と@code{d}が1引数（項インデックス@math{i}）の手続きで、連分数の
+項の@math{N_i}と@math{D_i}を返すとしよう。@code{(cont-frac n d k)}を評価
+すると@math{k}項の有限連分数の値を計算する@code{cont-frac}手続きを定義せよ。
+次を使って@math{{1 / \varphi}}を近似することによって手続きをチェックせよ。
+
+@lisp
+(cont-frac (lambda (i) 1.0)
+           (lambda (i) 1.0)
+           k)
+@end lisp
+
+@noindent
+@code{k}の連続した値に対して。小数第4位まで正確な近似を得るために、
+@code{k}をどれだけ大きくしなければならないか？
+
+@item
+@code{cont-frac}手続きが再帰プロセスを生成する場合、反復プロセスを生成する
+ものを書け。反復プロセスを生成する場合、再帰プロセスを生成するものを書け。
+
+@end enumerate
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.38}Exercise 1.38:} 1737年、スイスの数学者
+Leonhard Eulerは論文@cite{De Fractionibus Continuis}を公表した。これには
+@math{{e - 2}}の連分数展開が含まれていた。ここで@math{e}は自然対数の底である。
+この分数では、@math{N_i}はすべて1であり、@math{D_i}は連続して1、2、1、1、4、
+1、1、6、1、1、8、@dots{}である。@ref{Exercise 1.37}の@code{cont-frac}手続きを
+使って、Eulerの展開に基づいて@math{e}を近似するプログラムを書け。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.39}Exercise 1.39:} 正接関数の連分数表現は、1770年に
+ドイツの数学者J.H. Lambertによって公表された。
+@ifinfo
+
+@example
+              x
+tan x = ---------------
+                x^2
+        1 - -----------
+                  x^2
+            3 - -------
+                5 - ...
+@end example
+
+@end ifinfo
+@tex
+
+\[ % :27:
+

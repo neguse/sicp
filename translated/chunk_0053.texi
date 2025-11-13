@@ -1,0 +1,288 @@
+f(x) = x - -------
+           Dg(x)
+@end example
+
+@end ifinfo
+@tex
+
+\[ % :28:
+
+{f(x)} \,=\, {x - \frac{g(x)}{Dg(x)}}
+\]
+
+@end tex
+@noindent
+であり、@math{{Dg(x)}}は@math{g}の@math{x}での微分である。ニュートン法とは、
+@math{f}の不動点を見つけるために不動点法を使うことである。@footnote{基本的な
+アイデアは、もし@math{y}が関数の近似値であれば、@math{{y - g(y) / Dg(y)}}が
+より良い近似であるということである。これは直線近似の簡単な代数的操作から
+導かれる。@math{g}に関する式は、微積分の知識を持つ読者にとってより身近な
+Newton-Raphson法である。}多くの関数について、ニュートン法は非常に高速に
+収束する。@footnote{ニュートン法は、常に収束するわけではないことに注意
+しなければならない。特に、悪い初期推測で開始した場合に問題が生じる可能性が
+ある。また、微分が0の値にあまり近づかない不動点探索を選択する必要がある。
+そうでなければ、非常に悪い振る舞いを起こす可能性がある。一般に、信頼できる
+ニュートン法の実装は、探索が収束していることを確認するための多くの健全性
+チェックを含む必要がある。}
+
+微分@math{{Dg}}は手続きとして表現できる。@math{{Dg(x)}}は次で与えられる。
+@ifinfo
+
+@example
+      g(x + dx) - g(x)
+Dg(x) = ----------------
+             dx
+@end example
+
+@end ifinfo
+@tex
+
+\[ % :29:
+
+{Dg(x)} \,=\, {\frac{g(x + dx) - g(x)}{dx}}
+\]
+
+@end tex
+ここで@math{dx}は小さい数である。微分は次のように表現できる。@footnote{
+@code{deriv}が手続きを返すことを理解することは、高階手続きを理解するための
+良いテストである。@code{deriv}の呼び出しは次のように読むべきである：
+``@code{deriv}は1つの引数、手続き@code{g}を取り、値として手続きを返す。この
+手続きは1つの引数@code{x}を取り、@code{g}の@code{x}での微分の値を返す。''}
+
+@lisp
+(define (deriv g)
+  (lambda (x)
+    (/ (- (g (+ x dx)) (g x))
+       dx)))
+@end lisp
+
+@noindent
+パラメータ@code{dx}とともに。@code{pi-sum}や@code{integral}のような以前の
+例と同様に、@code{dx}は何らかの小さい数として選ばれなければならない。例えば
+0.00001である。@code{deriv}を使うと、@math{{x \mapsto 3x^2 + 5x + 10}}という
+関数の5での微分を次のように計算できる。
+
+@lisp
+(define dx 0.00001)
+
+(define (cube x) (* x x x))
+
+((deriv cube) 5)
+@i{75.00014999664018}
+@end lisp
+
+@noindent
+@code{deriv}手続きとともに、ニュートン法を次のように表現できる。
+
+@lisp
+(define (newton-transform g)
+  (lambda (x)
+    (- x (/ (g x)
+            ((deriv g) x)))))
+
+(define (newtons-method g guess)
+  (fixed-point (newton-transform g)
+               guess))
+@end lisp
+
+@noindent
+@code{newton-transform}手続きは、@math{{x \mapsto f(x)}}を実装する手続きを
+返す関数@math{{x \mapsto g(x)}}を表現する手続きを取る。@code{newtons-method}は
+容易に定義され、与えられた関数と初期推測を取る。例えば、@math{y}の根として
+@math{\sqrt{x}}を見つけるために、方程式@math{{y^2 - x = 0}}の零点を見つけ、
+したがって@math{y \mapsto y^2 - x}の零点を計算する手続きを与える。@footnote{
+基本的に、@ref{1.1.7}の最初の平方根手続きはニュートン法の特殊ケースである。}
+
+@lisp
+(define (sqrt x)
+  (newtons-method
+   (lambda (y)
+     (- (square y) x))
+   1.0))
+@end lisp
+
+@subsubheading 抽象化と第一級手続き
+
+平方根を計算する2つの方法を見てきた。1つは不動点探索として、もう1つは
+ニュートン法を使って。いくつかの異なる方法で平方根手続きを定式化したので、
+平方根を計算するという本来のタスクから、より一般的な計算方法を表現する
+手続きという抽象化のレベルに上昇し始めている。例えば、次のように書くことに
+よって、一般的な不動点探索のアイデアを明示的にする。
+
+@lisp
+(define (fixed-point-of-transform
+         g transform guess)
+  (fixed-point (transform g) guess))
+@end lisp
+
+@noindent
+この非常に一般的な手続きは、関数@code{g}を入力として取り、その@code{transform}
+を求め、その結果の不動点を与える。ニュートン法を使うと、@code{sqrt}を
+@code{fixed-point-of-transform}の観点で次のように定式化できる。
+
+@lisp
+(define (sqrt x)
+  (fixed-point-of-transform
+   (lambda (y) (/ x y))
+   average-damp
+   1.0))
+@end lisp
+
+@noindent
+同様に、ニュートン変換を使って@code{sqrt}を定式化できる。
+
+@lisp
+(define (sqrt x)
+  (fixed-point-of-transform
+   (lambda (y) (- (square y) x))
+   newton-transform
+   1.0))
+@end lisp
+
+@noindent
+複合手続きを使ってプログラミングを始めたときと、ここまで来た様子を比較する
+価値がある。この章の最初に、パターンを識別し、それらのパターンを手続きと
+して抽象化する方法を学んだ。ここでは、計算方法をより一般的なレベルで抽象化
+している。一般的な方法は手続きとして表現され、他の手続きを引数として取ったり、
+戻り値として返したりすることができる。
+
+プログラマとして、私たちは有用な要素を識別し、それらを独立したモジュールと
+して分離し、それらを構成できる言語構造を提供する環境を持つことが重要である。
+より複雑なシステムを構築する際、各モジュールは問題の特定の側面に集中でき、
+全体として問題を解決できる。
+
+一般的な計算方法を表現する手段としての手続きを説明することに加えて、この
+セクションは、プログラミング言語は、計算要素を組み合わせて新しいものを形成
+する方法に対して制限を課す場合、表現力が制限されるという重要なポイントも
+示している。@newterm{第一級}ステータスを持つ要素は次のようなものである。
+
+@itemize @bullet
+
+@item
+変数として名前を付けることができる。
+
+@item
+手続きへの引数として渡すことができる。
+
+@item
+手続きによって結果として返すことができる。
+
+@item
+データ構造に含めることができる。@footnote{データ構造に手続きを含める能力は、
+第2章で議論する際に明らかになる。}
+
+@end itemize
+
+Lispは、他のほとんどのプログラミング言語とは異なり、手続きに完全な第一級
+ステータスを与える。これにより、手続きを効果的に操作する能力において非常に
+大きな表現力の向上がもたらされる。@footnote{プログラミング言語における
+第一級手続きの重要性は、Joel MosesがAltranシステム[@ref{Moses 1970};
+@ref{Moses 2012}]の仕事を通して最初に明確に認識した。これは代数的簡約化の
+ための高度なシステムであり、プログラミング言語の設計にかなりの注意を払った。
+（@ref{MacDonald 1967}を参照せよ。）@cite{Lisp 1.5 Programmer's Manual}
+[@ref{McCarthy et al. 1965}]の影響により、Mosesは彼の言語において
+lambda式を第一級要素として使用することの重要性を認識した。Altranの
+後継であるMacsymaシステム[@ref{Macsyma 2012}; @ref{Moon and Weinreb 1981};
+@ref{Fateman 1979}; @ref{Martin and Fateman 1971}]は、1970年代を通じて
+広範囲にわたって使用され、多数のプログラミング機能、特にパターンマッチング
+と自動証明のための機能を開発するための実験室として役立った。}
+
+@quotation
+@strong{@anchor{Exercise 1.40}Exercise 1.40:} @code{newtons-method}と
+ともに使用する手続き@code{cubic}を定義せよ。これは三次方程式
+@ifinfo
+
+@example
+x^3 + ax^2 + bx + c = 0
+@end example
+
+@end ifinfo
+@tex
+
+\[ % :30:
+
+{x^3} + {ax^2} + {bx} + c \,=\, 0
+\]
+
+@end tex
+の零点を近似するために使える。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.41}Exercise 1.41:} 1引数の手続きを引数として取り、
+元の手続きを2回適用する手続きを返す手続き@code{double}を定義せよ。例えば、
+@code{inc}が引数に1を加える手続きであれば、@code{(double inc)}は引数に2を
+加える手続きである。@code{(((double (double double)) inc) 5)}の値は何か？
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.42}Exercise 1.42:} @math{f}と@math{g}が1引数の
+関数である場合、@math{f}の@math{g}の後の@newterm{合成}は関数
+@math{{x \mapsto f(g(x))}}として定義される。2つの関数を引数として取り、
+それらの合成である関数を返す手続き@code{compose}を定義せよ。例えば、
+@code{inc}が引数に1を加える手続きであれば、
+
+@lisp
+((compose square inc) 6)
+@i{49}
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.43}Exercise 1.43:} 手続き@code{f}が数値関数で、
+@math{n}が正の整数である場合、@math{f}の@math{n}回の@newterm{繰り返し適用}を
+@math{f}を@math{n}回適用する関数として定義できる。例えば、@math{f}が関数
+@math{{x \mapsto x + 1}}である場合、@math{f}の@math{n}回の繰り返し適用は
+関数@math{{x \mapsto x + n}}である。もし@math{f}が@code{square}演算である場合、
+@math{f}の@math{n}回の繰り返し適用は引数を@math{2^n}乗する関数である。
+手続き@code{f}と正の整数@math{n}を入力として取り、@math{f}の@math{n}回の
+繰り返し適用を計算する手続きを返す手続き@code{repeated}を書け。手続きは
+次のように使えるべきである。
+
+@lisp
+((repeated square 2) 5)
+@i{625}
+@end lisp
+
+ヒント：@ref{Exercise 1.42}から@code{compose}を使うと便利かもしれない。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.44}Exercise 1.44:} @newterm{スムージング}のアイデアは
+信号処理における重要な概念である。関数@math{f}がスムーズであれば、スムーズ化
+された関数の点@math{x}での値は@math{{f(x - dx)}}、@math{{f(x)}}、
+@math{{f(x + dx)}}の平均である。ここで@math{dx}は何らかの小さい数である。
+関数を引数として取り、スムーズ化された関数を返す手続き@code{smooth}を書け。
+与えられた関数を繰り返しスムーズ化することが便利な場合がある（つまり、
+スムーズ化された関数をスムーズ化する、など）。これを@newterm{n重スムーズ化}
+という。@code{smooth}と@code{repeated}（@ref{Exercise 1.43}）を使って、
+@math{n}重スムーズ化された関数を生成する方法を示せ。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.45}Exercise 1.45:} @ref{1.3.3}で、平方根を
+不動点探索として計算しようとする最初の試みが収束しないことを見た。これは
+逐次近似が振動したためである。@math{{y \mapsto x/y}}の変換を平均緩和することで、
+収束を得ることができた。同じ方法が立方根にも機能し、@math{{y \mapsto x/y^2}}
+の平均緩和として計算される。残念ながら、プロセスはすべての@math{n}次の根に
+対してうまく機能するわけではない。4次の根に必要な不動点探索は収束しない。
+しかし、少し実験すると、平均緩和を2回適用すると（つまり、
+@math{{y \mapsto x/y^3}}の平均緩和の平均緩和を使うと）、この不動点探索が
+収束することがわかる。実験を行って、どれだけの平均緩和が@math{n}次の根を
+不動点探索として計算するために必要かを決定し、これに基づいて、2つの引数
+@math{x}と@math{n}を使って@math{x}の@math{n}次の根を見つける簡単な手続きを
+実装せよ。このために@code{repeated}（@ref{Exercise 1.43}）、
+@code{average-damp}、および@code{fixed-point}手続きを使用することを
+仮定せよ。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.46}Exercise 1.46:} いくつかの計算方法を、反復的改善の
+戦略として表現できる。反復的改善とは、推測が十分に良いかどうかをテストし、
+そうでなければ推測を改善して続けることによって、何かを計算することを言う。
+引数として2つの手続きを取る手続き@code{iterative-improve}を書け。推測が十分に
+良いかどうかをテストするメソッドと、推測を改善するメソッドである。
+@code{iterative-improve}は、引数として推測を取り、推測を改善し続けることによって
+その値として推測を返す手続きを値として返すべきである。@code{sqrt}と
+@code{fixed-point}を@code{iterative-improve}の観点で書き直せ。
+@end quotation

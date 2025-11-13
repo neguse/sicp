@@ -1,0 +1,96 @@
+指定された条件を満たす範囲の値から導出された項のみを結合する。結果として
+得られる@code{filtered-accumulate}抽象化は、accumulateと同じ引数を、フィルタを
+指定する1引数の追加の述語とともに取る。@code{filtered-accumulate}を手続きと
+して書け。@code{filtered-accumulate}を使って次を表現する方法を示せ。
+
+@enumerate a
+
+@item
+区間@math{a}から@math{b}における素数の2乗の和（すでに@code{prime?}述語が
+書かれていると仮定）
+
+@item
+@math{n}と互いに素な（すなわち、@math{{\text{GCD}(i, n) = 1}}のような）
+@math{n}より小さいすべての正の整数@math{{i < n}}の積。
+
+@end enumerate
+@end quotation
+
+@node	1.3.2, 1.3.3, 1.3.1, 1.3
+@subsection @code{Lambda}を使った手続きの構築
+
+@ref{1.3.1}で@code{sum}を使う際、@code{pi-term}や@code{pi-next}のような
+些細な手続きを、高階手続きの引数として使うためだけに定義しなければならない
+のは、非常に不便に思われる。@code{pi-next}と@code{pi-term}を定義するより
+むしろ、「入力を4増やす手続き」と「入力とその入力に2を加えたものの積の
+逆数を返す手続き」を直接指定する方法がある方が便利である。手続きを作成する
+特殊形式@code{lambda}を導入することによって、これを行うことができる。
+@code{lambda}を使って、次のように欲しいものを記述できる。
+
+@lisp
+(lambda (x) (+ x 4))
+@end lisp
+
+@noindent
+と
+
+@lisp
+(lambda (x) (/ 1.0 (* x (+ x 2))))
+@end lisp
+
+@noindent
+それから@code{pi-sum}手続きは、補助手続きを定義することなく次のように表現
+できる。
+
+@lisp
+(define (pi-sum a b)
+  (sum (lambda (x) (/ 1.0 (* x (+ x 2))))
+       a
+       (lambda (x) (+ x 4))
+       b))
+@end lisp
+
+@noindent
+再び@code{lambda}を使って、補助手続き@code{add-dx}を定義することなく
+@code{integral}手続きを書くことができる。
+
+@lisp
+(define (integral f a b dx)
+  (* (sum f (+ a (/ dx 2.0))
+            (lambda (x) (+ x dx))
+            b)
+     dx))
+@end lisp
+
+@noindent
+一般に、@code{lambda}は、手続きに名前が指定されないことを除いて、
+@code{define}と同じ方法で手続きを作成するために使われる。
+
+@lisp
+(lambda (⟨@var{formal-parameters}⟩) ⟨@var{body}⟩)
+@end lisp
+
+@noindent
+結果の手続きは、@code{define}を使って作成された手続きと全く同じくらい
+手続きである。唯一の違いは、環境内の名前と関連付けられていないことである。
+実際、
+
+@lisp
+(define (plus4 x) (+ x 4))
+@end lisp
+
+@noindent
+は次と等価である。
+
+@lisp
+(define plus4 (lambda (x) (+ x 4)))
+@end lisp
+
+@noindent
+@code{lambda}式を次のように読むことができる。
+
+@example
+(lambda                     (x)     (+   x     4))
+    |                        |       |   |     |
+引数xのxと4を加える手続き
+@end example

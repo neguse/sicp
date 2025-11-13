@@ -1,0 +1,96 @@
+
+@noindent
+値として手続きを持つ任意の式と同様に、@code{lambda}式は次のような組み合わせの
+演算子として使うことができる。
+
+@lisp
+((lambda (x y z) (+ x y (square z))) 1 2 3)
+@i{12}
+@end lisp
+
+@noindent
+または、より一般的には、通常手続き名を使うであろう任意の文脈で使える。
+@footnote{Lispを学ぶ人々にとって、@code{make-procedure}のような
+@code{lambda}よりも明白な名前を使う方が明確で威圧的でないだろう。しかし
+慣例はしっかりと根付いている。この記法はλ計算から採用されており、数理
+論理学者Alonzo @ref{Church (1941)}によって導入された数学的形式主義である。
+Churchはλ計算を、関数と関数適用の概念を研究するための厳密な基礎を提供する
+ために開発した。λ計算は、プログラミング言語の意味論の数学的調査のための
+基本的な道具となっている。}
+
+@subsubheading @code{let}を使ったローカル変数の作成
+
+@code{lambda}のもう一つの使い方は、ローカル変数を作成することである。
+仮引数として束縛されたもの以外に、手続き内でローカル変数が必要になることが
+よくある。例えば、次の関数を計算したいとしよう。
+@ifinfo
+
+@example
+f(x,y) = x(1 + xy)^2 + y(1 - y) + (1 + xy)(1 - y)
+@end example
+
+@end ifinfo
+@tex
+
+\[ % :22:
+
+{f(x,y)} \,=\, {x(1 + xy)^2} + {y(1 - y)} + {(1 + xy)(1 - y),}
+\]
+
+@end tex
+@noindent
+これは次のようにも表現できる。
+@ifinfo
+
+@example
+     a = 1 + xy
+     b = 1 - y
+f(x,y) = xa^2 + yb + ab
+@end example
+
+@end ifinfo
+@tex
+
+\[ % :23:
+
+\begin{eqnarray}
+  a                     &=&   {1 + xy,}  \\
+  \hphantom{(x,y)} b    &=&   {1 - y,}   \\
+  {f(x,y)}              &=&   {xa^2} + {yb} + {ab.}
+\end{eqnarray}
+\]
+
+@end tex
+@math{f}を計算する手続きを書く際、ローカル変数として@math{x}と@math{y}
+だけでなく、@math{a}や@math{b}のような中間量の名前も含めたい。これを達成
+する一つの方法は、ローカル変数を束縛する補助手続きを使うことである。
+
+@lisp
+(define (f x y)
+  (define (f-helper a b)
+    (+ (* x (square a))
+       (* y b)
+       (* a b)))
+  (f-helper (+ 1 (* x y))
+            (- 1 y)))
+@end lisp
+
+@noindent
+もちろん、@code{lambda}式を使ってローカル変数を束縛する無名手続きを指定
+することもできる。@code{f}の本体はその手続きへの単一の呼び出しになる。
+
+@lisp
+(define (f x y)
+  ((lambda (a b)
+     (+ (* x (square a))
+        (* y b)
+        (* a b)))
+   (+ 1 (* x y))
+   (- 1 y)))
+@end lisp
+
+@noindent
+この構造は非常に有用であるため、その使用をより便利にする@code{let}と
+呼ばれる特殊形式がある。@code{let}を使うと、@code{f}手続きは次のように
+書くことができる。
+

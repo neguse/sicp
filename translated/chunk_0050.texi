@@ -1,0 +1,96 @@
+
+@lisp
+(define (close-enough? x y)
+  (< (abs (- x y)) 0.001))
+@end lisp
+
+@noindent
+@code{Search}は直接使うのが不便である。なぜなら、誤って@math{f}の値が
+必要な符号を持たない点を与えてしまい、間違った答えを得る可能性があるから
+である。代わりに、次の手続きを介して@code{search}を使う。これは、どちらの
+終点が負の関数値を持ち、どちらが正の値を持つかをチェックし、それに応じて
+@code{search}手続きを呼び出す。関数が2つの与えられた点で同じ符号を持つ場合、
+半区間法は使えず、その場合手続きはエラーを通知する。@footnote{これは
+@code{error}を使って達成できる。これはエラーメッセージとして表示される
+多数の項目を引数として取る。}
+
+@lisp
+(define (half-interval-method f a b)
+  (let ((a-value (f a))
+        (b-value (f b)))
+    (cond ((and (negative? a-value)
+                (positive? b-value))
+           (search f a b))
+          ((and (negative? b-value)
+                (positive? a-value))
+           (search f b a))
+          (else
+           (error "Values are not of
+                   opposite sign" a b)))))
+@end lisp
+
+@noindent
+次の例は、半区間法を使って@math{{\sin x = 0}}の2と4の間の根として@math{\pi}を
+近似する。
+
+@lisp
+(half-interval-method sin 2.0 4.0)
+@i{3.14111328125}
+@end lisp
+
+@noindent
+別の例は、半区間法を使って方程式@math{{x^3 - 2x - 3 = 0}}の1と2の間の根を
+探索する。
+
+@lisp
+(half-interval-method
+ (lambda (x) (- (* x x x) (* 2 x) 3))
+ 1.0
+ 2.0)
+@i{1.89306640625}
+@end lisp
+
+@subsubheading 関数の不動点の発見
+
+数@math{x}は、@math{x}が方程式@math{{f(x) = x}}を満たす場合、関数@math{f}の
+@newterm{不動点}と呼ばれる。いくつかの関数@math{f}については、初期推測から
+始めて@math{f}を繰り返し適用することによって不動点を見つけることができる。
+@ifinfo
+
+@example
+f(x), f(f(x)), f(f(f(x))), ...
+@end example
+
+@end ifinfo
+@tex
+
+\[ % :24:
+
+{f(x),}\quad {f(f(x)),}\quad {f(f(f(x))),} \quad{\dots,}
+\]
+
+@end tex
+@noindent
+値があまり変化しなくなるまで。このアイデアを使って、関数と初期推測を入力と
+して取り、関数の不動点の近似を生成する手続き@code{fixed-point}を考案できる。
+差がいくつかの所定の許容度未満である2つの連続した値を見つけるまで、関数を
+繰り返し適用する。
+
+@lisp
+(define tolerance 0.00001)
+
+(define (fixed-point f first-guess)
+  (define (close-enough? v1 v2)
+    (< (abs (- v1 v2))
+       tolerance))
+  (define (try guess)
+    (let ((next (f guess)))
+      (if (close-enough? guess next)
+          next
+          (try next))))
+  (try first-guess))
+@end lisp
+
+@noindent
+例えば、この方法を使って、1を初期近似としてコサイン関数の不動点を近似できる。
+@footnote{退屈な講義中にこれを試してみよ。電卓をラジアンモードに設定し、

@@ -1,0 +1,96 @@
+@lisp
+(define (f x y)
+  (let ((a (+ 1 (* x y)))
+        (b (- 1 y)))
+    (+ (* x (square a))
+       (* y b)
+       (* a b))))
+@end lisp
+
+@noindent
+@code{let}式の一般形は次のとおりである。
+
+@lisp
+(let ((⟨@var{var₁}⟩ ⟨@var{exp₁}⟩)
+      (⟨@var{var₂}⟩ ⟨@var{exp₂}⟩)
+      @r{…}
+      (⟨@var{varₙ}⟩ ⟨@var{expₙ}⟩))
+  ⟨@var{body}⟩)
+@end lisp
+
+@noindent
+これは次のように言っていると考えることができる。
+
+@example
+let ⟨@var{var₁}⟩ @r{は} ⟨@var{exp₁}⟩ @r{の値を持ち、}
+    ⟨@var{var₂}⟩ @r{は} ⟨@var{exp₂}⟩ @r{の値を持ち、}
+    @r{…}
+    ⟨@var{varₙ}⟩ @r{は} ⟨@var{expₙ}⟩ @r{の値を持つ}
+  ⟨@var{body}⟩ @r{において}
+@end example
+
+@noindent
+@code{let}式の最初の部分は、名前と式のペアのリストである。@code{let}が
+評価されるとき、各名前は対応する式の値と関連付けられる。@code{let}の
+本体は、これらの名前がローカル変数として束縛された状態で評価される。
+これが起こる方法は、@code{let}式が次の代替構文として解釈されることである。
+
+@lisp
+((lambda (⟨@var{var₁}⟩ @r{…} ⟨@var{varₙ}⟩)
+   ⟨@var{body}⟩)
+ ⟨@var{exp₁}⟩
+ @r{…}
+ ⟨@var{expₙ}⟩)
+@end lisp
+
+@noindent
+ローカル変数を提供するためにインタプリタに新しいメカニズムは必要ない。
+@code{let}式は、基礎となる@code{lambda}適用のための単なる構文糖衣である。
+
+この等価性から、@code{let}式によって指定された変数のスコープが@code{let}の
+本体であることがわかる。これは次のことを意味する。
+
+@itemize @bullet
+
+@item
+@code{Let}は、変数が使用される場所にできるだけローカルに束縛することを
+可能にする。例えば、@code{x}の値が5の場合、次の式
+
+@lisp
+(+ (let ((x 3))
+     (+ x (* x 10)))
+   x)
+@end lisp
+
+@noindent
+の値は38である。ここで、@code{let}の本体の@code{x}は3なので、@code{let}式の
+値は33である。一方、最も外側の@code{+}の2番目の引数である@code{x}は
+依然として5である。
+
+@item
+変数の値は@code{let}の外側で計算される。これは、ローカル変数の値を提供する
+式が、ローカル変数自身と同じ名前を持つ変数に依存する場合に重要である。
+例えば、@code{x}の値が2の場合、次の式
+
+@lisp
+(let ((x 3)
+      (y (+ x 2)))
+  (* x y))
+@end lisp
+
+@noindent
+の値は12である。なぜなら、@code{let}の本体の内側では、@code{x}は3で、
+@code{y}は4（外側の@code{x}に2を加えたもの）だからである。
+
+@end itemize
+
+@noindent
+@code{let}と同じ効果を得るために内部定義を使うことができる場合もある。
+例えば、上の手続き@code{f}を次のように定義できる。
+
+@lisp
+(define (f x y)
+  (define a
+    (+ 1 (* x y)))
+  (define b (- 1 y))
+  (+ (* x (square a))

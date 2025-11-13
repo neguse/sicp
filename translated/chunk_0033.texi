@@ -1,0 +1,222 @@
+@math{n}が素数でなく、かつ@math{a < n}であり、@math{a^n}が@math{n}を法として
+@math{a}と合同である場合、数@math{n}はフェルマー検定の@newterm{基数}@math{a}を
+「騙す」と言われます。カーマイケル数と呼ばれる数があり、これはフェルマー
+検定のすべての基数を騙します。幸いなことに、これらの数は非常に稀であるため、
+フェルマー検定は実際には非常に信頼性が高いです。（561、1105、1729、2465、2821、
+6601などの最小のいくつかのカーマイケル数があります。テストでは、これらを
+検出できません。） @math{n}が素数であるかどうかをテストする@code{prime?}の
+バージョンを実装してください。そして、以下で説明するフェルマー検定を使用して
+テストを実行します。
+
+@strong{フェルマー検定}を実行するには、@math{n}未満のランダムな数@math{a}を
+選択し、@math{a^n \mod n}を計算します。@math{a^n \mod n}が@math{a}に等しく
+ない場合、@math{n}は確実に素数ではありません。しかし、@math{a^n \mod n}が
+@math{a}に等しい場合、@math{n}が素数である可能性が高いです。次に、別の
+ランダムな数@math{a}を選択し、同じテストを実行します。より多くの値の
+@math{a}に対してテストが成功した場合、@math{n}が素数である確信を高めることが
+できます。
+
+@code{fast-expt}手続きを使用することを提案したいかもしれません。しかし、
+この手続きは最終結果だけを簡約します。巨大な数の平方を計算すると、非常に
+大きい答えが得られます。最終結果をモジュロで簡約するだけでは役に立ちません。
+大きな数の算術を処理することはコンピュータにとって非常にコストがかかります。
+幸いなことに、次のヒントによって指定される簡約を使用すると、べき乗を
+計算する際にすべての中間結果を簡約できます。
+
+モジュロ算術ヒント: @math{x}と@math{y}がモジュロ@math{m}に対して簡約される
+場合、その積はモジュロ@math{m}の簡約として@math{(x \cdot y)}のモジュロ
+@math{m}を計算することによって計算できます。例えば、@math{{x \mod m} = 4}と
+@math{{y \mod m} = 7}の場合、@math{{(x \cdot y) \mod m}}は@code{(remainder (* 4 7) m)}と
+して計算できます。
+
+ここで、フェルマー検定を実装する手続きがあります。
+
+@lisp
+(define (expmod base exp m)
+  (cond ((= exp 0) 1)
+        ((even? exp)
+         (remainder
+          (square (expmod base (/ exp 2) m))
+          m))
+        (else
+         (remainder
+          (* base (expmod base (- exp 1) m))
+          m))))
+@end lisp
+
+これは、@code{fast-expt}手続きに類似しています。連続する平方化を使用して
+べき乗を計算します。そのため、ステップ数は対数的です。@footnote{モジュロ演算は、
+大きな数の計算のコストを削減します。}
+
+フェルマー検定は次のように実行されます。ランダムな数@math{a}（@math{1}と
+@math{n-1}の間）を選び、@math{a}の@math{n}乗のモジュロ@math{n}の簡約が
+@math{a}と等しいかどうかをチェックします。ランダムな数@math{a}は、組み込み
+手続き@code{random}を使用して選択されます。@code{random}は、与えられた正の
+整数@math{n}を入力として受け取り、0と@math{n}の間で選ばれたランダムな
+整数を返します。
+
+@lisp
+(define (fermat-test n)
+  (define (try-it a)
+    (= (expmod a n n) a))
+  (try-it (+ 1 (random (- n 1)))))
+@end lisp
+
+次の手続きは、指定された回数だけ検定を実行し、すべての検定が合格した場合に
+trueを返します。
+
+@lisp
+(define (fast-prime? n times)
+  (cond ((= times 0) true)
+        ((fermat-test n)
+         (fast-prime? n (- times 1)))
+        (else false)))
+@end lisp
+
+@subsubheading 確率的方法
+
+フェルマー検定は、アルゴリズムが「確率的に正しい」答えを生成する可能性が
+あるアルゴリズムの例を提供するという点で、本節で見たアルゴリズムと異なります。
+より正確には、@code{n}が@code{fast-prime?}をパスする場合、確率は、
+@code{n}が確かに素数であり、テストを実行する回数がある、答えが正しくない
+確率が任意に小さくすることができます。
+
+残念ながら、この主張は真実であることが証明されていません。カーマイケル数
+として知られている数があり、これはフェルマー検定を騙します。つまり、
+数@math{n}は素数ではなく、かつすべての整数@math{a < n}に対して
+@math{a^n \equiv a \pmod{n}}を持っています。これは、フェルマー検定が
+カーマイケル数に対しては一貫して失敗することを意味します。この問題に対する
+変更がありますが、それは本書の範囲を超えています。@footnote{ミラー-ラビン
+検定やソロベイ-シュトラッセン検定などの確率的素数性テストに関する詳細に
+ついては、数論のテキストを参照してください。}
+
+@quotation
+@strong{@anchor{Exercise 1.21}Exercise 1.21:} @code{smallest-divisor}手続きを
+使用して、次の各数の最小の約数を見つけてください。199、1999、19999。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.22}Exercise 1.22:} ほとんどのLisp実装には、
+@code{runtime}と呼ばれるプリミティブがあり、これはシステムが実行されて
+いる時間の量を示す整数を返します（例えば、マイクロ秒単位）。以下の
+@code{timed-prime-test}手続きは、呼び出されたときに、整数@math{n}を出力し、
+@math{n}が素数であるかどうかをチェックし、@math{n}が素数である場合、3つの
+アスタリスクとその後に素数性テストを実行するために使用された時間を出力します。
+
+@lisp
+(define (timed-prime-test n)
+  (newline)
+  (display n)
+  (start-prime-test n (runtime)))
+
+(define (start-prime-test n start-time)
+  (if (prime? n)
+      (report-prime (- (runtime)
+                       start-time))))
+
+(define (report-prime elapsed-time)
+  (display " *** ")
+  (display elapsed-time))
+@end lisp
+
+この手続きを使用して、1000より大きい最小の3つの素数、10,000より大きい最小の
+3つの素数、100,000より大きい最小の3つの素数、1,000,000より大きい最小の3つの
+素数を見つける手続き@code{search-for-primes}を記述してください。プログラムが
+素数を見つけるために使用する時間に注意してください。素数のテストは
+@math{{\Theta(\sqrt{n})}}の増加のオーダーを持つため、10,000の近くの素数の
+テストは、1000の近くの素数のテストのおよそ@math{\sqrt{10}}倍の時間がかかる
+はずです。データはこの期待をサポートしていますか？10万と百万の近くの素数に
+対してテストする時間は、@math{\sqrt{n}}予測とどのように一致しますか？
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.23}Exercise 1.23:} 本節の@code{smallest-divisor}
+手続きは、可能な約数を順番にテストする際に多くの無駄なテストを実行します。
+2を試した後、偶数をテストする必要がありません。そのため、@code{test-divisor}に
+使用される値は、2でない場合は2ずつ増やすのではなく、1ずつ増やします。
+これを実装するには、手続き@code{next}を定義します。これは、テストが2の場合は
+3を返し、それ以外の場合は入力に2を加えたものを返します。@code{smallest-divisor}
+手続きを修正して、@code{(+ test-divisor 1)}の代わりに@code{(next test-divisor)}を
+使用します。@code{timed-prime-test}手続きで、修正されたバージョンの
+@code{smallest-divisor}を使用する場合と使用しない場合の両方のテストの12個の
+素数を実行します。2つのアルゴリズムの速度比が実行されるテストのステップが
+半分であることを予想される比率2に近いかどうかを確認します。予想される比率2が
+得られない場合、それはなぜですか？
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.24}Exercise 1.24:} @code{prime?}の代わりに
+@code{fast-prime?}を使用するように、@ref{Exercise 1.22}の@code{timed-prime-test}
+手続きを修正します。テストが@math{{\Theta(\log n)}}の増加のオーダーで成長する
+ため、1000000の近くの素数をテストする際の予想時間は、1000の近くの素数を
+テストする際の予想時間の12倍の小さな定数時間を持つはずです（@math{{\log 1000000 / \log 1000 \approx 2}}）。
+このプログラムでは、予想される結果をサポートしていますか？自分のコンピュータで
+どのくらいの小さな定数時間があるかについて、より一般的に言えますか？
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.25}Exercise 1.25:} Alyssa P. Hackerは、
+@code{expmod}を書くすべての手間をかける理由を理解できません。結局のところ、
+彼女は次のように言います。すでに@code{fast-expt}を書いたので、これを使用すれば
+よいだけです。
+
+@lisp
+(define (expmod base exp m)
+  (remainder (fast-expt base exp) m))
+@end lisp
+
+彼女は正しいですか？この手続きは同様にフェルマー検定に対して機能しますか？
+@code{expmod}手続きを説明してください。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.26}Exercise 1.26:} Louis Reasonerは、彼のプログラムが
+あなたのプログラムよりもはるかに遅く実行されることを訴えています。あなたは
+彼のコードを見て、彼が@code{expmod}を次のように書き直したことを発見しました。
+
+@lisp
+(define (expmod base exp m)
+  (cond ((= exp 0) 1)
+        ((even? exp)
+         (remainder (* (expmod base (/ exp 2) m)
+                       (expmod base (/ exp 2) m))
+                    m))
+        (else
+         (remainder (* base
+                       (expmod base (- exp 1) m))
+                    m))))
+@end lisp
+
+「平方を行うために@code{square}を使用すると特別な組み込みコンピュータ
+ハードウェアが必要だとは思わない」と彼は説明します。「明示的な乗算を使用
+することで同じことを実行できるはずです。」Louisは正しいですか？プログラムが
+異なる動作をする場合は、説明してください。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.27}Exercise 1.27:} @ref{Footnote 47}で言及された
+カーマイケル数のいくつかを確認してください。561、1105、1729、2465、2821、
+6601が本当にフェルマー検定を騙すことを確認してください。つまり、@math{n}が
+これらのカーマイケル数の一つで、@math{a < n}である場合、@math{a^n \equiv a \pmod{n}}を
+満たすすべての整数@math{a}に対してテストする手続きを書いてください。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.28}Exercise 1.28:} フェルマー検定の変形の一つは
+ミラー-ラビン検定と呼ばれます。(@ref{Miller 1976}; @ref{Rabin 1980})。
+これは、フェルマーの小定理の次のバージョンから始まります。@math{n}が素数で、
+@math{a}が@math{n}未満の任意の正の整数である場合、@math{a}の@math{n-1}乗は
+@math{n}を法として1と合同です。ミラー-ラビン検定でフェルマー検定を騙す数を
+確認するために、@math{a^{n-1} \mod n}を計算する際に、平方ステップを実行する
+たびに、「1の非自明な平方根モジュロ@math{n}」、つまり@math{n}を法として1と
+合同であるが、1や@math{n-1}に等しくない数を確認します。そのような非自明な
+平方根が存在する場合、@math{n}は素数ではないことが証明できます。また、
+@math{n}が奇数の非素数である場合、少なくとも数@math{a < n}の半数について、
+@math{a^{n-1}}を法として@math{n}でこの方法で計算すると、1の非自明な平方根を
+明らかにすることも示されています。（このため、ミラー-ラビン検定は
+カーマイケル数によって騙されません。）この検定の変形を実装するために
+@code{expmod}手続きを修正し、1の非自明な平方根を発見したときに0を返すシグナルを
+使用します。また、@code{fermat-test}に類似した手続き@code{miller-rabin-test}を
+書いてください。これは、ミラー-ラビン検定を使用してチェックを実行します。
+この手続きを使用してカーマイケル数をチェックしてください。
+@end quotation

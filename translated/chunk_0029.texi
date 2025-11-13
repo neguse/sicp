@@ -1,0 +1,98 @@
+@tex
+
+\[ % :7:
+
+\text{Fib}(n) \; = \;
+  \left\{
+    \begin{array}{ll}
+      0 & \;\text{if} \;\; n = 0, \\
+      1 & \;\text{if} \;\; n = 1, \\
+      \text{Fib}(n-1) + \text{Fib}(n-2) & \;\text{otherwise}.
+    \end{array}
+  \right.
+\]
+
+@end tex
+この定義を、フィボナッチ数を計算する再帰手続きにすぐに変換できます。
+
+@lisp
+(define (fib n)
+  (cond ((= n 0) 0)
+        ((= n 1) 1)
+        (else (+ (fib (- n 1))
+                 (fib (- n 2))))))
+@end lisp
+
+@noindent
+この計算のパターンを考えてください。@code{(fib 5)}を計算するために、
+@code{(fib 4)}と@code{(fib 3)}を計算します。@code{(fib 4)}を計算するために、
+@code{(fib 3)}と@code{(fib 2)}を計算します。一般に、進化したプロセスは、
+@ref{Figure 1.5}に示すように、木のように見えます。各レベル（底を除く）で
+枝が2つに分かれることに注意してください。これは、@code{fib}手続きが呼び出される
+たびに自分自身を2回呼び出すという事実を反映しています。
+
+@float
+@anchor{Figure 1.5}
+@ifinfo
+@strong{Figure 1.5:} @code{(fib 5)}を計算する際に生成される木再帰プロセス。
+
+@example
+
+                   ..<............ fib5   <..........
+                ...     ___________/  \___________   .
+             ...       /       . .....            \    .
+           ..       fib4     .        . . . .     fib3  .
+         ..     ____/. \____  ..             .  __/  \__  .
+       ..      /  . .  ..   \    .        ..   /  . .   \   .
+     ..     fib3 .       .  fib2 .        . fib2 .   .  fib1 .
+   ..      / . \  .     .   /  \  .      .  /  \ ...  .  |  .
+ ..       / . . \   .  .   /  . \   .  .   / .  \   .  . 1 .
+.      fib2 . . fib1.  .fib1 .  fib0 . .fib1. . fib0 .  .  .
+.      /  \  . . |  .  . |  .  . |   . . |   . . |   .   .>
+V     /  . \   . 1  .  . 1  .  . 0  .  . 1  .  . 0  ..
+.  fib1 .. fib0..  .   .   .   .   .   V   .   ..  .
+.   |  .  . |  . .>     .>.     . .    ..>.      .>
+.   1 .   . 0  .
+ .   .     .  .
+  .>.       ..
+
+@end example
+@end ifinfo
+@iftex
+@image{fig/chap1/Fig1.5d,147mm,,,.std.svg}
+@caption{@strong{Figure 1.5:} @code{(fib 5)}を計算する際に生成される木再帰プロセス。}
+@end iftex
+@end float
+
+@noindent
+この手続きは原型的な木再帰として教育的ですが、多くの冗長な計算を行うため、
+フィボナッチ数を計算するひどい方法です。@ref{Figure 1.5}で、@code{(fib 3)}の
+計算全体---作業のほぼ半分---が重複していることに注意してください。実際、
+手続きが@code{(fib 1)}または@code{(fib 0)}を計算する回数（一般に、上記の木の
+葉の数）が正確に@math{{\text{Fib}(n+1)}}であることを示すのは難しくありません。
+これがどれほどひどいかの概念を得るために、@math{{\text{Fib}(n)}}の値が@math{n}に
+対して指数的に増加することを示すことができます。より正確には（@ref{Exercise 1.13}を
+参照）、@math{{\text{Fib}(n)}}は@math{{\varphi^n / \sqrt{5}}}に最も近い整数です。
+ここで、
+@ifinfo
+
+@example
+[phi] = (1 + [sqrt]5)/2 ~= 1.6180
+@end example
+
+@end ifinfo
+@tex
+
+\[ % :8:
+
+\varphi \,=\, \frac{1 + \sqrt{5}}{2} \,\approx\, 1.6180
+\]
+
+@end tex
+@noindent
+は@newterm{黄金比}であり、次の方程式を満たします。
+@ifinfo
+
+@example
+[phi]^2 = [phi] + 1
+@end example

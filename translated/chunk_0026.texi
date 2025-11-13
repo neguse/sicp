@@ -1,0 +1,96 @@
+@ifinfo
+
+@example
+n! = n * [(n - 1) * (n - 2) ... 3 * 2 * 1] = n * (n - 1)!
+@end example
+
+@end ifinfo
+@tex
+
+\[ % :6:
+
+n! \,=\, {n \cdot [(n - 1)} \cdot {(n - 2)} \cdots {3 \cdot 2 \cdot 1]} \,=\, {n \cdot (n - 1)!.}
+\]
+
+@end tex
+したがって、@math{{(n - 1)!}}を計算し、その結果に@math{n}を掛けることで
+@math{{n!}}を計算できます。1!が1に等しいという規定を追加すれば、この観察は
+直接手続きに変換されます。
+
+@lisp
+(define (factorial n)
+  (if (= n 1)
+      1
+      (* n (factorial (- n 1)))))
+@end lisp
+
+@noindent
+@ref{Figure 1.3}に示すように、@ref{1.1.5}の置き換えモデルを使用して、
+この手続きが6!を計算する動作を観察できます。
+
+@float
+@anchor{Figure 1.3}
+@ifinfo
+@quotation
+@strong{Figure 1.3:} 6!を計算するための線形再帰プロセス。
+
+@example
+(factorial 6)        ----------------
+(* 6 (factorial 5))                   \
+(* 6 (* 5 (factorial 4)))               \
+(* 6 (* 5 (* 4 (factorial 3))))           \
+(* 6 (* 5 (* 4 (* 3 (factorial 2)))))       \
+(* 6 (* 5 (* 4 (* 3 (* 2 (factorial 1))))))  |
+(* 6 (* 5 (* 4 (* 3 (* 2 1)))))             /
+(* 6 (* 5 (* 4 (* 3 2))))                 /
+(* 6 (* 5 (* 4 6)))                     /
+(* 6 (* 5 24))                        /
+(* 6 120)                           /
+720          <---------------------
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap1/Fig1.3d,139mm,,,.std.svg}
+@caption{@strong{Figure 1.3:} 6!を計算するための線形再帰プロセス。}
+@end iftex
+@end float
+
+@noindent
+では、階乗を計算することについて異なる観点を取りましょう。まず1に2を掛け、
+次にその結果に3を掛け、次に4を掛け、@math{n}に到達するまで続けるという
+規則を指定することで、@math{{n!}}を計算する規則を記述できます。より形式的には、
+1から@math{n}まで数える計数器とともに、実行中の積を維持します。この計算は、
+次の規則に従って、計数器と積が1つのステップから次のステップへと同時に
+変化することによって記述できます。
+
+@example
+product @math{\gets} counter * product
+counter @math{\gets} counter + 1
+@end example
+
+@noindent
+そして、@math{{n!}}は、計数器が@math{n}を超えたときの積の値であると規定します。
+
+もう一度、階乗を計算する手続きとして説明を書き直すことができます。
+@footnote{実際のプログラムでは、おそらく最後の節で導入されたブロック構造を
+使用して、@code{fact-iter}の定義を隠すでしょう。
+
+@lisp
+(define (factorial n)
+  (define (iter product counter)
+    (if (> counter n)
+        product
+        (iter (* counter product)
+              (+ counter 1))))
+  (iter 1 1))
+@end lisp
+
+一度に考えることの数を最小限にするために、ここではこれを避けました。}
+
+@lisp
+(define (factorial n)
+  (fact-iter 1 1 n))
+
+(define (fact-iter product counter max-count)
+  (if (> counter max-count)

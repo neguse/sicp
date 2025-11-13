@@ -1,0 +1,333 @@
+@quotation
+@strong{@anchor{Exercise 1.15}Exercise 1.15:} 角度（ラジアンで指定）の正弦は、
+角度が十分小さい場合は@math{{\sin x \approx x}}という近似を使用して計算でき、
+そうでない場合は三角恒等式を使用できます。
+@ifinfo
+
+@example
+sin x = 3 sin (x/3) - 4 sin^3 (x/3)
+@end example
+
+@end ifinfo
+@tex
+
+\[ % :11:
+
+\sin x \; = \; {3 \sin \frac{x}{3}} - {4 \sin^3 \frac{x}{3}}
+\]
+
+@end tex
+@noindent
+角度のサイズを（3で除算することによって）減らし、それによって@math{\sin x}を
+@math{{\sin(x/3)}}の観点で計算します。（この目的のために、角度は、その大きさが
+0.1ラジアン以下である場合に「十分小さい」と見なされます。）これらのアイデアは、
+次の手続きに組み込まれています。
+
+@lisp
+(define (cube x) (* x x x))
+
+(define (p x) (- (* 3 x) (* 4 (cube x))))
+
+(define (sine angle)
+  (if (not (> (abs angle) 0.1))
+      angle
+      (p (sine (/ angle 3.0)))))
+@end lisp
+
+@enumerate a
+
+@item
+@code{(sine 12.15)}が評価されるとき、手続き@code{p}は何回適用されますか？
+
+@item
+@code{(sine a)}によって生成されるプロセスが使用する空間とステップ数の
+増加のオーダー（@math{a}の関数として）は何ですか？
+
+@end enumerate
+@end quotation
+
+@node	1.2.4, 1.2.5, 1.2.3, 1.2
+@subsection べき乗
+
+与えられた数の整数べき乗を計算する手続きを考えてみましょう。@math{b}を
+@math{n}乗すると、@math{b}を@math{n}回掛け合わせることができます。
+
+@lisp
+(define (expt b n)
+  (if (= n 0)
+      1
+      (* b (expt b (- n 1)))))
+@end lisp
+
+@noindent
+これは線形再帰プロセスであり、@math{{\Theta(n)}}ステップと@math{{\Theta(n)}}空間を
+必要とします。階乗と同様に、等価な線形反復を容易に定式化できます。
+
+@lisp
+(define (expt b n)
+  (expt-iter b n 1))
+
+(define (expt-iter b counter product)
+  (if (= counter 0)
+      product
+      (expt-iter b
+                 (- counter 1)
+                 (* b product))))
+@end lisp
+
+@noindent
+このバージョンは@math{{\Theta(n)}}ステップと@math{{\Theta(1)}}空間を必要とします。
+
+ステップ数を節約できます。（これは@ref{1.2.3}の議論に基づいて、計算時間を
+節約することと同じです。）@math{b^2}を乗算の1回ではなく2回として数える代わりに、
+@math{b}を平方した値を計算するために乗算を1回使用することができます。この方法を
+使用すると、指数がその半分に簡約されます。この簡約は、次の規則に基づいて
+指数を計算するために使用できます。
+@ifinfo
+
+@example
+     /
+     |  b^(n/2)^2         if n is even
+b^n= <  b * b^(n - 1)    if n is odd
+     |  1                 if n = 0
+     \
+@end example
+
+@end ifinfo
+@tex
+
+\[ % :12:
+
+b^n \; = \;
+  \left\{
+    \begin{array}{ll}
+      (\,b^{n/2}\,)^2 & \;\text{if} \;\; n \;\; \text{is even,} \\
+      b \cdot b^{n-1} & \;\text{if} \;\; n \;\; \text{is odd.}
+    \end{array}
+  \right.
+\]
+
+@end tex
+@noindent
+この方法を手続きに直接変換できます。
+
+@lisp
+(define (fast-expt b n)
+  (cond ((= n 0)
+         1)
+        ((even? n)
+         (square (fast-expt b (/ n 2))))
+        (else
+         (* b (fast-expt b (- n 1))))))
+@end lisp
+
+@noindent
+ここで、述語@code{even?}を次のように実装すると仮定します。
+
+@lisp
+(define (even? n)
+  (= (remainder n 2) 0))
+@end lisp
+
+@noindent
+@code{fast-expt}によって進化するプロセスは、空間と同様にステップ数において
+対数的に増加します。これを確認するために、@code{(fast-expt b n)}を計算する際には、
+@math{n}が2倍になるたびに1つの乗算以上を必要としないことを観察してください。
+このように、手続きが必要とする乗算の数は@math{n}に対して対数的に増加します。
+プロセスは対数的な増加を持つと言います。@footnote{より正確には、計算される
+乗算の数は@math{{n \log_2 3}}未満、連鎖の深さは@math{{\log_2 n}}に等しくなります。
+これらの式は、簡約の各ステップが指数をほぼ半分にするという事実から導かれます。}
+この違いは、例えば、@math{{b^{1000}}}を計算する際には巨大なものになります。
+@code{fast-expt}を使用すると、14回の乗算のみが必要です。@footnote{@code{expt}の
+線形再帰バージョンを実装した場合、1000乗を計算するには999回の乗算とほぼ同じ
+数の加算が必要です。}対照的に、@code{expt}の線形再帰バージョンは1000回の
+乗算を実行し、線形反復バージョンは999回の乗算を実行します。
+
+@quotation
+@strong{@anchor{Exercise 1.16}Exercise 1.16:} 連続する平方化の考えを使用して、
+反復プロセスで対数ステップ数で指数を計算する手続きを設計してください。
+（ヒント: @math{b^n}の計算とともに、追加の状態変数@math{a}を使用し、不変量
+@math{{a b^n}}が一定の値である状態から別の状態へと変化するように定義します。
+プロセスの開始時に@math{a}を1に、答えを@math{a}の最終値として取ります。
+一般に、不変量が維持される量を定義する技法は、反復アルゴリズムを設計する
+強力な方法です。）
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.17}Exercise 1.17:} この節で開発された指数手続きは、
+指数が連続する整数の加算によって実行されるという観察に基づいています。類似の
+方法では、整数は繰り返しの加算によって実行できます。次の乗算手続きは
+（@code{*}組み込み演算がまったく使用できないとして、加算に関して）、この方法に
+類似しています。
+
+@lisp
+(define (* a b)
+  (if (= b 0)
+      0
+      (+ a (* a (- b 1)))))
+@end lisp
+
+このアルゴリズムは、乗算を実行するために@math{b}に対して線形なステップ数を
+取ります。ここで、加算、2倍（@code{double}、引数に2を加算する）、半分
+（@code{halve}、偶数の引数を2で除算する）に関して定式化された、対数ステップ数を
+使用する同様の乗算手続きを設計すると仮定します。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.18}Exercise 1.18:} @ref{Exercise 1.16}と
+@ref{Exercise 1.17}のアルゴリズムを使用して、反復プロセスが対数ステップ数で
+2つの整数を乗算する手続きを考案してください。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.19}Exercise 1.19:} @ref{1.2.2}の@code{fib-iter}
+手続きを使用してフィボナッチ数を計算する効率的なアルゴリズムがあります。
+@code{fib-iter}はスキーム変換@math{{T_{pq}}}の特別な場合、つまり変換
+@math{{T_{01}}}（@math{p = 0}と@math{q = 1}の場合の@math{{T_{pq}}}）を繰り返し
+適用します。ここで、@math{{T_{pq}}}はペア@math{(a,b)}に従って、
+@math{{a \leftarrow bq + aq + ap}}と@math{{b \leftarrow bp + aq}}に変換します。
+
+繰り返しの平方化のアイデアに基づいて、@code{fib-iter}が演算する方法に似た
+アルゴリズムを説明することを目的として、変換@math{{T_{pq}}}を2回適用することが
+@math{{p'}}と@math{{q'}}の観点で変換@math{{T_{p'q'}}}を1回適用することと同じ
+効果を持つことを示してください。これにより、対数ステップ数でフィボナッチ数を
+計算できます。（ヒント: @math{{T_{pq}}}を2回適用することで、@math{{p'}}と
+@math{{q'}}は@math{p}と@math{q}の代数的に表現できます。）
+@end quotation
+
+@node	1.2.5, 1.2.6, 1.2.4, 1.2
+@subsection 最大公約数
+
+2つの整数@math{a}と@math{b}の最大公約数（GCD）は、@math{a}と@math{b}の両方を
+割り切る最大の整数として定義されます。例えば、16と28のGCDは4です。
+@ref{Chapter 2}では、2つの多項式の簡約で有理数を計算する際に、GCDを計算する
+必要があることがわかります。有理数を最も低い項に簡約するには、分子と分母の
+GCDを計算し、その最大公約数で両方を除算する必要があります。
+
+GCDを見つける効率的なアルゴリズムの一つは、ユークリッドのアルゴリズムとして
+知られています。
+
+このアルゴリズムの考え方は、@math{r}が@math{a}を@math{b}で除算したときの
+剰余である場合、@math{a}と@math{b}を割り切る共通の約数は、@math{b}と@math{r}も
+割り切るということです。したがって、次のように書くことができます。
+
+@example
+GCD(a,b) = GCD(b,r)
+@end example
+
+@noindent
+これは、@math{r = 0}になるまで@math{a}と@math{b}のペアを@math{b}と@math{r}に
+連続して簡約することによって、GCDの計算をますます小さい整数のペアに簡約する
+ために使用できます。その後、GCDはその他の数（@math{b}）です。例えば、206と40の
+GCDを計算するには、次のような簡約を実行します。
+
+@example
+GCD(206,40) = GCD(40,6)
+            = GCD(6,4)
+            = GCD(4,2)
+            = GCD(2,0) = 2
+@end example
+
+@noindent
+プロセスを手続きとして表現することは簡単です。
+
+@lisp
+(define (gcd a b)
+  (if (= b 0)
+      a
+      (gcd b (remainder a b))))
+@end lisp
+
+@noindent
+これにより、反復プロセス、つまり状態が固定数（この場合は2つ）の状態変数に
+よって完全に記述されるプロセスが生成されます。これは、@math{{\Theta(\log n)}}の
+増加のオーダーを持ちます。事実、可能なプロセスの中で、ユークリッドの
+アルゴリズムは@math{{\Theta(\log n)}}の増加のオーダーを持つことが示せます。
+（これは困難な定理です。）@footnote{このステートメントについては
+@ref{Knuth (1973)}の@ref{1.2.5}を参照してください。}
+
+@quotation
+@strong{@anchor{Exercise 1.20}Exercise 1.20:} @code{gcd}手続きによって生成される
+プロセスは、手続きを解釈するかどうかによって異なります。正規順序評価
+（@ref{1.1.5}で説明）または作用的順序評価を使用します。（正規順序評価を
+使用する場合、@code{if}は条件がtrueまたはfalseのいずれかになるまで評価される
+特殊形式であると仮定します。）次の評価を使用して正規順序評価によって
+生成されるプロセスをトレースします。
+
+@lisp
+(gcd 206 40)
+@end lisp
+
+そして、実際に実行される@code{remainder}演算の数を決定します。実際に評価を
+実行してください。作用的順序評価で実際に実行される@code{remainder}演算の数
+も決定します。
+@end quotation
+
+@node	1.2.6, 1.3, 1.2.5, 1.2
+@subsection 例: 素数性のテスト
+
+この節では、整数が素数である可能性をチェックする2つの方法を説明します。一つは
+@math{{\Theta(\sqrt{n})}}の増加のオーダーを持ち、もう一つは確率的アルゴリズムで
+@math{{\Theta(\log n)}}の増加のオーダーを持ちます。本節の最後の演習では、
+プログラミング手法、つまり実際には真実である「@math{{\Theta(\log n)}}と
+@math{{\Theta(\sqrt{n})}}の違いは何か」という質問に対して、定量的な回答を
+得る機会を提供します。
+
+@subsubheading 約数を探す
+
+紀元前から知られている整数が素数であるかどうかをテストする一つの方法は、
+@math{n}の約数を見つけることです。次のプログラムは、2からすべての整数を
+順番にテストして、約数を見つけます。
+
+@lisp
+(define (smallest-divisor n)
+  (find-divisor n 2))
+
+(define (find-divisor n test-divisor)
+  (cond ((> (square test-divisor) n)
+         n)
+        ((divides? test-divisor n)
+         test-divisor)
+        (else (find-divisor
+               n
+               (+ test-divisor 1)))))
+
+(define (divides? a b)
+  (= (remainder b a) 0))
+@end lisp
+
+@noindent
+@code{find-divisor}は、次の観察を使用します。@math{n}が素数でない場合、
+@math{\sqrt{n}}以下の約数を持たなければなりません。@footnote{@math{d}が
+@math{n}の約数の場合、@math{n/d}も約数です。しかし、@math{d}と@math{n/d}の
+両方が@math{\sqrt{n}}より大きい場合があり得ません。}この事実は、
+テストの終了テストを提供します。テスト約数の平方が@math{n}より大きくなった
+場合、@math{n}が素数であることがわかります。@code{find-divisor}によって
+見つかった最小の約数が@math{n}自体である場合、@math{n}が素数でなければ
+ならないと結論付けることができます。
+
+@lisp
+(define (prime? n)
+  (= n (smallest-divisor n)))
+@end lisp
+
+@noindent
+@code{find-divisor}の終了テストは、@code{test-divisor}が@math{n}に達したか
+どうかをチェックするのではなく、@code{(square test-divisor)}が@math{n}より
+大きいかどうかをチェックします。このため、テストは@math{{\Theta(\sqrt{n})}}の
+ステップで実行されます。
+
+@subsubheading フェルマー検定
+
+@math{{\Theta(\log n)}}の増加のオーダーは、フェルマーの小定理として知られる
+結果に基づいています。@footnote{17世紀の数学者Pierre de Fermatにちなんで
+名付けられました。これは素数のモジュロ除算に関する重要な結果の一つです。
+@ref{Hardy and Wright (1960)}を参照してください。}
+
+@strong{フェルマーの小定理}: @math{n}が素数であり、@math{a}が@math{n}未満の
+任意の正の整数である場合、@math{a}の@math{n}乗は@math{n}を法として@math{a}と
+合同です。
+
+（2つの数は、モジュロ@math{n}が等しい場合、同じ剰余を@math{n}で除算したときに
+生じる場合、@math{n}を法として合同であると言われます。数@math{a}の
+@math{n}を法とした剰余は、@code{remainder}手続きを使用して計算されます。）

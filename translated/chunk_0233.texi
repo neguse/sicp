@@ -1,0 +1,90 @@
+(define (operator exp) (car exp))
+(define (operands exp) (cdr exp))
+(define (no-operands? ops) (null? ops))
+(define (first-operand ops) (car ops))
+(define (rest-operands ops) (cdr ops))
+@end lisp
+
+@end itemize
+
+@subsubheading 派生式
+
+私たちの言語のいくつかの特殊形式は、直接実装されるのではなく、他の特殊形式を含む
+式の観点から定義できます。1つの例は@code{cond}で、@code{if}式のネストとして
+実装できます。例えば、次の式を評価する問題を
+
+@lisp
+(cond ((> x 0) x)
+      ((= x 0) (display 'zero) 0)
+      (else (- x)))
+@end lisp
+
+@noindent
+次の@code{if}と@code{begin}式を含む式を評価する問題に縮約できます。
+
+@lisp
+(if (> x 0)
+    x
+    (if (= x 0)
+        (begin (display 'zero) 0)
+        (- x)))
+@end lisp
+
+@noindent
+この方法で@code{cond}の評価を実装すると、評価プロセスを明示的に指定しなければならない
+特殊形式の数が減るため、評価器が簡略化されます。
+
+@code{cond}式の部分を抽出する構文手続きと、@code{cond}式を@code{if}式に変換する
+手続き@code{cond->if}を含めます。ケース分析は@code{cond}で始まり、述語-アクション節の
+リストを持ちます。節は、その述語がシンボル@code{else}である場合、@code{else}節です。
+@footnote{すべての述語が偽で@code{else}節がない場合の@code{cond}式の値は、Schemeでは
+未指定です。ここではそれを偽にすることを選択しました。}
+
+@lisp
+(define (cond? exp)
+  (tagged-list? exp 'cond))
+(define (cond-clauses exp) (cdr exp))
+(define (cond-else-clause? clause)
+  (eq? (cond-predicate clause) 'else))
+(define (cond-predicate clause)
+  (car clause))
+(define (cond-actions clause)
+  (cdr clause))
+(define (cond->if exp)
+  (expand-clauses (cond-clauses exp)))
+(define (expand-clauses clauses)
+  (if (null? clauses)
+      'false     @r{; @code{else}節なし}
+      (let ((first (car clauses))
+            (rest (cdr clauses)))
+        (if (cond-else-clause? first)
+            (if (null? rest)
+                (sequence->exp
+                 (cond-actions first))
+                (error "ELSE clause isn't
+                        last: COND->IF"
+                       clauses))
+            (make-if (cond-predicate first)
+                     (sequence->exp
+                      (cond-actions first))
+                     (expand-clauses
+                      rest))))))
+@end lisp
+
+@noindent
+構文変換として実装することを選択した式（@code{cond}など）は、@newterm{派生式}
+（derived expressions）と呼ばれます。@code{Let}式も派生式です
+（@ref{Exercise 4.6}参照）。@footnote{実用的なLispシステムは、ユーザーが評価器を
+変更せずに新しい派生式を追加し、その実装を構文変換として指定できる機構を提供します。
+そのようなユーザー定義変換は@newterm{マクロ}（macro）と呼ばれます。マクロを定義する
+ための基本的な機構を追加するのは簡単ですが、結果として得られる言語には微妙な名前衝突の
+問題があります。これらの困難を引き起こさないマクロ定義の機構について多くの研究が
+行われてきました。例えば、@ref{Kohlbecker 1986}、@ref{Clinger and Rees 1991}、
+@ref{Hanson 1991}を参照してください。}
+
+@quotation
+@strong{@anchor{Exercise 4.2}練習問題 4.2:} Louis Reasonerは、@code{eval}の
+@code{cond}節を並べ替えて、手続き適用の節が代入の節の前に現れるようにすることを
+計画しています。彼は、これによってインタプリタがより効率的になると主張しています。
+プログラムは通常、代入、定義などよりも多くの適用を含むため、彼の変更された@code{eval}は
+通常、元の@code{eval}よりも

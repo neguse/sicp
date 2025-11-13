@@ -1,0 +1,91 @@
+         (lookup-variable-value exp env))
+        ((quoted? exp)
+         (text-of-quotation exp))
+        ((assignment? exp)
+         (eval-assignment exp env))
+        ((definition? exp)
+         (eval-definition exp env))
+        ((if? exp)
+         (eval-if exp env))
+        ((lambda? exp)
+         (make-procedure
+          (lambda-parameters exp)
+          (lambda-body exp)
+          env))
+        ((begin? exp)
+         (eval-sequence
+          (begin-actions exp)
+          env))
+        ((cond? exp)
+         (eval (cond->if exp) env))
+        ((application? exp)
+         (apply (eval (operator exp) env)
+                (list-of-values
+                 (operands exp)
+                 env)))
+        (else
+         (error "Unknown expression
+                 type: EVAL" exp))))
+@end lisp
+
+@noindent
+明確にするために、@code{eval}は@code{cond}を使用したケース分析として実装されています。
+これの欠点は、私たちの手続きがわずかな識別可能な型の式しか扱えず、@code{eval}の定義を
+編集しないと新しい式を定義できないことです。ほとんどのLisp実装では、式の型のディスパッチは
+データ指向スタイルで行われます。これにより、ユーザーは@code{eval}自体の定義を変更せずに、
+@code{eval}が識別できる新しい型の式を追加できます。（@ref{Exercise 4.3}参照。）
+
+@subsubheading Apply
+
+@code{Apply}は2つの引数、手続きと手続きが適用されるべき引数のリストを取ります。
+@code{Apply}は手続きを2種類に分類します。プリミティブを適用するために
+@code{apply-primitive-procedure}を呼び出します。複合手続きは、手続きの本体を構成する
+式を順次評価することで適用します。複合手続きの本体の評価のための環境は、手続きが適用される
+引数に手続きのパラメータを束縛するフレームを含むように、手続きによって運ばれる基本環境を
+拡張することによって構築されます。@code{apply}の定義は次の通りです。
+
+@lisp
+(define (apply procedure arguments)
+  (cond ((primitive-procedure? procedure)
+         (apply-primitive-procedure
+          procedure
+          arguments))
+        ((compound-procedure? procedure)
+         (eval-sequence
+           (procedure-body procedure)
+           (extend-environment
+             (procedure-parameters
+              procedure)
+             arguments
+             (procedure-environment
+              procedure))))
+        (else
+         (error "Unknown procedure
+                 type: APPLY"
+                procedure))))
+@end lisp
+
+@subsubheading 手続きの引数
+
+@code{eval}が手続き適用を処理するとき、手続きが適用される引数のリストを生成するために
+@code{list-of-values}を使用します。@code{List-of-values}は組み合わせのオペランドを
+引数として取ります。各オペランドを評価し、対応する値のリストを返します。
+@footnote{@code{eval}の@code{application?}節を、明示的な@code{list-of-values}手続きを
+書くのではなく、@code{map}を使用することで（そして@code{operands}がリストを返すことを
+規定することで）簡略化できたでしょう。ここで@code{map}を使用しないことを選択したのは、
+評価器が高階手続きを一切使用せずに実装できる（したがって高階手続きを持たない言語で
+書くことができる）という事実を強調するためです。評価器がサポートする言語には高階手続きが
+含まれますが。}
+
+@lisp
+(define (list-of-values exps env)
+  (if (no-operands? exps)
+      '()
+      (cons (eval (first-operand exps) env)
+            (list-of-values
+             (rest-operands exps)
+             env))))
+@end lisp
+
+@subsubheading 条件式
+

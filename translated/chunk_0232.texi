@@ -1,0 +1,92 @@
+
+(define (definition-value exp)
+  (if (symbol? (cadr exp))
+      (caddr exp)
+      (make-lambda
+       (cdadr exp)   @r{; 仮パラメータ}
+       (cddr exp)))) @r{; 本体}
+@end lisp
+
+@item
+@code{Lambda}式はシンボル@code{lambda}で始まるリストです。
+
+@lisp
+(define (lambda? exp)
+  (tagged-list? exp 'lambda))
+(define (lambda-parameters exp) (cadr exp))
+(define (lambda-body exp) (cddr exp))
+@end lisp
+
+@code{lambda}式のコンストラクタも提供します。これは上の@code{definition-value}で
+使用されます。
+
+@lisp
+(define (make-lambda parameters body)
+  (cons 'lambda (cons parameters body)))
+@end lisp
+
+@item
+条件式は@code{if}で始まり、述語、帰結部、（オプションの）代替部を持ちます。
+式に代替部がない場合、代替として@code{false}を提供します。@footnote{述語が偽で代替が
+ない場合の@code{if}式の値は、Schemeでは未指定です。ここではそれを偽にすることを
+選択しました。評価される式で変数@code{true}と@code{false}の使用をサポートするために、
+それらをグローバル環境に束縛します。@ref{4.1.4}参照。}
+
+@lisp
+(define (if? exp) (tagged-list? exp 'if))
+(define (if-predicate exp) (cadr exp))
+(define (if-consequent exp) (caddr exp))
+(define (if-alternative exp)
+  (if (not (null? (cdddr exp)))
+      (cadddr exp)
+      'false))
+@end lisp
+
+@code{if}式のコンストラクタも提供します。これは@code{cond}式を@code{if}式に変換する
+ために@code{cond->if}によって使用されます。
+
+@lisp
+(define (make-if predicate
+                 consequent
+                 alternative)
+  (list 'if
+        predicate
+        consequent
+        alternative))
+@end lisp
+
+@item
+@code{Begin}は式の列を単一の式にパッケージ化します。@code{begin}式から実際の列を
+抽出する@code{begin}式の構文操作、および列の最初の式と残りの式を返すセレクタを含めます。
+@footnote{式のリストのためのこれらのセレクタ---およびオペランドのリストのための
+対応するもの---は、データ抽象として意図されていません。これらは、@ref{5.4}の
+明示的制御評価器を理解しやすくするために、基本リスト操作のための記憶補助的な名前として
+導入されています。}
+
+@lisp
+(define (begin? exp)
+  (tagged-list? exp 'begin))
+(define (begin-actions exp) (cdr exp))
+(define (last-exp? seq) (null? (cdr seq)))
+(define (first-exp seq) (car seq))
+(define (rest-exps seq) (cdr seq))
+@end lisp
+
+列を単一の式に変換するコンストラクタ@code{sequence->exp}（@code{cond->if}で使用する
+ために）も含めます。必要に応じて@code{begin}を使用します。
+
+@lisp
+(define (sequence->exp seq)
+  (cond ((null? seq) seq)
+        ((last-exp? seq) (first-exp seq))
+        (else (make-begin seq))))
+
+(define (make-begin seq) (cons 'begin seq))
+@end lisp
+
+@item
+手続き適用は、上記の式型のいずれでもない任意の複合式です。式の@code{car}は演算子で、
+@code{cdr}はオペランドのリストです。
+
+@lisp
+(define (application? exp) (pair? exp))

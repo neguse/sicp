@@ -1,0 +1,96 @@
+データ抽象を使用して、操作の一般規則を式がどのように表現されるかの詳細から切り離しました。
+微分プログラムでは、これは同じ微分手続きが前置形式、中置形式、または他の何らかの形式の
+代数式を扱えることを意味しました。評価器の場合、これは評価される言語の構文が、式を
+分類して式の部分を抽出する手続きによってのみ決定されることを意味します。
+
+私たちの言語の構文の仕様は次の通りです。
+
+@itemize
+
+@item
+自己評価される項目は数と文字列だけです。
+
+@lisp
+(define (self-evaluating? exp)
+  (cond ((number? exp) true)
+        ((string? exp) true)
+        (else false)))
+@end lisp
+
+@item
+変数はシンボルで表されます。
+
+@lisp
+(define (variable? exp) (symbol? exp))
+@end lisp
+
+@item
+引用は形式@code{(quote ⟨@var{text-of-quotation}⟩)}を持ちます。@footnote{@ref{2.3.1}で
+述べたように、評価器は引用された式を、式が引用符で入力された場合でも、@code{quote}で
+始まるリストとして見ます。例えば、式@code{'a}は評価器によって@code{(quote a)}として
+見られます。@ref{Exercise 2.55}参照。}
+
+@lisp
+(define (quoted? exp)
+  (tagged-list? exp 'quote))
+
+(define (text-of-quotation exp)
+  (cadr exp))
+@end lisp
+
+@code{Quoted?}は、指定されたシンボルで始まるリストを識別する手続き@code{tagged-list?}の
+観点から定義されます。
+
+@lisp
+(define (tagged-list? exp tag)
+  (if (pair? exp)
+      (eq? (car exp) tag)
+      false))
+@end lisp
+
+@item
+代入は形式@code{(set! ⟨@var{var}⟩ ⟨@var{value}⟩)}を持ちます。
+
+@lisp
+(define (assignment? exp)
+  (tagged-list? exp 'set!))
+
+(define (assignment-variable exp)
+  (cadr exp))
+
+(define (assignment-value exp) (caddr exp))
+@end lisp
+
+@item
+定義は形式
+
+@lisp
+(define ⟨@var{var}⟩ ⟨@var{value}⟩)
+@end lisp
+
+@noindent
+または形式
+
+@lisp
+(define (⟨@var{var}⟩ ⟨@var{param₁}⟩ @r{…} ⟨@var{paramₙ}⟩)
+  ⟨@var{body}⟩)
+@end lisp
+
+を持ちます。後者の形式（標準的な手続き定義）は次の構文糖衣です。
+
+@lisp
+(define ⟨@var{var}⟩
+  (lambda (⟨@var{param₁}⟩ @r{…} ⟨@var{paramₙ}⟩)
+    ⟨@var{body}⟩))
+@end lisp
+
+対応する構文手続きは次の通りです。
+
+@lisp
+(define (definition? exp)
+  (tagged-list? exp 'define))
+
+(define (definition-variable exp)
+  (if (symbol? (cadr exp))
+      (cadr exp)
+      (caadr exp)))

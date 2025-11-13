@@ -1,0 +1,88 @@
+@code{Eval-if}は、与えられた環境で@code{if}式の述語部分を評価します。結果が真であれば、
+@code{eval-if}は帰結部を評価し、そうでなければ代替部を評価します。
+
+@lisp
+(define (eval-if exp env)
+  (if (true? (eval (if-predicate exp) env))
+      (eval (if-consequent exp) env)
+      (eval (if-alternative exp) env)))
+@end lisp
+
+@noindent
+@code{eval-if}での@code{true?}の使用は、実装される言語と実装言語の間の接続の問題を
+強調します。@code{if-predicate}は実装される言語で評価されるため、その言語の値を
+生成します。インタプリタ述語@code{true?}はその値を、実装言語の@code{if}でテストできる
+値に変換します。真理のメタ循環表現は、基礎となるSchemeのそれと同じではないかもしれません。
+@footnote{この場合、実装される言語と実装言語は同じです。ここでの@code{true?}の意味を
+熟考することは、物質の乱用なしに意識の拡張をもたらします。}
+
+@subsubheading 列
+
+@code{Eval-sequence}は、手続き本体の式の列を評価するために@code{apply}によって使用され、
+@code{begin}式の式の列を評価するために@code{eval}によって使用されます。
+式の列と環境を引数として取り、式が出現する順序で式を評価します。返される値は最終式の値です。
+
+@lisp
+(define (eval-sequence exps env)
+  (cond ((last-exp? exps)
+         (eval (first-exp exps) env))
+        (else
+         (eval (first-exp exps) env)
+         (eval-sequence (rest-exps exps)
+                        env))))
+@end lisp
+
+@subsubheading 代入と定義
+
+次の手続きは変数への代入を処理します。代入される値を見つけるために@code{eval}を呼び出し、
+指定された環境にインストールされるために、変数と結果の値を@code{set-variable-value!}に
+送信します。
+
+@lisp
+(define (eval-assignment exp env)
+  (set-variable-value!
+   (assignment-variable exp)
+   (eval (assignment-value exp) env)
+   env)
+  'ok)
+@end lisp
+
+@noindent
+変数の定義は同様の方法で処理されます。@footnote{この@code{define}の実装は、内部定義の
+処理における微妙な問題を無視していますが、ほとんどの場合正しく動作します。問題が何であるか、
+そしてそれを解決する方法は@ref{4.1.6}で見ていきます。}
+
+@lisp
+(define (eval-definition exp env)
+  (define-variable!
+    (definition-variable exp)
+    (eval (definition-value exp) env)
+    env)
+  'ok)
+@end lisp
+
+@noindent
+ここで、代入または定義の値としてシンボル@code{ok}を返すことを選択しました。
+@footnote{@code{define}と@code{set!}を導入したときに言ったように、これらの値は
+Schemeでは実装依存です---つまり、実装者はどの値を返すかを選択できます。}
+
+@quotation
+@strong{@anchor{Exercise 4.1}練習問題 4.1:} メタ循環評価器がオペランドを左から右に
+評価するか右から左に評価するかを判断できないことに注意してください。その評価順序は
+基礎となるLispから継承されます。@code{list-of-values}の@code{cons}への引数が左から右に
+評価される場合、@code{list-of-values}はオペランドを左から右に評価します。
+@code{cons}への引数が右から左に評価される場合、@code{list-of-values}はオペランドを
+右から左に評価します。
+
+基礎となるLispの評価順序に関係なく、オペランドを左から右に評価する@code{list-of-values}の
+バージョンを書いてください。また、オペランドを右から左に評価する@code{list-of-values}の
+バージョンも書いてください。
+@end quotation
+
+@node	4.1.2, 4.1.3, 4.1.1, 4.1
+@subsection 式の表現
+
+評価器は、@ref{2.3.2}で議論された記号微分プログラムを思い起こさせます。両方のプログラムは
+記号式に対して操作します。両方のプログラムでは、複合式に対して操作した結果は、式の部分に
+対して再帰的に操作し、式の型に依存する方法で結果を組み合わせることによって決定されます。
+両方のプログラムでは、

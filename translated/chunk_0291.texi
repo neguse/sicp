@@ -1,0 +1,96 @@
+入力ストリームの各フレームに対して、@code{find-assertions}（@ref{4.4.4.3}）を
+使ってパターンをデータベース内のすべてのアサーションとマッチさせ、拡張フレームの
+ストリームを生成し、@code{apply-rules}（@ref{4.4.4.4}）を使ってすべての可能な
+規則を適用し、別の拡張フレームのストリームを生成します。これら2つのストリームは
+（@code{stream-append-delayed}、@ref{4.4.4.6}を使用して）結合され、与えられた
+パターンが元のフレームと一致する形で満たされるすべての方法のストリームを作ります
+（@ref{Exercise 4.71}を参照）。個々の入力フレームのストリームは、@code{stream-flatmap}
+（@ref{4.4.4.6}）を使って結合され、元の入力ストリームのフレームのいずれかを拡張して
+与えられたパターンとのマッチを生成できるすべての方法の1つの大きなストリームを
+形成します。
+
+@subsubheading 複合クエリ
+
+@code{And}クエリは、@ref{Figure 4.5}に示されているように@code{conjoin}手続きで
+処理されます。@code{Conjoin}は入力として連言とフレームストリームを取り、拡張
+フレームのストリームを返します。まず、@code{conjoin}はフレームのストリームを処理して、
+連言の最初のクエリを満たすすべての可能なフレーム拡張のストリームを見つけます。
+次に、これを新しいフレームストリームとして使い、残りのクエリに対して@code{conjoin}を
+再帰的に適用します。
+
+@lisp
+(define (conjoin conjuncts frame-stream)
+  (if (empty-conjunction? conjuncts)
+      frame-stream
+      (conjoin (rest-conjuncts conjuncts)
+               (qeval
+                (first-conjunct conjuncts)
+                frame-stream))))
+@end lisp
+
+@noindent
+次の式
+
+@lisp
+(put 'and 'qeval conjoin)
+@end lisp
+
+@noindent
+は、@code{and}形式に遭遇したときに@code{conjoin}にディスパッチするように@code{qeval}を
+設定します。
+
+@code{Or}クエリは、@ref{Figure 4.6}に示されているように同様に処理されます。
+@code{or}のさまざまな選言の出力ストリームは個別に計算され、@ref{4.4.4.6}の
+@code{interleave-delayed}手続きを使ってマージされます。（@ref{Exercise 4.71}と
+@ref{Exercise 4.72}を参照してください。）
+
+@lisp
+(define (disjoin disjuncts frame-stream)
+  (if (empty-disjunction? disjuncts)
+      the-empty-stream
+      (interleave-delayed
+       (qeval (first-disjunct disjuncts)
+              frame-stream)
+       (delay (disjoin
+               (rest-disjuncts disjuncts)
+               frame-stream)))))
+(put 'or 'qeval disjoin)
+@end lisp
+
+@noindent
+連言と選言の構文のための述語と選択子は@ref{4.4.4.7}で与えられます。
+
+@subsubheading フィルター
+
+@code{Not}は@ref{4.4.2}で概説した方法で処理されます。入力ストリームの各フレームを、
+否定されているクエリを満たすように拡張しようとし、拡張できない場合にのみ、
+与えられたフレームを出力ストリームに含めます。
+
+@lisp
+(define (negate operands frame-stream)
+  (stream-flatmap
+   (lambda (frame)
+     (if (stream-null?
+          (qeval (negated-query operands)
+                 (singleton-stream frame)))
+         (singleton-stream frame)
+         the-empty-stream))
+   frame-stream))
+(put 'not 'qeval negate)
+@end lisp
+
+@noindent
+@code{Lisp-value}は@code{not}と同様のフィルターです。ストリーム内の各フレームは、
+パターン内の変数を実体化するために使われ、指定された述語が適用され、述語が偽を
+返すフレームは入力ストリームからフィルタリングされます。未束縛のパターン変数が
+ある場合はエラーが発生します。
+
+@lisp
+(define (lisp-value call frame-stream)
+  (stream-flatmap
+   (lambda (frame)
+     (if (execute
+          (instantiate
+           call
+           frame
+           (lambda (v f)

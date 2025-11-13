@@ -1,0 +1,93 @@
+@end lisp
+
+@noindent
+ここで@code{accumulation-function}は@code{sum}、@code{average}、@code{maximum}の
+ような関数です。Benは、これを実装するのは簡単だと推論します。彼は単に
+クエリパターンを@code{qeval}に渡します。これはフレームのストリームを生成します。
+次に、このストリームをマッピング関数に渡し、ストリーム内の各フレームから指定された
+変数の値を抽出し、結果として得られる値のストリームを累積関数に渡します。Benが
+実装を完了し、試そうとしているちょうどそのとき、Cyが@ref{Exercise 4.65}の
+@code{wheel}クエリの結果にまだ困惑しながら通りかかります。CyがBenにシステムの
+応答を見せると、Benはうめき声を上げます。「ああ、だめだ、私の単純な累積スキームは
+うまくいかない！」
+
+Benは何に気づいたのでしょうか？状況を救うために彼が使える方法の概要を述べてください。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.67}Exercise 4.67:} テキストと@ref{Exercise 4.64}で
+示されているような種類の単純なループを避けるために、クエリシステムにループ検出器を
+インストールする方法を考案してください。一般的なアイデアは、システムが現在の推論
+チェーンの何らかの履歴を維持し、すでに作業中のクエリの処理を開始しないように
+すべきだということです。どのような種類の情報（パターンとフレーム）がこの履歴に
+含まれるか、およびチェックをどのように行うべきかを説明してください。（@ref{4.4.4}で
+クエリシステムの実装の詳細を学習した後、ループ検出器を含めるようにシステムを
+変更することをお勧めします。）
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.68}Exercise 4.68:} @ref{Exercise 2.18}の@code{reverse}
+操作を実装する規則を定義してください。これは、与えられたリストと同じ要素を逆順で
+含むリストを返します。（ヒント：@code{append-to-form}を使用してください。）
+あなたの規則は@code{(reverse (1 2 3) ?x)}と@code{(reverse ?x (1 2 3))}の両方に
+答えることができますか？
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.69}Exercise 4.69:} @ref{Exercise 4.63}で定式化した
+データベースと規則から始めて、孫関係に「greats」を追加する規則を考案してください。
+これにより、システムはIradがAdamの曾孫であること、またはJabalとJubalが
+Adamの高々々々孫であることを推論できるようになるはずです。（ヒント：たとえばIradに
+関する事実を@code{((great grandson) Adam Irad)}として表現してください。リストが
+@code{grandson}という単語で終わるかどうかを判定する規則を書いてください。これを
+使って、@code{((great .  ?rel) ?x ?y)}という関係を導出できる規則を表現してください。
+ここで、@code{?rel}は@code{grandson}で終わるリストです。）@code{((great grandson) ?g ?ggs)}や
+@code{(?relationship Adam Irad)}のようなクエリで規則をチェックしてください。
+@end quotation
+
+@node	4.4.4, 4.4.4.1, 4.4.3, 4.4
+@subsection クエリシステムの実装
+
+セクション@ref{4.4.2}では、クエリシステムがどのように機能するかを説明しました。
+今度は、システムの完全な実装を提示することで詳細を埋めます。
+
+@menu
+* 4.4.4.1::          ドライバループと実体化
+* 4.4.4.2::          評価器
+* 4.4.4.3::          パターンマッチングによるアサーションの検索
+* 4.4.4.4::          規則と単一化
+* 4.4.4.5::          データベースの維持
+* 4.4.4.6::          ストリーム操作
+* 4.4.4.7::          クエリ構文手続き
+* 4.4.4.8::          フレームと束縛
+@end menu
+
+@node 4.4.4.1, 4.4.4.2, 4.4.4, 4.4.4
+@subsubsection ドライバループと実体化
+
+クエリシステムのドライバループは、入力式を繰り返し読み取ります。式がデータベースに
+追加される規則またはアサーションであれば、情報が追加されます。それ以外の場合、
+式はクエリであると想定されます。ドライバは、このクエリを、単一の空のフレームで
+構成される初期フレームストリームとともに、評価器@code{qeval}に渡します。評価の
+結果は、データベースで見つかった変数値でクエリを満たすことによって生成された
+フレームのストリームです。これらのフレームは、フレームのストリームによって提供される
+値で変数が実体化された、元のクエリのコピーで構成される新しいストリームを形成する
+ために使われ、この最終ストリームは端末に印刷されます：
+
+@lisp
+(define input-prompt  ";;; Query input:")
+(define output-prompt ";;; Query results:")
+
+(define (query-driver-loop)
+  (prompt-for-input input-prompt)
+  (let ((q (query-syntax-process (read))))
+    (cond ((assertion-to-be-added? q)
+           (add-rule-or-assertion!
+            (add-assertion-body q))
+           (newline)
+           (display
+            "Assertion added to data base.")
+           (query-driver-loop))
+          (else
+           (newline)
+           (display output-prompt)

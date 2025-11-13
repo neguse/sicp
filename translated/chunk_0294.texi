@@ -1,0 +1,95 @@
+たとえば、2つの規則が両方とも@code{?x}という名前の変数を使う場合、それぞれが
+適用されるときに@code{?x}への束縛をフレームに追加する可能性があります。これら2つの
+@code{?x}は互いに何の関係もなく、2つの束縛が一致していなければならないと考えるように
+だまされるべきではありません。変数を改名するのではなく、より賢い環境構造を考案
+することもできますが、ここで選択した改名アプローチは、最も効率的ではないにしても、
+最も直接的です。（@ref{Exercise 4.79}を参照してください。）これが@code{apply-a-rule}
+手続きです：
+
+@lisp
+(define (apply-a-rule rule
+                      query-pattern
+                      query-frame)
+  (let ((clean-rule
+         (rename-variables-in rule)))
+    (let ((unify-result
+           (unify-match query-pattern
+                        (conclusion clean-rule)
+                        query-frame)))
+      (if (eq? unify-result 'failed)
+          the-empty-stream
+          (qeval (rule-body clean-rule)
+                 (singleton-stream
+                  unify-result))))))
+@end lisp
+
+@noindent
+規則の一部を抽出する選択子@code{rule-body}と@code{conclusion}は@ref{4.4.4.7}で
+定義されています。
+
+一意の変数名を生成するには、各規則適用に一意の識別子（数値など）を関連付け、
+この識別子を元の変数名と組み合わせます。たとえば、規則適用識別子が7の場合、
+規則内の各@code{?x}を@code{?x-7}に、各@code{?y}を@code{?y-7}に変更する可能性が
+あります。（@code{Make-new-variable}と@code{new-rule-application-id}は、
+@ref{4.4.4.7}の構文手続きに含まれています。）
+
+@lisp
+(define (rename-variables-in rule)
+  (let ((rule-application-id
+         (new-rule-application-id)))
+    (define (tree-walk exp)
+      (cond ((var? exp)
+             (make-new-variable
+              exp
+              rule-application-id))
+            ((pair? exp)
+             (cons (tree-walk (car exp))
+                   (tree-walk (cdr exp))))
+            (else exp)))
+    (tree-walk rule)))
+@end lisp
+
+@noindent
+単一化アルゴリズムは、2つのパターンとフレームを入力として取り、拡張フレームまたは
+シンボル@code{failed}を返す手続きとして実装されています。単一化器はパターン
+マッチャーに似ていますが、対称的です---変数はマッチの両側で許可されます。
+@code{Unify-match}は基本的に@code{pattern-match}と同じですが、マッチの右側の
+オブジェクトが変数である場合を処理するための追加のコード（以下で「@code{***}」で
+マークされています）があります。
+
+@lisp
+(define (unify-match p1 p2 frame)
+  (cond ((eq? frame 'failed) 'failed)
+        ((equal? p1 p2) frame)
+        ((var? p1)
+         (extend-if-possible p1 p2 frame))
+        ((var? p2)
+         (extend-if-possible
+          p2
+          p1
+          frame))        ; @r{***}
+        ((and (pair? p1)
+              (pair? p2))
+         (unify-match
+          (cdr p1)
+          (cdr p2)
+          (unify-match
+           (car p1)
+           (car p2)
+           frame)))
+        (else 'failed)))
+@end lisp
+
+@noindent
+単一化では、片側パターンマッチングと同様に、既存の束縛と一致する場合にのみ、
+フレームの提案された拡張を受け入れたいと考えます。単一化で使われる手続き
+@code{extend-if-possible}は、パターンマッチングで使われる@code{extend-if-consistent}と
+同じですが、以下のプログラムで「@code{***}」でマークされた2つの特別なチェックが
+あります。最初のケースでは、マッチしようとしている変数が束縛されていないが、
+マッチしようとしている値自体が（異なる）変数である場合、その値が束縛されているか
+どうかをチェックし、束縛されていればその値をマッチさせる必要があります。マッチの
+両当事者が未束縛の場合、どちらかをもう一方に束縛できます。
+
+2番目のチェックは、変数をその変数を含むパターンに束縛しようとする試みを扱います。
+このような状況は、変数が両方のパターンで繰り返されるときに発生する可能性があります。
+たとえば、2つのパターンを単一化することを考えてみましょう

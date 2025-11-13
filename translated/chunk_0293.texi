@@ -1,0 +1,92 @@
+         (extend-if-consistent
+          pat dat frame))
+        ((and (pair? pat) (pair? dat))
+         (pattern-match
+          (cdr pat)
+          (cdr dat)
+          (pattern-match
+           (car pat) (car dat) frame)))
+        (else 'failed)))
+@end lisp
+
+@noindent
+これは、新しい束縛を追加することでフレームを拡張する手続きです。ただし、これは
+フレームにすでにある束縛と一致している場合に限ります：
+
+@lisp
+(define (extend-if-consistent var dat frame)
+  (let ((binding (binding-in-frame var frame)))
+    (if binding
+        (pattern-match
+         (binding-value binding) dat frame)
+        (extend var dat frame))))
+@end lisp
+
+@noindent
+フレームに変数の束縛がない場合は、単に変数のデータへの束縛を追加します。
+それ以外の場合は、フレーム内で、データをフレーム内の変数の値に対してマッチ
+させます。格納された値が定数のみを含む場合（@code{extend-if-consistent}による
+パターンマッチング中に格納された場合はそうでなければなりません）、マッチは
+単に格納された値と新しい値が同じかどうかをテストします。同じであれば、変更
+されていないフレームを返します。そうでなければ、失敗の表示を返します。しかし、
+格納された値は、単一化中に格納された場合（@ref{4.4.4.4}を参照）、パターン変数を
+含む可能性があります。格納されたパターンを新しいデータに対して再帰的にマッチ
+させることで、このパターン内の変数の束縛を追加またはチェックします。たとえば、
+@code{?x}が@code{(f ?y)}に束縛され、@code{?y}が未束縛のフレームがあり、このフレームに
+@code{?x}の@code{(f b)}への束縛を追加したいとします。@code{?x}を検索すると、
+@code{(f ?y)}に束縛されていることがわかります。これにより、提案された新しい値
+@code{(f b)}に対して同じフレームで@code{(f ?y)}をマッチさせることになります。
+最終的に、このマッチは@code{?y}の@code{b}への束縛を追加することでフレームを
+拡張します。@code{?X}は@code{(f ?y)}に束縛されたままです。格納された束縛を
+変更することはなく、与えられた変数に対して複数の束縛を格納することもありません。
+
+@code{extend-if-consistent}が束縛を操作するために使う手続きは@ref{4.4.4.8}で
+定義されています。
+
+@subsubheading ドット付き末尾を持つパターン
+
+パターンにドットとそれに続くパターン変数が含まれている場合、パターン変数は
+データリストの残り全体（データリストの次の要素ではなく）にマッチします。これは、
+@ref{Exercise 2.20}で説明されているドット付き末尾記法で期待されるとおりです。
+今実装したパターンマッチャーはドットを探しませんが、望むように動作します。これは、
+@code{query-driver-loop}がクエリを読み取ってリスト構造として表現するために使う
+Lisp @code{read}プリミティブが、ドットを特別な方法で処理するためです。
+
+@code{read}がドットを見ると、次の項目をリストの次の要素（@code{cdr}がリストの
+残りになる@code{cons}の@code{car}）にするのではなく、次の項目をリスト構造の
+@code{cdr}にします。たとえば、パターン@code{(computer ?type)}に対して@code{read}が
+生成するリスト構造は、式@code{(cons 'computer (cons '?type '()))}を評価することで
+構築でき、@code{(computer . ?type)}に対するものは、式@code{(cons 'computer '?type)}を
+評価することで構築できます。
+
+したがって、@code{pattern-match}がデータリストとドットを持つパターンの@code{car}と
+@code{cdr}を再帰的に比較するとき、最終的にドットの後の変数（パターンの@code{cdr}）を
+データリストのサブリストに対してマッチさせ、変数をそのリストに束縛します。たとえば、
+パターン@code{(computer . ?type)}を@code{(computer programmer trainee)}に対して
+マッチさせると、@code{?type}をリスト@code{(programmer trainee)}に対してマッチさせます。
+
+@node 4.4.4.4, 4.4.4.5, 4.4.4.3, 4.4.4
+@subsubsection 規則と単一化
+
+@code{Apply-rules}は@code{find-assertions}（@ref{4.4.4.3}）の規則版です。
+入力としてパターンとフレームを取り、データベースから規則を適用することで拡張
+フレームのストリームを形成します。@code{Stream-flatmap}は、（@code{fetch-rules}、
+@ref{4.4.4.5}によって選択された）適用可能な可能性のある規則のストリームに対して
+@code{apply-a-rule}をマップし、結果のフレームのストリームを結合します。
+
+@lisp
+(define (apply-rules pattern frame)
+  (stream-flatmap
+   (lambda (rule)
+     (apply-a-rule rule pattern frame))
+   (fetch-rules pattern frame)))
+@end lisp
+
+@noindent
+@code{Apply-a-rule}は、@ref{4.4.2}で概説した方法を使って規則を適用します。
+最初に、与えられたフレームでパターンと規則の結論を単一化することで、引数フレームを
+拡張します。これが成功すれば、この新しいフレームで規則本体を評価します。
+
+しかし、これらのいずれかが起こる前に、プログラムは規則内のすべての変数を一意の
+新しい名前に改名します。この理由は、異なる規則適用の変数が互いに混同されるのを
+防ぐためです。

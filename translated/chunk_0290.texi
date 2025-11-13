@@ -1,0 +1,94 @@
+           (display-stream
+            (stream-map
+             (lambda (frame)
+               (instantiate
+                q
+                frame
+                (lambda (v f)
+                  (contract-question-mark v))))
+             (qeval q (singleton-stream '()))))
+           (query-driver-loop)))))
+@end lisp
+
+@noindent
+ここで、この章の他の評価器と同様に、クエリ言語の式に対して抽象構文を使います。
+述語@code{assertion-to-be-added?}と選択子@code{add-assertion-body}を含む式構文の
+実装は、@ref{4.4.4.7}で与えられます。@code{Add-rule-or-assertion!}は@ref{4.4.4.5}で
+定義されています。
+
+入力式に対して処理を行う前に、ドライバループは、処理をより効率的にする形式に
+構文的に変換します。これには、パターン変数の表現を変更することが含まれます。
+クエリが実体化されるとき、未束縛のままの変数は、印刷される前に入力表現に変換
+されます。これらの変換は、2つの手続き@code{query-syntax-process}と
+@code{contract-question-mark}（@ref{4.4.4.7}）によって実行されます。
+
+式を実体化するには、式をコピーし、式内の変数を与えられたフレーム内のそれらの値で
+置き換えます。値自体も実体化されます。なぜなら、それらが変数を含む可能性がある
+からです（たとえば、単一化の結果として@code{exp}内の@code{?x}が@code{?y}に
+束縛され、@code{?y}がさらに5に束縛されている場合）。変数を実体化できない場合に
+取るべきアクションは、@code{instantiate}への手続き引数によって与えられます。
+
+@lisp
+(define (instantiate
+         exp frame unbound-var-handler)
+  (define (copy exp)
+    (cond ((var? exp)
+           (let ((binding
+                  (binding-in-frame
+                   exp frame)))
+             (if binding
+                 (copy
+                  (binding-value binding))
+                 (unbound-var-handler
+                  exp frame))))
+          ((pair? exp)
+           (cons (copy (car exp))
+                 (copy (cdr exp))))
+          (else exp)))
+  (copy exp))
+@end lisp
+
+@noindent
+束縛を操作する手続きは@ref{4.4.4.8}で定義されています。
+
+@node 4.4.4.2, 4.4.4.3, 4.4.4.1, 4.4.4
+@subsubsection 評価器
+
+@code{query-driver-loop}によって呼び出される@code{qeval}手続きは、クエリシステムの
+基本評価器です。入力としてクエリとフレームのストリームを取り、拡張フレームの
+ストリームを返します。@ref{Chapter 2}でジェネリック操作を実装したときと同じように、
+@code{get}と@code{put}を使ったデータ指向ディスパッチによって特殊形式を識別します。
+特殊形式として識別されないクエリは、単純なクエリであると想定され、@code{simple-query}で
+処理されます。
+
+@lisp
+(define (qeval query frame-stream)
+  (let ((qproc (get (type query) 'qeval)))
+    (if qproc
+        (qproc (contents query) frame-stream)
+        (simple-query query frame-stream))))
+@end lisp
+
+@noindent
+@ref{4.4.4.7}で定義されている@code{Type}と@code{contents}は、特殊形式の抽象構文を
+実装します。
+
+@subsubheading 単純なクエリ
+
+@code{simple-query}手続きは単純なクエリを処理します。引数として単純なクエリ
+（パターン）とフレームのストリームを取り、クエリのすべてのデータベースマッチで
+各フレームを拡張することによって形成されたストリームを返します。
+
+@lisp
+(define (simple-query query-pattern
+                      frame-stream)
+  (stream-flatmap
+   (lambda (frame)
+     (stream-append-delayed
+      (find-assertions query-pattern frame)
+      (delay
+        (apply-rules query-pattern frame))))
+   frame-stream))
+@end lisp
+
+@noindent

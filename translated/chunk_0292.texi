@@ -1,0 +1,94 @@
+             (error
+              "Unknown pat var: LISP-VALUE"
+              v))))
+         (singleton-stream frame)
+         the-empty-stream))
+   frame-stream))
+(put 'lisp-value 'qeval lisp-value)
+@end lisp
+
+@noindent
+述語を引数に適用する@code{Execute}は、適用する手続きを取得するために述語式を
+@code{eval}しなければなりません。しかし、引数は評価してはなりません。なぜなら、
+それらはすでに実際の引数であり、（Lispでの）評価が引数を生成する式ではないからです。
+@code{execute}は、基盤となるLispシステムの@code{eval}と@code{apply}を使って実装
+されていることに注意してください。
+
+@lisp
+(define (execute exp)
+  (apply (eval (predicate exp)
+               user-initial-environment)
+         (args exp)))
+@end lisp
+
+@noindent
+@code{always-true}特殊形式は、常に満たされるクエリを提供します。その内容（通常は
+空）を無視し、単に入力ストリーム内のすべてのフレームを通過させます。@code{Always-true}は、
+本体なしで定義された規則（つまり、結論が常に満たされる規則）に本体を提供するために、
+@code{rule-body}選択子（@ref{4.4.4.7}）によって使われます。
+
+@lisp
+(define (always-true ignore frame-stream)
+  frame-stream)
+(put 'always-true 'qeval always-true)
+@end lisp
+
+@noindent
+@code{not}と@code{lisp-value}の構文を定義する選択子は@ref{4.4.4.7}で与えられます。
+
+@node 4.4.4.3, 4.4.4.4, 4.4.4.2, 4.4.4
+@subsubsection パターンマッチングによるアサーションの検索
+
+@code{simple-query}（@ref{4.4.4.2}）によって呼び出される@code{Find-assertions}は、
+入力としてパターンとフレームを取ります。与えられたパターンのデータベースマッチで
+与えられたフレームをそれぞれ拡張するフレームのストリームを返します。
+@code{fetch-assertions}（@ref{4.4.4.5}）を使って、パターンとフレームに対する
+マッチをチェックすべきデータベース内のすべてのアサーションのストリームを取得します。
+ここで@code{fetch-assertions}を使う理由は、成功するマッチの候補プールから
+データベース内の多くのエントリを排除する単純なテストを適用できることが多いからです。
+@code{fetch-assertions}を削除して、単にデータベース内のすべてのアサーションの
+ストリームをチェックしても、システムは機能しますが、マッチャーへの呼び出しを
+はるかに多く行う必要があるため、計算の効率が低下します。
+
+@lisp
+(define (find-assertions pattern frame)
+  (stream-flatmap
+    (lambda (datum)
+      (check-an-assertion datum pattern frame))
+    (fetch-assertions pattern frame)))
+@end lisp
+
+@noindent
+@code{Check-an-assertion}は引数としてパターン、データオブジェクト（アサーション）、
+フレームを取り、拡張フレームを含む1要素ストリームか、マッチが失敗した場合は
+@code{the-empty-stream}を返します。
+
+@lisp
+(define (check-an-assertion
+         assertion query-pat query-frame)
+  (let ((match-result
+         (pattern-match
+          query-pat assertion query-frame)))
+    (if (eq? match-result 'failed)
+        the-empty-stream
+        (singleton-stream match-result))))
+@end lisp
+
+@noindent
+基本的なパターンマッチャーは、シンボル@code{failed}または与えられたフレームの
+拡張を返します。マッチャーの基本的なアイデアは、パターンとデータを要素ごとに
+チェックし、パターン変数の束縛を累積することです。パターンとデータオブジェクトが
+同じであれば、マッチは成功し、これまでに累積された束縛のフレームを返します。
+それ以外の場合、パターンが変数であれば、現在のフレームに変数をデータに束縛する
+ことで拡張します。ただし、これはフレームにすでにある束縛と一致している場合に
+限ります。パターンとデータが両方ともペアであれば、パターンの@code{car}を
+データの@code{car}に対して（再帰的に）マッチさせてフレームを生成します。この
+フレームで、パターンの@code{cdr}をデータの@code{cdr}に対してマッチさせます。
+これらのケースのいずれも該当しない場合、マッチは失敗し、シンボル@code{failed}を
+返します。
+
+@lisp
+(define (pattern-match pat dat frame)
+  (cond ((eq? frame 'failed) 'failed)
+        ((equal? pat dat) frame)
+        ((var? pat)

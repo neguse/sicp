@@ -1,0 +1,94 @@
+次に、@code{?x}の値が@code{(job ?x (computer programmer))}を満たすフレームを
+削除することで、結果のフレームをフィルタリングします。2番目のクエリは、
+@code{(job ?x (computer programmer))}を満たすフレームを削除するために、入力フレームを
+フィルタリングすることから始まります。唯一の入力フレームは空なので、
+@code{(job ?x (computer programmer))}を満たすパターンがデータベースにあるかどうかを
+チェックします。一般にこの形式のエントリがあるので、@code{not}節は空のフレームを
+フィルタリングして、空のフレームのストリームを返します。その結果、複合クエリ全体は
+空のストリームを返します。
+
+問題は、私たちの@code{not}の実装が、変数の値に対するフィルターとして機能することを
+本当に意図しているということです。@code{not}節が、変数の一部が未束縛のままのフレーム
+（上記の例の@code{?x}のように）で処理される場合、システムは予期しない結果を
+生成します。@code{lisp-value}の使用でも同様の問題が発生します---Lisp述語は、
+その引数の一部が未束縛の場合は機能できません。@ref{Exercise 4.77}を参照してください。
+
+クエリ言語の@code{not}が数理論理学の@code{not}と異なる、はるかに深刻な方法も
+あります。論理学では、「@math{P}でない」という文は@math{P}が真でないことを意味すると
+解釈します。しかし、クエリシステムでは、「@math{P}でない」は、@math{P}がデータベースの
+知識から演繹できないことを意味します。たとえば、@ref{4.4.1}の人事データベースが
+与えられた場合、システムは、Ben Bitdiddleが野球ファンではない、外は雨が降っていない、
+2 + 2は4でない、といったあらゆる種類の@code{not}文を喜んで演繹します。
+@footnote{クエリ@code{(not (baseball-fan (Bitdiddle Ben)))}を考えてみましょう。
+システムは@code{(baseball-fan (Bitdiddle Ben))}がデータベースにないことを発見するので、
+空のフレームはパターンを満たさず、初期のフレームのストリームからフィルタリング
+されません。したがって、クエリの結果は空のフレームで、これは入力クエリを実体化して
+@code{(not (baseball-fan (Bitdiddle Ben)))}を生成するために使われます。}つまり、
+論理型プログラミング言語の@code{not}は、すべての関連情報がデータベースに含まれている
+といういわゆる@newterm{閉世界仮定}を反映しています。@footnote{この@code{not}の
+扱いの議論と正当化は、@ref{Clark (1978)}の記事で見つけることができます。}
+
+@quotation
+@strong{@anchor{Exercise 4.64}Exercise 4.64:} Louis Reasonerは誤って
+@code{outranked-by}規則（@ref{4.4.1}）をデータベースから削除してしまいました。
+彼はこれに気づくと、すぐに再インストールします。残念ながら、彼は規則に小さな
+変更を加え、次のように入力します
+
+@lisp
+(rule (outranked-by ?staff-person ?boss)
+  (or (supervisor ?staff-person ?boss)
+      (and (outranked-by ?middle-manager
+                         ?boss)
+           (supervisor ?staff-person
+                       ?middle-manager))))
+@end lisp
+
+Louisがこの情報をシステムに入力した直後、DeWitt Aullが誰がBen Bitdiddleより
+上位かを調べにやって来ました。彼は次のクエリを発行します
+
+@lisp
+(outranked-by (Bitdiddle Ben) ?who)
+@end lisp
+
+答えた後、システムは無限ループに入ります。なぜか説明してください。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.65}Exercise 4.65:} Cy D. Fectは、組織で昇進する日を
+楽しみにしており、すべてのwheels（@ref{4.4.1}の@code{wheel}規則を使用）を
+見つけるためのクエリを発行します：
+
+@lisp
+(wheel ?who)
+@end lisp
+
+驚いたことに、システムは次のように応答します
+
+@lisp
+@i{;;; Query results:}
+(wheel (Warbucks Oliver))
+(wheel (Bitdiddle Ben))
+(wheel (Warbucks Oliver))
+(wheel (Warbucks Oliver))
+(wheel (Warbucks Oliver))
+@end lisp
+
+なぜOliver Warbucksが4回リストされているのでしょうか？
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.66}Exercise 4.66:} Benはクエリシステムを一般化して、
+会社についての統計を提供しようとしています。たとえば、すべてのコンピュータ
+プログラマーの総給与を求めるには、次のように言えるようになります
+
+@lisp
+(sum ?amount
+     (and (job ?x (computer programmer))
+          (salary ?x ?amount)))
+@end lisp
+
+一般に、Benの新しいシステムは次の形式の式を許可します
+
+@lisp
+(accumulation-function ⟨@var{variable}⟩
+                       ⟨@var{query pattern}⟩)

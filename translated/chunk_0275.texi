@@ -1,0 +1,87 @@
+     1→@end lisp
+     2→
+     3→@noindent
+     4→は、3番目の項目が最初の項目が@code{computer}である2要素リストであるすべての職務エントリに一致します：
+     5→
+     6→@lisp
+     7→(job (Bitdiddle Ben) (computer wizard))
+     8→(job (Hacker Alyssa P) (computer programmer))
+     9→(job (Fect Cy D) (computer programmer))
+    10→(job (Tweakit Lem E) (computer technician))
+    11→@end lisp
+    12→
+    13→@noindent
+    14→この同じパターンは次に一致@emph{しません}
+    15→
+    16→@lisp
+    17→(job (Reasoner Louis)
+    18→     (computer programmer trainee))
+    19→@end lisp
+    20→
+    21→@noindent
+    22→エントリの3番目の項目が3つの要素のリストであり、パターンの3番目の項目は2つの要素があるべきことを指定しているためです。3番目の項目が@code{computer}で始まる任意のリストになるようにパターンを変更したい場合は、次のように指定できます@footnote{これは@ref{Exercise 2.20}で導入されたドット末尾記法を使用します。}
+    23→
+    24→@lisp
+    25→(job ?x (computer . ?type))
+    26→@end lisp
+    27→
+    28→@noindent
+    29→例えば、
+    30→
+    31→@lisp
+    32→(computer . ?type)
+    33→@end lisp
+    34→
+    35→@noindent
+    36→はデータ
+    37→
+    38→@lisp
+    39→(computer programmer trainee)
+    40→@end lisp
+    41→
+    42→@noindent
+    43→に一致し、@code{?type}はリスト@code{(programmer trainee)}になります。また、データ
+    44→
+    45→@lisp
+    46→(computer programmer)
+    47→@end lisp
+    48→
+    49→@noindent
+    50→にも一致し、@code{?type}はリスト@code{(programmer)}になり、データ
+    51→
+    52→@lisp
+    53→(computer)
+    54→@end lisp
+    55→
+    56→@noindent
+    57→にも一致し、@code{?type}は空のリスト@code{()}になります。
+    58→
+    59→クエリ言語による単純なクエリの処理を次のように説明できます：
+    60→
+    61→@itemize @bullet
+    62→
+    63→@item
+    64→システムは、クエリパターン内の変数に対するすべての割り当てを見つけます。これらの割り当ては、パターンを@newterm{満たします}。つまり、パターン変数が値で@newterm{インスタンス化}（置き換え）された場合、結果がデータベース内にあるような変数の値のすべてのセットです。
+    65→
+    66→@item
+    67→システムは、パターンを満たす変数割り当てでクエリパターンのすべてのインスタンス化をリストすることによって、クエリに応答します。
+    68→
+    69→@end itemize
+    70→
+    71→@noindent
+    72→パターンに変数がない場合、クエリはそのパターンがデータベース内にあるかどうかの判定に縮小されることに注意してください。そうである場合、変数に値を割り当てない空の割り当てが、そのデータベースに対してそのパターンを満たします。
+    73→
+    74→@quotation
+    75→@strong{@anchor{Exercise 4.55}Exercise 4.55:} データベースから次の情報を取得する単純なクエリを示してください：
+    76→
+    77→@enumerate
+    78→
+    79→@item
+    80→Ben Bitdiddleによって監督されているすべての人
+    81→
+    82→@item
+    83→経理部門のすべての人の名前と職務
+    84→
+    85→@item
+    86→Slumervilleに住んでいるすべての人の名前と住所
+    87→

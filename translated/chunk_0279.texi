@@ -1,0 +1,78 @@
+     1→(meeting administration (Friday 1pm))
+     2→@end lisp
+     3→
+     4→上記の各アサーションは、部門全体の会議のためのものです。Benはまた、すべての部門にまたがる全社的な会議のエントリを追加します。会社のすべての従業員がこの会議に出席します。
+     5→
+     6→@lisp
+     7→(meeting whole-company (Wednesday 4pm))
+     8→@end lisp
+     9→
+    10→@enumerate a
+    11→
+    12→@item
+    13→金曜日の朝、Benはその日に発生するすべての会議についてデータベースにクエリを実行したいと考えています。彼はどのクエリを使用すべきですか？
+    14→
+    15→@item
+    16→Alyssa P. Hackerは感心しません。彼女は、名前を指定することによって会議を尋ねることができる方が はるかに有用だと考えています。そこで彼女は、人の会議にはすべての@code{whole-company}会議とその人の部門のすべての会議が含まれるというルールを設計します。Alyssaのルールの本体を埋めてください。
+    17→
+    18→@lisp
+    19→(rule (meeting-time ?person ?day-and-time)
+    20→      ⟨@var{rule-body}⟩)
+    21→@end lisp
+    22→
+    23→@item
+    24→Alyssaは水曜日の朝に仕事に到着し、その日に出席しなければならない会議について考えます。上記のルールを定義したので、これを見つけるためにどのクエリを実行すべきですか？
+    25→
+    26→@end enumerate
+    27→@end quotation
+    28→
+    29→@quotation
+    30→@strong{@anchor{Exercise 4.60}Exercise 4.60:} クエリ
+    31→
+    32→@lisp
+    33→(lives-near ?person (Hacker Alyssa P))
+    34→@end lisp
+    35→
+    36→を与えることによって、Alyssa P. Hackerは彼女の近くに住んでいる人を見つけることができ、彼らと一緒に仕事に通勤できます。一方、次のようにクエリを実行することによって、互いに近くに住んでいるすべてのペアの人々を見つけようとすると
+    37→
+    38→@lisp
+    39→(lives-near ?person-1 ?person-2)
+    40→@end lisp
+    41→
+    42→@noindent
+    43→彼女は、互いに近くに住んでいる各ペアの人々が2回リストされていることに気づきます。例えば、
+    44→
+    45→@lisp
+    46→(lives-near (Hacker Alyssa P) (Fect Cy D))
+    47→(lives-near (Fect Cy D) (Hacker Alyssa P))
+    48→@end lisp
+    49→
+    50→なぜこれが起こるのですか？各ペアが1回だけ現れる、互いに近くに住んでいる人々のリストを見つける方法はありますか？説明してください。
+    51→@end quotation
+    52→
+    53→@subsubheading プログラムとしての論理
+    54→
+    55→ルールを論理的含意の一種と見なすことができます：パターン変数への値の割り当てが本体を満たす@emph{場合}、@emph{それは}結論を満たします。したがって、クエリ言語はルールに基づいて@newterm{論理的推論}を実行する能力を持つものと見なすことができます。例として、@ref{4.4}の冒頭で説明した@code{append}操作を考えてみましょう。述べたように、@code{append}は次の2つのルールによって特徴付けることができます：
+    56→
+    57→@itemize @bullet
+    58→
+    59→@item
+    60→任意のリスト@code{y}に対して、空のリストと@code{y}を@code{append}すると@code{y}が形成されます。
+    61→
+    62→@item
+    63→任意の@code{u}、@code{v}、@code{y}、@code{z}に対して、@code{(cons u v)}と@code{y}を@code{append}すると@code{(cons u z)}が形成されます。ただし、@code{v}と@code{y}を@code{append}すると@code{z}が形成される場合です。
+    64→
+    65→@end itemize
+    66→
+    67→@noindent
+    68→これをクエリ言語で表現するために、関係
+    69→
+    70→@lisp
+    71→(append-to-form x y z)
+    72→@end lisp
+    73→
+    74→@noindent
+    75→に対して2つのルールを定義します。これは「@code{x}と@code{y}を@code{append}すると@code{z}が形成される」という意味と解釈できます：
+    76→
+    77→@lisp
+    78→

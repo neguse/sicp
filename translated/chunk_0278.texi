@@ -1,0 +1,79 @@
+     1→
+     2→@lisp
+     3→(rule (wheel ?person)
+     4→      (and (supervisor ?middle-manager
+     5→                       ?person)
+     6→           (supervisor ?x ?middle-manager)))
+     7→@end lisp
+     8→
+     9→@noindent
+    10→ルールの一般的な形式は
+    11→
+    12→@lisp
+    13→(rule ⟨@var{conclusion}⟩ ⟨@var{body}⟩)
+    14→@end lisp
+    15→
+    16→@noindent
+    17→ここで@code{⟨}@var{conclusion}@code{⟩}はパターンであり、@code{⟨}@var{body}@code{⟩}は任意のクエリです。@footnote{@code{same}のように、本体のないルールも許可します。そのようなルールは、ルールの結論が変数の任意の値によって満たされることを意味すると解釈します。}ルールは、ルール本体を満たす変数割り当てでルール結論のすべてのインスタンス化、つまり大規模な（無限でさえある）アサーションのセットを表すものと考えることができます。単純なクエリ（パターン）を説明したとき、インスタンス化されたパターンがデータベース内にある場合、変数への割り当てがパターンを満たすと述べました。しかし、パターンはデータベース内にアサーションとして明示的に存在する必要はありません。ルールによって暗示される暗黙的なアサーションである可能性があります。例えば、クエリ
+    18→
+    19→@lisp
+    20→(lives-near ?x (Bitdiddle Ben))
+    21→@end lisp
+    22→
+    23→@noindent
+    24→は次の結果になります
+    25→
+    26→@lisp
+    27→(lives-near (Reasoner Louis) (Bitdiddle Ben))
+    28→(lives-near (Aull DeWitt) (Bitdiddle Ben))
+    29→@end lisp
+    30→
+    31→@noindent
+    32→Ben Bitdiddleの近くに住んでいるすべてのコンピュータプログラマーを見つけるには、次のように尋ねることができます
+    33→
+    34→@lisp
+    35→(and (job ?x (computer programmer))
+    36→     (lives-near ?x (Bitdiddle Ben)))
+    37→@end lisp
+    38→
+    39→@noindent
+    40→複合手続きの場合と同様に、ルールは他のルールの一部として使用できます（上記の@code{lives-near}ルールで見たように）、または再帰的に定義することさえできます。例えば、ルール
+    41→
+    42→@lisp
+    43→(rule (outranked-by ?staff-person ?boss)
+    44→      (or (supervisor ?staff-person ?boss)
+    45→          (and (supervisor ?staff-person
+    46→                           ?middle-manager)
+    47→               (outranked-by ?middle-manager
+    48→                             ?boss))))
+    49→@end lisp
+    50→
+    51→@noindent
+    52→は、上司がその人の監督者である場合、または（再帰的に）その人の監督者が上司によって上位に位置付けられている場合、スタッフの人員は組織内で上司によって上位に位置付けられることを述べています。
+    53→
+    54→@quotation
+    55→@strong{@anchor{Exercise 4.57}Exercise 4.57:} person 1がperson 2と同じ職務を行うか、person 1の職務を行う誰かがperson 2の職務も行うことができ、かつperson 1とperson 2が同じ人でない場合、person 1はperson 2を置き換えることができるというルールを定義してください。ルールを使用して、次を見つけるクエリを示してください：
+    56→
+    57→@enumerate a
+    58→
+    59→@item
+    60→Cy D. Fectを置き換えることができるすべての人
+    61→
+    62→@item
+    63→自分よりも多く支払われている誰かを置き換えることができるすべての人と、2つの給与
+    64→
+    65→@end enumerate
+    66→@end quotation
+    67→
+    68→@quotation
+    69→@strong{@anchor{Exercise 4.58}Exercise 4.58:} その部門で働いているが、その部門で働いている監督者を持たない場合、その人はその部門の「大物」であるというルールを定義してください。
+    70→@end quotation
+    71→
+    72→@quotation
+    73→@strong{@anchor{Exercise 4.59}Exercise 4.59:} Ben Bitdiddleは会議を逃しすぎました。会議を忘れる習慣が仕事を失う可能性があることを恐れて、Benはそれについて何かをすることにしました。彼は次をアサートすることによって、会社の毎週の会議をすべてMicroshaftデータベースに追加します：
+    74→
+    75→@lisp
+    76→(meeting accounting (Monday 9am))
+    77→(meeting administration (Monday 10am))
+    78→(meeting computer (Wednesday 3pm))
+    79→

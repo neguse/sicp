@@ -1,0 +1,89 @@
+     1→
+     2→@end enumerate
+     3→@end quotation
+     4→
+     5→@subsubheading 複合クエリ
+     6→
+     7→単純なクエリは、クエリ言語のプリミティブ操作を形成します。複合操作を形成するために、クエリ言語は組み合わせの手段を提供します。クエリ言語を論理プログラミング言語にするものの1つは、組み合わせの手段が論理式を形成するために使用される組み合わせの手段を反映していることです：@code{and}、@code{or}、@code{not}です。（ここで@code{and}、@code{or}、@code{not}はLispプリミティブではなく、クエリ言語に組み込まれた操作です。）
+     8→
+     9→すべてのコンピュータプログラマーのアドレスを見つけるために、次のように@code{and}を使用できます：
+    10→
+    11→@lisp
+    12→(and (job ?person (computer programmer))
+    13→     (address ?person ?where))
+    14→@end lisp
+    15→
+    16→@noindent
+    17→結果の出力は
+    18→
+    19→@lisp
+    20→(and (job (Hacker Alyssa P)
+    21→          (computer programmer))
+    22→     (address (Hacker Alyssa P)
+    23→              (Cambridge (Mass Ave) 78)))
+    24→
+    25→(and (job (Fect Cy D) (computer programmer))
+    26→     (address (Fect Cy D)
+    27→              (Cambridge (Ames Street) 3)))
+    28→@end lisp
+    29→
+    30→@noindent
+    31→一般に、
+    32→
+    33→@lisp
+    34→(and ⟨@var{query₁}⟩ ⟨@var{query₂}⟩ @r{…} ⟨@var{queryₙ}⟩)
+    35→@end lisp
+    36→
+    37→@noindent
+    38→は、@math{{⟨\kern0.1em query_1⟩}} @r{…} @math{{⟨\kern0.1em query_n⟩}}を同時に満たすパターン変数の値のすべてのセットによって満たされます。
+    39→
+    40→単純なクエリと同様に、システムは、クエリを満たすパターン変数へのすべての割り当てを見つけ、次にこれらの値でクエリのインスタンス化を表示することによって、複合クエリを処理します。
+    41→
+    42→複合クエリを構築するもう1つの手段は@code{or}によるものです。例えば、
+    43→
+    44→@lisp
+    45→(or (supervisor ?x (Bitdiddle Ben))
+    46→    (supervisor ?x (Hacker Alyssa P)))
+    47→@end lisp
+    48→
+    49→@noindent
+    50→は、Ben BitdiddleまたはAlyssa P. Hackerによって監督されているすべての従業員を見つけます：
+    51→
+    52→@lisp
+    53→(or (supervisor (Hacker Alyssa P)
+    54→                (Bitdiddle Ben))
+    55→    (supervisor (Hacker Alyssa P)
+    56→                (Hacker Alyssa P)))
+    57→
+    58→(or (supervisor (Fect Cy D)
+    59→                (Bitdiddle Ben))
+    60→    (supervisor (Fect Cy D)
+    61→                (Hacker Alyssa P)))
+    62→
+    63→(or (supervisor (Tweakit Lem E)
+    64→                (Bitdiddle Ben))
+    65→    (supervisor (Tweakit Lem E)
+    66→                (Hacker Alyssa P)))
+    67→
+    68→(or (supervisor (Reasoner Louis)
+    69→                (Bitdiddle Ben))
+    70→    (supervisor (Reasoner Louis)
+    71→                (Hacker Alyssa P)))
+    72→@end lisp
+    73→
+    74→@noindent
+    75→一般に、
+    76→
+    77→@lisp
+    78→(or ⟨@var{query₁}⟩ ⟨@var{query₂}⟩ @r{…} ⟨@var{queryₙ}⟩)
+    79→@end lisp
+    80→
+    81→@noindent
+    82→は、@math{{⟨\kern0.1em query_1⟩}} @r{…} @math{{⟨\kern0.1em query_n⟩}}の少なくとも1つを満たすパターン変数の値のすべてのセットによって満たされます。
+    83→
+    84→複合クエリは@code{not}でも形成できます。例えば、
+    85→
+    86→@lisp
+    87→(and (supervisor ?x (Bitdiddle Ben))
+    88→     (not (job ?x (computer programmer))))
+    89→

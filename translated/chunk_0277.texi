@@ -1,0 +1,66 @@
+     1→@end lisp
+     2→
+     3→@noindent
+     4→は、コンピュータプログラマーではないBen Bitdiddleによって監督されているすべての人を見つけます。一般に、
+     5→
+     6→@lisp
+     7→(not ⟨@var{query₁}⟩)
+     8→@end lisp
+     9→
+    10→@noindent
+    11→は、@math{{⟨\kern0.1em query_1⟩}}を満たさないパターン変数へのすべての割り当てによって満たされます。@footnote{実際、この@code{not}の説明は単純なケースに対してのみ有効です。@code{not}の実際の動作はより複雑です。@ref{4.4.2}と@ref{4.4.3}で@code{not}の特異性を調べます。}
+    12→
+    13→最後の結合形式は@code{lisp-value}と呼ばれます。@code{lisp-value}がパターンの最初の要素である場合、次の要素が引数として（インスタンス化された）残りの要素に適用されるLisp述語であることを指定します。一般に、
+    14→
+    15→@lisp
+    16→(lisp-value ⟨@var{predicate}⟩ ⟨@var{arg₁}⟩ @r{…} ⟨@var{argₙ}⟩)
+    17→@end lisp
+    18→
+    19→@noindent
+    20→は、@code{⟨}@var{predicate}@code{⟩}をインスタンス化された@math{{⟨\kern0.1em arg_1⟩}} @r{…} @math{{⟨\kern0.1em arg_n⟩}}に適用したものが真であるパターン変数への割り当てによって満たされます。例えば、給与が$30,000を超えるすべての人を見つけるには、次のように記述できます@footnote{@code{lisp-value}は、クエリ言語で提供されていない操作を実行するためにのみ使用されるべきです。特に、等価性をテストするために使用すべきではありません（それはクエリ言語のマッチングが行うように設計されているものであるため）し、不等式のために使用すべきでもありません（それは以下に示す@code{same}ルールで行うことができるため）。}
+    21→
+    22→@lisp
+    23→(and (salary ?person ?amount)
+    24→     (lisp-value > ?amount 30000))
+    25→@end lisp
+    26→
+    27→@quotation
+    28→@strong{@anchor{Exercise 4.56}Exercise 4.56:} 次の情報を取得する複合クエリを定式化してください：
+    29→
+    30→@enumerate a
+    31→
+    32→@item
+    33→Ben Bitdiddleによって監督されているすべての人の名前と住所
+    34→
+    35→@item
+    36→給与がBen Bitdiddleより少ないすべての人と、その給与とBen Bitdiddleの給与
+    37→
+    38→@item
+    39→コンピュータ部門にいない人によって監督されているすべての人と、監督者の名前と職務
+    40→
+    41→@end enumerate
+    42→@end quotation
+    43→
+    44→@subsubheading ルール
+    45→
+    46→プリミティブクエリと複合クエリに加えて、クエリ言語はクエリを抽象化する手段を提供します。これらは@newterm{ルール}によって提供されます。ルール
+    47→
+    48→@lisp
+    49→(rule (lives-near ?person-1 ?person-2)
+    50→      (and (address ?person-1
+    51→                    (?town . ?rest-1))
+    52→           (address ?person-2
+    53→                    (?town . ?rest-2))
+    54→           (not (same ?person-1 ?person-2))))
+    55→@end lisp
+    56→
+    57→@noindent
+    58→は、2人が同じ町に住んでいる場合、彼らは互いに近くに住んでいることを指定します。最後の@code{not}節は、すべての人が自分自身の近くに住んでいるとルールが言うのを防ぎます。@code{same}関係は非常に単純なルールによって定義されます：@footnote{2つのものを同じにするために@code{same}が必要ないことに注意してください。各々に同じパターン変数を使用するだけです。実際には、最初から2つのものではなく1つのものがあります。例えば、@code{lives-near}ルールの@code{?town}と、以下の@code{wheel}ルールの@code{?middle-manager}を参照してください。@code{same}は、@code{lives-near}ルールの@code{?person-1}と@code{?person-2}のように、2つのものを異なるものにする必要がある場合に有用です。クエリの2つの部分で同じパターン変数を使用すると、両方の場所に同じ値が現れることを強制しますが、異なるパターン変数を使用しても異なる値が現れることを強制しません。（異なるパターン変数に割り当てられる値は、同じであっても異なっていてもかまいません。）}
+    59→
+    60→@lisp
+    61→(rule (same ?x ?x))
+    62→@end lisp
+    63→
+    64→@noindent
+    65→次のルールは、監督者である誰かを監督している場合、その人は組織の「重要人物」であることを宣言します：
+    66→

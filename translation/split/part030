@@ -1,0 +1,1000 @@
+
+@lisp
+(define rule-counter 0)
+
+(define (new-rule-application-id)
+  (set! rule-counter (+ 1 rule-counter))
+  rule-counter)
+
+(define (make-new-variable 
+         var rule-application-id)
+  (cons '? (cons rule-application-id
+                 (cdr var))))
+@end lisp
+
+@noindent
+When @code{query-driver-loop} instantiates the query to print the answer, it
+converts any unbound pattern variables back to the right form for printing,
+using
+
+@lisp
+(define (contract-question-mark variable)
+  (string->symbol
+   (string-append "?"
+     (if (number? (cadr variable))
+         (string-append
+          (symbol->string (caddr variable))
+          "-"
+          (number->string (cadr variable)))
+         (symbol->string (cadr variable))))))
+@end lisp
+
+@node 4.4.4.8, Chapter 5, 4.3, 4.4.4
+@subsubsection Frames and Bindings
+
+Frames are represented as lists of bindings, which are variable-value pairs:
+
+@lisp
+(define (make-binding variable value)
+  (cons variable value))
+
+(define (binding-variable binding)
+  (car binding))
+
+(define (binding-value binding)
+  (cdr binding))
+
+(define (binding-in-frame variable frame)
+  (assoc variable frame))
+
+(define (extend variable value frame)
+  (cons (make-binding variable value) frame))
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 4.71}Exercise 4.71:} Louis Reasoner wonders why the
+@code{simple-query} and @code{disjoin} procedures (@ref{4.4.4.2}) are
+implemented using explicit @code{delay} operations, rather than being defined
+as follows:
+
+@lisp
+(define (simple-query 
+         query-pattern frame-stream)
+  (stream-flatmap
+   (lambda (frame)
+     (stream-append
+      (find-assertions query-pattern frame)
+      (apply-rules query-pattern frame)))
+   frame-stream))
+
+(define (disjoin disjuncts frame-stream)
+  (if (empty-disjunction? disjuncts)
+      the-empty-stream
+      (interleave
+       (qeval (first-disjunct disjuncts)
+              frame-stream)
+       (disjoin (rest-disjuncts disjuncts)
+                frame-stream))))
+@end lisp
+
+Can you give examples of queries where these simpler definitions would lead to
+undesirable behavior?
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.72}Exercise 4.72:} Why do @code{disjoin} and
+@code{stream-flatmap} interleave the streams rather than simply append them?
+Give examples that illustrate why interleaving works better.  (Hint: Why did we
+use @code{interleave} in @ref{3.5.3}?)
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.73}Exercise 4.73:} Why does @code{flatten-stream}
+use @code{delay} explicitly?  What would be wrong with defining it as follows:
+
+@lisp
+(define (flatten-stream stream)
+  (if (stream-null? stream)
+      the-empty-stream
+      (interleave (stream-car stream)
+                  (flatten-stream 
+                   (stream-cdr stream)))))
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.74}Exercise 4.74:} Alyssa P. Hacker proposes to use
+a simpler version of @code{stream-flatmap} in @code{negate}, @code{lisp-value},
+and @code{find-assertions}.  She observes that the procedure that is mapped
+over the frame stream in these cases always produces either the empty stream or
+a singleton stream, so no interleaving is needed when combining these streams.
+
+@enumerate a
+
+@item
+Fill in the missing expressions in Alyssa's program.
+
+@lisp
+(define (simple-stream-flatmap proc s)
+  (simple-flatten (stream-map proc s)))
+
+(define (simple-flatten stream)
+  (stream-map ⟨??⟩
+              (stream-filter ⟨??⟩ 
+                             stream)))
+@end lisp
+
+@item
+Does the query system's behavior change if we change it in this way?
+
+@end enumerate
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.75}Exercise 4.75:} Implement for the query language
+a new special form called @code{unique}.  @code{Unique} should succeed if there
+is precisely one item in the data base satisfying a specified query.  For
+example,
+
+@lisp
+(unique (job ?x (computer wizard)))
+@end lisp
+
+@noindent
+should print the one-item stream
+
+@lisp
+(unique (job (Bitdiddle Ben)
+             (computer wizard)))
+@end lisp
+
+@noindent
+since Ben is the only computer wizard, and
+
+@lisp
+(unique (job ?x (computer programmer)))
+@end lisp
+
+@noindent
+should print the empty stream, since there is more than one computer
+programmer.  Moreover,
+
+@lisp
+(and (job ?x ?j) 
+     (unique (job ?anyone ?j)))
+@end lisp
+
+@noindent
+should list all the jobs that are filled by only one person, and the people who
+fill them.
+
+There are two parts to implementing @code{unique}.  The first is to write a
+procedure that handles this special form, and the second is to make
+@code{qeval} dispatch to that procedure.  The second part is trivial, since
+@code{qeval} does its dispatching in a data-directed way.  If your procedure is
+called @code{uniquely-asserted}, all you need to do is
+
+@lisp
+(put 'unique 'qeval uniquely-asserted)
+@end lisp
+
+@noindent
+and @code{qeval} will dispatch to this procedure for every query whose
+@code{type} (@code{car}) is the symbol @code{unique}.
+
+The real problem is to write the procedure @code{uniquely-asserted}.  This
+should take as input the @code{contents} (@code{cdr}) of the @code{unique}
+query, together with a stream of frames.  For each frame in the stream, it
+should use @code{qeval} to find the stream of all extensions to the frame that
+satisfy the given query.  Any stream that does not have exactly one item in it
+should be eliminated.  The remaining streams should be passed back to be
+accumulated into one big stream that is the result of the @code{unique} query.
+This is similar to the implementation of the @code{not} special form.
+
+Test your implementation by forming a query that lists all people who supervise
+precisely one person.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.76}Exercise 4.76:} Our implementation of @code{and}
+as a series combination of queries (@ref{Figure 4.5}) is elegant, but it is
+inefficient because in processing the second query of the @code{and} we must
+scan the data base for each frame produced by the first query.  If the data
+base has @math{n} elements, and a typical query produces a number of output frames
+proportional to @math{n} (say @math{{n \,/\, k}}), then scanning the data base for each
+frame produced by the first query will require @math{{n^2 /\, k}} calls to the
+pattern matcher.  Another approach would be to process the two clauses of the
+@code{and} separately, then look for all pairs of output frames that are
+compatible.  If each query produces @math{{n \,/\, k}} output frames, then this means
+that we must perform @math{{n^2 /\, k^2}} compatibility checks---a factor of @math{k}
+fewer than the number of matches required in our current method.
+
+Devise an implementation of @code{and} that uses this strategy.  You must
+implement a procedure that takes two frames as inputs, checks whether the
+bindings in the frames are compatible, and, if so, produces a frame that merges
+the two sets of bindings.  This operation is similar to unification.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.77}Exercise 4.77:} In @ref{4.4.3} we saw
+that @code{not} and @code{lisp-value} can cause the query language to give
+``wrong'' answers if these filtering operations are applied to frames in which
+variables are unbound.  Devise a way to fix this shortcoming.  One idea is to
+perform the filtering in a ``delayed'' manner by appending to the frame a
+``promise'' to filter that is fulfilled only when enough variables have been
+bound to make the operation possible.  We could wait to perform filtering until
+all other operations have been performed.  However, for efficiency's sake, we
+would like to perform filtering as soon as possible so as to cut down on the
+number of intermediate frames generated.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.78}Exercise 4.78:} Redesign the query language as a
+nondeterministic program to be implemented using the evaluator of 
+@ref{4.3}, rather than as a stream process.  In this approach, each query will
+produce a single answer (rather than the stream of all answers) and the user
+can type @code{try-again} to see more answers.  You should find that much of
+the mechanism we built in this section is subsumed by nondeterministic search
+and backtracking.  You will probably also find, however, that your new query
+language has subtle differences in behavior from the one implemented here.  Can
+you find examples that illustrate this difference?
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.79}Exercise 4.79:} When we implemented the Lisp
+evaluator in @ref{4.1}, we saw how to use local environments to avoid
+name conflicts between the parameters of procedures.  For example, in
+evaluating
+
+@lisp
+(define (square x) 
+  (* x x))
+
+(define (sum-of-squares x y)
+  (+ (square x) (square y)))
+
+(sum-of-squares 3 4)
+@end lisp
+
+@noindent
+there is no confusion between the @code{x} in @code{square} and the @code{x} in
+@code{sum-of-squares}, because we evaluate the body of each procedure in an
+environment that is specially constructed to contain bindings for the local
+variables.  In the query system, we used a different strategy to avoid name
+conflicts in applying rules.  Each time we apply a rule we rename the variables
+with new names that are guaranteed to be unique.  The analogous strategy for
+the Lisp evaluator would be to do away with local environments and simply
+rename the variables in the body of a procedure each time we apply the
+procedure.
+
+Implement for the query language a rule-application method that uses
+environments rather than renaming.  See if you can build on your environment
+structure to create constructs in the query language for dealing with large
+systems, such as the rule analog of block-structured procedures.  Can you
+relate any of this to the problem of making deductions in a context (e.g., ``If
+I supposed that @math{P} were true, then I would be able to deduce @math{A} and
+@math{B}.'') as a method of problem solving?  (This problem is open-ended.  A good
+answer is probably worth a Ph.D.)
+@end quotation
+
+@node    Chapter 5, 5.1, 4.4, Top
+@chapter Computing with Register Machines
+
+@quotation
+My aim is to show that the heavenly machine is not a kind of divine, live
+being, but a kind of clockwork (and he who believes that a clock has soul
+attributes the maker's glory to the work), insofar as nearly all the manifold
+motions are caused by a most simple and material force, just as all motions of
+the clock are caused by a single weight.
+
+---Johannes Kepler (letter to Herwart von Hohenburg, 1605)
+@end quotation
+
+
+@noindent
+We began this book by studying processes and by describing processes in terms
+of procedures written in Lisp.  To explain the meanings of these procedures, we
+used a succession of models of evaluation: the substitution model of
+@ref{Chapter 1}, the environment model of @ref{Chapter 3}, and the metacircular
+evaluator of @ref{Chapter 4}.  Our examination of the metacircular evaluator,
+in particular, dispelled much of the mystery of how Lisp-like languages are
+interpreted.  But even the metacircular evaluator leaves important questions
+unanswered, because it fails to elucidate the mechanisms of control in a Lisp
+system.  For instance, the evaluator does not explain how the evaluation of a
+subexpression manages to return a value to the expression that uses this value,
+nor does the evaluator explain how some recursive procedures generate iterative
+processes (that is, are evaluated using constant space) whereas other recursive
+procedures generate recursive processes.  These questions remain unanswered
+because the metacircular evaluator is itself a Lisp program and hence inherits
+the control structure of the underlying Lisp system.  In order to provide a
+more complete description of the control structure of the Lisp evaluator, we
+must work at a more primitive level than Lisp itself.
+
+In this chapter we will describe processes in terms of the step-by-step
+operation of a traditional computer.  Such a computer, or @newterm{register machine}, 
+sequentially executes @newterm{instructions} that manipulate the
+contents of a fixed set of storage elements called @newterm{registers}.  A
+typical register-machine instruction applies a primitive operation to the
+contents of some registers and assigns the result to another register.  Our
+descriptions of processes executed by register machines will look very much
+like ``machine-language'' programs for traditional computers.  However, instead
+of focusing on the machine language of any particular computer, we will examine
+several Lisp procedures and design a specific register machine to execute each
+procedure.  Thus, we will approach our task from the perspective of a hardware
+architect rather than that of a machine-language computer programmer.  In
+designing register machines, we will develop mechanisms for implementing
+important programming constructs such as recursion.  We will also present a
+language for describing designs for register machines.  In @ref{5.2} we
+will implement a Lisp program that uses these descriptions to simulate the
+machines we design.
+
+Most of the primitive operations of our register machines are very simple.  For
+example, an operation might add the numbers fetched from two registers,
+producing a result to be stored into a third register.  Such an operation can
+be performed by easily described hardware.  In order to deal with list
+structure, however, we will also use the memory operations @code{car},
+@code{cdr}, and @code{cons}, which require an elaborate storage-allocation
+mechanism.  In @ref{5.3} we study their implementation in terms of more
+elementary operations.
+
+In @ref{5.4}, after we have accumulated experience formulating simple
+procedures as register machines, we will design a machine that carries out the
+algorithm described by the metacircular evaluator of @ref{4.1}.  This
+will fill in the gap in our understanding of how Scheme expressions are
+interpreted, by providing an explicit model for the mechanisms of control in
+the evaluator.  In @ref{5.5} we will study a simple compiler that
+translates Scheme programs into sequences of instructions that can be executed
+directly with the registers and operations of the evaluator register machine.
+
+@menu
+* 5.1::              Designing Register Machines
+* 5.2::              A Register-Machine Simulator
+* 5.3::              Storage Allocation and Garbage Collection
+* 5.4::              The Explicit-Control Evaluator
+* 5.5::              Compilation
+@end menu
+
+@node	5.1, 5.2, Chapter 5, Chapter 5
+@section Designing Register Machines
+
+To design a register machine, we must design its @newterm{data paths}
+(registers and operations) and the @newterm{controller} that sequences these
+operations.  To illustrate the design of a simple register machine, let us
+examine Euclid's Algorithm, which is used to compute the greatest common
+divisor (@abbr{GCD}) of two integers.  As we saw in @ref{1.2.5},
+Euclid's Algorithm can be carried out by an iterative process, as specified by
+the following procedure:
+
+@lisp
+(define (gcd a b)
+  (if (= b 0)
+      a
+      (gcd b (remainder a b))))
+@end lisp
+
+@noindent
+A machine to carry out this algorithm must keep track of two numbers, @math{a} and
+@math{b}, so let us assume that these numbers are stored in two registers with
+those names.  The basic operations required are testing whether the contents of
+register @code{b} is zero and computing the remainder of the contents of
+register @code{a} divided by the contents of register @code{b}.  The remainder
+operation is a complex process, but assume for the moment that we have a
+primitive device that computes remainders.  On each cycle of the @abbr{GCD}
+algorithm, the contents of register @code{a} must be replaced by the contents
+of register @code{b}, and the contents of @code{b} must be replaced by the
+remainder of the old contents of @code{a} divided by the old contents of
+@code{b}.  It would be convenient if these replacements could be done
+simultaneously, but in our model of register machines we will assume that only
+one register can be assigned a new value at each step.  To accomplish the
+replacements, our machine will use a third ``temporary'' register, which we
+call @code{t}.  (First the remainder will be placed in @code{t}, then the
+contents of @code{b} will be placed in @code{a}, and finally the remainder
+stored in @code{t} will be placed in @code{b}.)
+
+@noindent
+We can illustrate the registers and operations required for this machine by
+using the data-path diagram shown in @ref{Figure 5.1}.  In this diagram, the
+registers (@code{a}, @code{b}, and @code{t}) are represented by rectangles.
+Each way to assign a value to a register is indicated by an arrow with an
+@code{X} behind the head, pointing from the source of data to the register.  We
+can think of the @code{X} as a button that, when pushed, allows the value at
+the source to ``flow'' into the designated register.  The label next to each
+button is the name we will use to refer to the button.  The names are
+arbitrary, and can be chosen to have mnemonic value (for example, @code{a<-b}
+denotes pushing the button that assigns the contents of register @code{b} to
+register @code{a}).  The source of data for a register can be another register
+(as in the @code{a<-b} assignment), an operation result (as in the @code{t<-r}
+assignment), or a constant (a built-in value that cannot be changed,
+represented in a data-path diagram by a triangle containing the constant).
+
+@float
+@anchor{Figure 5.1}
+@ifinfo
+@quotation
+@strong{Figure 5.1:} Data paths for a @abbr{GCD} machine.
+
+@example
+                              ___
++-----+          +-----+     /   \
+|  a  |<--(X)----|  b  +--->|  =  |
++--+--+   a<-b   +-+---+     \___/
+   |               |  ^        ^
+   +------+   +----+  |        |
+          |   |      (X) b<-t  |
+       .--+---+--.    |       / \
+        \  rem  /     |      / O \
+         \_____/      |     +-----+
+            |         |
+           (X) t<-r   |
+            |         |
+            V         |
+         +-----+      |
+         |  t  +------+
+         +-----+
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap5/Fig5.1a,105mm,,,.std.svg}
+@caption{@strong{Figure 5.1:} Data paths for a @abbr{GCD} machine.}
+@end iftex
+@end float
+
+An operation that computes a value from constants and the contents of registers
+is represented in a data-path diagram by a trapezoid containing a name for the
+operation.  For example, the box marked @code{rem} in @ref{Figure 5.1}
+represents an operation that computes the remainder of the contents of the
+registers @code{a} and @code{b} to which it is attached.  Arrows (without
+buttons) point from the input registers and constants to the box, and arrows
+connect the operation's output value to registers.  A test is represented by a
+circle containing a name for the test.  For example, our @abbr{GCD} machine
+has an operation that tests whether the contents of register @code{b} is zero.
+A test also has arrows from its input registers and constants, but it has no
+output arrows; its value is used by the controller rather than by the data
+paths.  Overall, the data-path diagram shows the registers and operations that
+are required for the machine and how they must be connected.  If we view the
+arrows as wires and the @code{X} buttons as switches, the data-path diagram is
+very like the wiring diagram for a machine that could be constructed from
+electrical components.
+
+@noindent
+In order for the data paths to actually compute @abbr{GCD}s, the buttons
+must be pushed in the correct sequence.  We will describe this sequence in
+terms of a controller diagram, as illustrated in @ref{Figure 5.2}.  The
+elements of the controller diagram indicate how the data-path components should
+be operated.  The rectangular boxes in the controller diagram identify
+data-path buttons to be pushed, and the arrows describe the sequencing from one
+step to the next.  The diamond in the diagram represents a decision.  One of
+the two sequencing arrows will be followed, depending on the value of the
+data-path test identified in the diamond.  We can interpret the controller in
+terms of a physical analogy: Think of the diagram as a maze in which a marble
+is rolling.  When the marble rolls into a box, it pushes the data-path button
+that is named by the box.  When the marble rolls into a decision node (such as
+the test for @code{b} = 0), it leaves the node on the path determined by the
+result of the indicated test.  Taken together, the data paths and the
+controller completely describe a machine for computing @abbr{GCD}s.  We
+start the controller (the rolling marble) at the place marked @code{start},
+after placing numbers in registers @code{a} and @code{b}.  When the controller
+reaches @code{done}, we will find the value of the @abbr{GCD} in register
+@code{a}.
+
+@float
+@anchor{Figure 5.2}
+@ifinfo
+@quotation
+@strong{Figure 5.2:} Controller for a @abbr{GCD} machine.
+
+@example
+     start
+       |
+       V
+      / \ yes
++--->< = >-----> done
+|     \ /
+|      | no
+|      V
+|  +------+
+|  | t<-r |
+|  +---+--+
+|      |
+|      V
+|  +------+
+|  | a<-b |
+|  +---+--+
+|      |
+|      V
+|  +------+
++--+ b<-t |
+   +------+
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap5/Fig5.2,75mm,,,.std.svg}
+@caption{@strong{Figure 5.2:} Controller for a @abbr{GCD} machine.}
+@end iftex
+@end float
+
+@quotation
+@strong{@anchor{Exercise 5.1}Exercise 5.1:} Design a register machine to
+compute factorials using the iterative algorithm specified by the following
+procedure.  Draw data-path and controller diagrams for this machine.
+
+@lisp
+(define (factorial n)
+  (define (iter product counter)
+    (if (> counter n)
+        product
+        (iter (* counter product)
+              (+ counter 1))))
+  (iter 1 1))
+@end lisp
+@end quotation
+
+@menu
+* 5.1.1::            A Language for Describing Register Machines
+* 5.1.2::            Abstraction in Machine Design
+* 5.1.3::            Subroutines
+* 5.1.4::            Using a Stack to Implement Recursion
+* 5.1.5::            Instruction Summary
+@end menu
+
+@node	5.1.1, 5.1.2, 5.1, 5.1
+@subsection A Language for Describing Register Machines
+
+Data-path and controller diagrams are adequate for representing simple machines
+such as @abbr{GCD}, but they are unwieldy for describing large machines such
+as a Lisp interpreter.  To make it possible to deal with complex machines, we
+will create a language that presents, in textual form, all the information
+given by the data-path and controller diagrams.  We will start with a notation
+that directly mirrors the diagrams.
+
+We define the data paths of a machine by describing the registers and the
+operations.  To describe a register, we give it a name and specify the buttons
+that control assignment to it.  We give each of these buttons a name and
+specify the source of the data that enters the register under the button's
+control.  (The source is a register, a constant, or an operation.)  To describe
+an operation, we give it a name and specify its inputs (registers or
+constants).
+
+We define the controller of a machine as a sequence of @newterm{instructions}
+together with @newterm{labels} that identify @newterm{entry points} in the
+sequence. An instruction is one of the following:
+
+@itemize @bullet
+
+@item
+The name of a data-path button to push to assign a value to a register.  (This
+corresponds to a box in the controller diagram.)
+
+@item
+A @code{test} instruction, that performs a specified test.
+
+@item
+A conditional branch (@code{branch} instruction) to a location indicated by a
+controller label, based on the result of the previous test.  (The test and
+branch together correspond to a diamond in the controller diagram.)  If the
+test is false, the controller should continue with the next instruction in the
+sequence.  Otherwise, the controller should continue with the instruction after
+the label.
+
+@item
+An unconditional branch (@code{goto} instruction) naming a controller label at
+which to continue execution.
+
+@end itemize
+
+@noindent
+The machine starts at the beginning of the controller instruction sequence and
+stops when execution reaches the end of the sequence.  Except when a branch
+changes the flow of control, instructions are executed in the order in which
+they are listed.
+
+@noindent
+@ref{Figure 5.3} shows the @abbr{GCD} machine described in this way.  This
+example only hints at the generality of these descriptions, since the
+@abbr{GCD} machine is a very simple case: Each register has only one button,
+and each button and test is used only once in the controller.
+
+@quotation
+@strong{@anchor{Figure 5.3}Figure 5.3:} @math{\downarrow} A specification of the @abbr{GCD}
+machine.
+
+@lisp
+(data-paths
+ (registers
+  ((name a)
+   (buttons ((name a<-b) 
+             (source (register b)))))
+  ((name b)
+   (buttons ((name b<-t)
+             (source (register t)))))
+  ((name t)
+   (buttons ((name t<-r)
+             (source (operation rem))))))
+ (operations
+  ((name rem)
+   (inputs (register a) (register b)))
+  ((name =)
+   (inputs (register b) (constant 0)))))
+
+(controller
+ test-b                @r{; label}
+   (test =)            @r{; test}
+   (branch 
+    (label gcd-done))  @r{; conditional branch}
+   (t<-r)              @r{; button push}
+   (a<-b)              @r{; button push}
+   (b<-t)              @r{; button push}
+   (goto 
+    (label test-b))    @r{; unconditional branch}
+ gcd-done)             @r{; label}
+@end lisp
+
+@end quotation
+
+Unfortunately, it is difficult to read such a description.  In order to
+understand the controller instructions we must constantly refer back to the
+definitions of the button names and the operation names, and to understand what
+the buttons do we may have to refer to the definitions of the operation names.
+We will thus transform our notation to combine the information from the
+data-path and controller descriptions so that we see it all together.
+
+To obtain this form of description, we will replace the arbitrary button and
+operation names by the definitions of their behavior.  That is, instead of
+saying (in the controller) ``Push button @code{t<-r}'' and separately saying
+(in the data paths) ``Button @code{t<-r} assigns the value of the @code{rem}
+operation to register @code{t}'' and ``The @code{rem} operation's inputs are
+the contents of registers @code{a} and @code{b},'' we will say (in the
+controller) ``Push the button that assigns to register @code{t} the value of
+the @code{rem} operation on the contents of registers @code{a} and @code{b}.''
+Similarly, instead of saying (in the controller) ``Perform the @code{=} test''
+and separately saying (in the data paths) ``The @code{=} test operates on the
+contents of register @code{b} and the constant 0,'' we will say ``Perform the
+@code{=} test on the contents of register @code{b} and the constant 0.''  We
+will omit the data-path description, leaving only the controller sequence.
+Thus, the @abbr{GCD} machine is described as follows:
+
+@lisp
+(controller
+ test-b
+   (test (op =) (reg b) (const 0))
+   (branch (label gcd-done))
+   (assign t (op rem) (reg a) (reg b))
+   (assign a (reg b))
+   (assign b (reg t))
+   (goto (label test-b))
+ gcd-done)
+@end lisp
+
+@noindent
+This form of description is easier to read than the kind illustrated in
+@ref{Figure 5.3}, but it also has disadvantages:
+
+@itemize @bullet
+
+@item
+It is more verbose for large machines, because complete descriptions of the
+data-path elements are repeated whenever the elements are mentioned in the
+controller instruction sequence.  (This is not a problem in the @abbr{GCD}
+example, because each operation and button is used only once.)  Moreover,
+repeating the data-path descriptions obscures the actual data-path structure of
+the machine; it is not obvious for a large machine how many registers,
+operations, and buttons there are and how they are interconnected.
+
+@item
+Because the controller instructions in a machine definition look like Lisp
+expressions, it is easy to forget that they are not arbitrary Lisp expressions.
+They can notate only legal machine operations.  For example, operations can
+operate directly only on constants and the contents of registers, not on the
+results of other operations.
+
+@end itemize
+
+@noindent
+In spite of these disadvantages, we will use this register-machine language
+throughout this chapter, because we will be more concerned with understanding
+controllers than with understanding the elements and connections in data paths.
+We should keep in mind, however, that data-path design is crucial in designing
+real machines.
+
+@quotation
+@strong{@anchor{Exercise 5.2}Exercise 5.2:} Use the register-machine language
+to describe the iterative factorial machine of @ref{Exercise 5.1}.
+@end quotation
+
+@subsubheading Actions
+
+Let us modify the @abbr{GCD} machine so that we can type in the numbers
+whose @abbr{GCD} we want and get the answer printed at our terminal.  We
+will not discuss how to make a machine that can read and print, but will assume
+(as we do when we use @code{read} and @code{display} in Scheme) that they are
+available as primitive operations.@footnote{This assumption glosses over a
+great deal of complexity.  Usually a large portion of the implementation of a
+Lisp system is dedicated to making reading and printing work.}
+
+@code{Read} is like the operations we have been using in that it produces a
+value that can be stored in a register.  But @code{read} does not take inputs
+from any registers; its value depends on something that happens outside the
+parts of the machine we are designing.  We will allow our machine's operations
+to have such behavior, and thus will draw and notate the use of @code{read}
+just as we do any other operation that computes a value.
+
+@code{Print}, on the other hand, differs from the operations we have been using
+in a fundamental way: It does not produce an output value to be stored in a
+register.  Though it has an effect, this effect is not on a part of the machine
+we are designing.  We will refer to this kind of operation as an
+@newterm{action}.  We will represent an action in a data-path diagram just as
+we represent an operation that computes a value---as a trapezoid that contains
+the name of the action.  Arrows point to the action box from any inputs
+(registers or constants).  We also associate a button with the action.  Pushing
+the button makes the action happen.  To make a controller push an action button
+we use a new kind of instruction called @code{perform}.  Thus, the action of
+printing the contents of register @code{a} is represented in a controller
+sequence by the instruction
+
+@lisp
+(perform (op print) (reg a))
+@end lisp
+
+@noindent
+@ref{Figure 5.4} shows the data paths and controller for the new @abbr{GCD}
+machine.  Instead of having the machine stop after printing the answer, we have
+made it start over, so that it repeatedly reads a pair of numbers, computes
+their @abbr{GCD}, and prints the result.  This structure is like the driver
+loops we used in the interpreters of @ref{Chapter 4}.
+
+@float
+@anchor{Figure 5.4}
+@ifinfo
+@strong{Figure 5.4:} A @abbr{GCD} machine that reads inputs and prints results.
+
+@example
+                   .--------.
+                    \ read /
+                     \____/
+                       |
+               +-------*------+
+               |              |
+        a<-rd (X)            (X) b<-rd
+               |              |
+               V              V           ___
+            +-----+        +-----+       /   \
+            |  a  |<--(X)--+  b  +----->|  =  |
+            +-+-+-+  a<-b  +-+---+       \___/
+              | |            |  ^          ^
+           +--+ +----+    +--+  |          |
+           |         |    |    (X) b<-t   / \
+           V         V    V     |        / O \
+      .---------.  .---------.  |       /_____\
+--(X)->\ print /    \  rem  /   |
+   P    \_____/      \_____/    |
+                        |       |
+                       (X) t<-r |
+                        |       |
+                        V       |
+                     +-----+    |
+                     |  t  +----+
+                     +-----+
+@end example
+
+@lisp
+ (controller
+  gcd-loop
+    (assign a (op read))
+    (assign b (op read))
+  test-b
+    (test (op =) (reg b) (const 0))
+    (branch (label gcd-done))
+    (assign t (op rem) (reg a) (reg b))
+    (assign a (reg b))
+    (assign b (reg t))
+    (goto (label test-b))
+  gcd-done
+    (perform (op print) (reg a))
+    (goto (label gcd-loop)))
+@end lisp
+
+@end ifinfo
+@iftex
+@image{fig/chap5/Fig5.4c,147mm,,,.std.svg}
+@caption{@strong{Figure 5.4:} A @abbr{GCD} machine that reads inputs and prints results.}
+@end iftex
+@end float
+
+@node	5.1.2, 5.1.3, 5.1.1, 5.1
+@subsection Abstraction in Machine Design
+
+We will often define a machine to include ``primitive'' operations that are
+actually very complex.  For example, in @ref{5.4} and @ref{5.5} we
+will treat Scheme's environment manipulations as primitive.  Such abstraction
+is valuable because it allows us to ignore the details of parts of a machine so
+that we can concentrate on other aspects of the design.  The fact that we have
+swept a lot of complexity under the rug, however, does not mean that a machine
+design is unrealistic.  We can always replace the complex ``primitives'' by
+simpler primitive operations.
+
+@noindent
+Consider the @abbr{GCD} machine. The machine has an instruction that
+computes the remainder of the contents of registers @code{a} and @code{b} and
+assigns the result to register @code{t}.  If we want to construct the
+@abbr{GCD} machine without using a primitive remainder operation, we must
+specify how to compute remainders in terms of simpler operations, such as
+subtraction.  Indeed, we can write a Scheme procedure that finds remainders in
+this way:
+
+@lisp
+(define (remainder n d)
+  (if (< n d) n (remainder (- n d) d)))
+@end lisp
+
+We can thus replace the remainder operation in the @abbr{GCD} machine's data
+paths with a subtraction operation and a comparison test.  @ref{Figure 5.5}
+shows the data paths and controller for the elaborated machine.  The
+instruction
+
+@lisp
+(assign t (op rem) (reg a) (reg b))
+@end lisp
+
+@noindent
+in the @abbr{GCD} controller definition is replaced by a sequence of
+instructions that contains a loop, as shown in @ref{Figure 5.6}.
+
+@float
+@anchor{Figure 5.5}
+@ifinfo
+@quotation
+@strong{Figure 5.5:} Data paths and controller for the elaborated @abbr{GCD} machine.
+
+@example
+                                    ___
++-----+         +-----+            /   \
+|  a  |<--(X)---+  b  +-------*-->|  =  |
++--+--+   a<-b  +-+---+       |    \___/
+   |              |  ^        |
+  (X) t<-a        |  |        |
+   |              | (X) b<-t  |
+   V              |  |       _V_
++-----+           |  |      /   \
+|  t  +-------*---|--*-----|  <  |
++-----+       |   |         \___/
+   ^          V   V
+   |        ---------
+  (X) t<-d   \  -  /
+   |          --+--
+   |            |
+   +------------+
+
+
+   start
+     |
+     V
+    / \ yes            +-------+
++->< = >----> done     | t<-d  |<--+
+|   \ /                +---+---+   |
+|    | no                  |       |
+|    |                     V       |
+|    |   +------+         / \ no   |
+|    +-->| t<-a +------->< < >-----+
+|        +------+         \ /
+|                          | yes
+|      +-------------------+
+|      V
+|  +-------+
+|  | a<-b  |
+|  +---+---+
+|      |
+|      V
+|  +-------+
++--+ b<-t  |
+   +-------+
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap5/Fig5.5b,109mm,,,.std.svg}
+@caption{@strong{Figure 5.5:} Data paths and controller for the elaborated @abbr{GCD} machine.}
+@end iftex
+@end float
+
+@quotation
+@strong{@anchor{Figure 5.6}Figure 5.6:} @math{\downarrow} Controller instruction sequence for the
+@abbr{GCD} machine in @ref{Figure 5.5}.
+
+@lisp
+(controller
+ test-b
+   (test (op =) (reg b) (const 0))
+   (branch (label gcd-done))
+   (assign t (reg a))
+ rem-loop
+   (test (op <) (reg t) (reg b))
+   (branch (label rem-done))
+   (assign t (op -) (reg t) (reg b))
+   (goto (label rem-loop))
+ rem-done
+   (assign a (reg b))
+   (assign b (reg t))
+   (goto (label test-b))
+ gcd-done)
+@end lisp
+
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.3}Exercise 5.3:} Design a machine to compute square
+roots using Newton's method, as described in @ref{Sec.1.1.7,,1.1.7}:
+
+@lisp
+(define (sqrt x)
+  (define (good-enough? guess)
+    (< (abs (- (square guess) x)) 0.001))
+  (define (improve guess)
+    (average guess (/ x guess)))
+  (define (sqrt-iter guess)
+    (if (good-enough? guess)
+        guess
+        (sqrt-iter (improve guess))))
+  (sqrt-iter 1.0))
+@end lisp
+
+Begin by assuming that @code{good-enough?} and @code{improve} operations are
+available as primitives.  Then show how to expand these in terms of arithmetic
+operations.  Describe each version of the @code{sqrt} machine design by drawing
+a data-path diagram and writing a controller definition in the register-machine
+language.
+@end quotation
+
+@node	5.1.3, 5.1.4, 5.1.2, 5.1
+@subsection Subroutines
+
+When designing a machine to perform a computation, we would often prefer to
+arrange for components to be shared by different parts of the computation
+rather than duplicate the components.  Consider a machine that includes two
+@abbr{GCD} computations---one that finds the @abbr{GCD} of the contents
+of registers @code{a} and @code{b} and one that finds the @abbr{GCD} of the
+contents of registers @code{c} and @code{d}.  We might start by assuming we
+have a primitive @code{gcd} operation, then expand the two instances of
+@code{gcd} in terms of more primitive operations.  @ref{Figure 5.7} shows just
+the @abbr{GCD} portions of the resulting machine's data paths, without
+showing how they connect to the rest of the machine.  The figure also shows the
+corresponding portions of the machine's controller sequence.
+
+@float
+@anchor{Figure 5.7}
+@ifinfo
+@strong{Figure 5.7:} Portions of the data paths and controller sequence for a machine with two @abbr{GCD} computations.
+
+@example
+                            ___                                 ___  
++-----+        +-----+     /   \    +-----+        +-----+     /   \ 
+|  a  |<-(X)---+  b  |--->|  =  |   |  c  |<-(X)---+  d  |--->|  =  |
++--+--+  a<-b  ++----+     \___/    +--+--+  c<-d  ++----+     \___/ 
+   |            |  ^         ^         |            |  ^         ^   
+   `----.   .---'  |         |         `----.   .---'  |         |   
+        V   V     (X) b<-t   |              V   V     (X) d<-t   |   
+       -------     |        / \            -------     |        / \  
+       \ rem /     |       /_0_\           \ rem /     |       /_0_\ 
+        --+--      |                        --+--      |             
+          |        |                          |        |             
+         (X) t<-r  |                         (X) s<-r  |             
+          |        |                          |        |             
+          V        |                          V        |             
+       +-----+     |                       +-----+     |             
+       |  t  +-----'                       |  s  +-----'             
+       +-----+                             +-----+                   
+@end example
+
+@lisp
+gcd-1
+ (test (op =) (reg b) (const 0))
+ (branch (label after-gcd-1))
+ (assign t (op rem) (reg a) (reg b))
+ (assign a (reg b))
+ (assign b (reg t))
+ (goto (label gcd-1))
+after-gcd-1
+  @r{…}
+gcd-2
+ (test (op =) (reg d) (const 0))

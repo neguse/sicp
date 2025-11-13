@@ -1,0 +1,1000 @@
+expression, we check to see if there are additional expressions to be evaluated
+in the sequence.  If so, we save the rest of the unevaluated expressions (held
+in @code{unev}) and the environment in which these must be evaluated (held in
+@code{env}) and call @code{eval-dispatch} to evaluate the expression.  The two
+saved registers are restored upon the return from this evaluation, at
+@code{ev-sequence-continue}.
+
+The final expression in the sequence is handled differently, at the entry point
+@code{ev-sequence-last-exp}.  Since there are no more expressions to be
+evaluated after this one, we need not save @code{unev} or @code{env} before
+going to @code{eval-dispatch}.  The value of the whole sequence is the value of
+the last expression, so after the evaluation of the last expression there is
+nothing left to do except continue at the entry point currently held on the
+stack (which was saved by @code{ev-application} or @code{ev-begin}.)  Rather
+than setting up @code{continue} to arrange for @code{eval-dispatch} to return
+here and then restoring @code{continue} from the stack and continuing at that
+entry point, we restore @code{continue} from the stack before going to
+@code{eval-dispatch}, so that @code{eval-dispatch} will continue at that entry
+point after evaluating the expression.
+
+@lisp
+ev-sequence
+  (assign exp (op first-exp) (reg unev))
+  (test (op last-exp?) (reg unev))
+  (branch (label ev-sequence-last-exp))
+  (save unev)
+  (save env)
+  (assign continue
+          (label ev-sequence-continue))
+  (goto (label eval-dispatch))
+ev-sequence-continue
+  (restore env)
+  (restore unev)
+  (assign unev
+          (op rest-exps)
+          (reg unev))
+  (goto (label ev-sequence))
+ev-sequence-last-exp
+  (restore continue)
+  (goto (label eval-dispatch))
+@end lisp
+
+@subsubheading Tail recursion
+
+In @ref{Chapter 1} we said that the process described by a procedure such as
+
+@lisp
+(define (sqrt-iter guess x)
+  (if (good-enough? guess x)
+      guess
+      (sqrt-iter (improve guess x) x)))
+@end lisp
+
+@noindent
+is an iterative process.  Even though the procedure is syntactically recursive
+(defined in terms of itself), it is not logically necessary for an evaluator to
+save information in passing from one call to @code{sqrt-iter} to the
+next.@footnote{We saw in @ref{5.1} how to implement such a process with
+a register machine that had no stack; the state of the process was stored in a
+fixed set of registers.} An evaluator that can execute a procedure such as
+@code{sqrt-iter} without requiring increasing storage as the procedure
+continues to call itself is called a @newterm{tail-recursive} evaluator.  The
+metacircular implementation of the evaluator in @ref{Chapter 4} does not
+specify whether the evaluator is tail-recursive, because that evaluator
+inherits its mechanism for saving state from the underlying Scheme.  With the
+explicit-control evaluator, however, we can trace through the evaluation
+process to see when procedure calls cause a net accumulation of information on
+the stack.
+
+Our evaluator is tail-recursive, because in order to evaluate the final
+expression of a sequence we transfer directly to @code{eval-dispatch} without
+saving any information on the stack.  Hence, evaluating the final expression in
+a sequence---even if it is a procedure call (as in @code{sqrt-iter}, where the
+@code{if} expression, which is the last expression in the procedure body,
+reduces to a call to @code{sqrt-iter})---will not cause any information to be
+accumulated on the stack.@footnote{This implementation of tail recursion in
+@code{ev-sequence} is one variety of a well-known optimization technique used
+by many compilers.  In compiling a procedure that ends with a procedure call,
+one can replace the call by a jump to the called procedure's entry point.
+Building this strategy into the interpreter, as we have done in this section,
+provides the optimization uniformly throughout the language.}
+
+If we did not think to take advantage of the fact that it was unnecessary to
+save information in this case, we might have implemented @code{eval-sequence}
+by treating all the expressions in a sequence in the same way---saving the
+registers, evaluating the expression, returning to restore the registers, and
+repeating this until all the expressions have been evaluated:@footnote{We can
+define @code{no-more-exps?} as follows:
+
+@lisp
+(define (no-more-exps? seq) (null? seq))
+@end lisp
+}
+
+@lisp
+ev-sequence
+  (test (op no-more-exps?) (reg unev))
+  (branch (label ev-sequence-end))
+  (assign exp (op first-exp) (reg unev))
+  (save unev)
+  (save env)
+  (assign continue
+          (label ev-sequence-continue))
+  (goto (label eval-dispatch))
+ev-sequence-continue
+  (restore env)
+  (restore unev)
+  (assign unev (op rest-exps) (reg unev))
+  (goto (label ev-sequence))
+ev-sequence-end
+  (restore continue)
+  (goto (reg continue))
+@end lisp
+
+@noindent
+This may seem like a minor change to our previous code for evaluation of a
+sequence: The only difference is that we go through the save-restore cycle for
+the last expression in a sequence as well as for the others.  The interpreter
+will still give the same value for any expression.  But this change is fatal to
+the tail-recursive implementation, because we must now return after evaluating
+the final expression in a sequence in order to undo the (useless) register
+saves.  These extra saves will accumulate during a nest of procedure calls.
+Consequently, processes such as @code{sqrt-iter} will require space
+proportional to the number of iterations rather than requiring constant space.
+This difference can be significant.  For example, with tail recursion, an
+infinite loop can be expressed using only the procedure-call mechanism:
+
+@lisp
+(define (count n)
+  (newline)
+  (display n)
+  (count (+ n 1)))
+@end lisp
+
+@noindent
+Without tail recursion, such a procedure would eventually run out of stack
+space, and expressing a true iteration would require some control mechanism
+other than procedure call.
+
+@node	5.4.3, 5.4.4, 5.4.2, 5.4
+@subsection Conditionals, Assignments, and Definitions
+
+As with the metacircular evaluator, special forms are handled by selectively
+evaluating fragments of the expression.  For an @code{if} expression, we must
+evaluate the predicate and decide, based on the value of predicate, whether to
+evaluate the consequent or the alternative.
+
+Before evaluating the predicate, we save the @code{if} expression itself so
+that we can later extract the consequent or alternative.  We also save the
+environment, which we will need later in order to evaluate the consequent or
+the alternative, and we save @code{continue}, which we will need later in order
+to return to the evaluation of the expression that is waiting for the value of
+the @code{if}.
+
+@lisp
+ev-if
+  (save exp)   @r{; save expression for later}
+  (save env)
+  (save continue)
+  (assign continue (label ev-if-decide))
+  (assign exp (op if-predicate) (reg exp))
+  @r{; evaluate the predicate:}
+  (goto (label eval-dispatch))  
+@end lisp
+
+@noindent
+When we return from evaluating the predicate, we test whether it was true or
+false and, depending on the result, place either the consequent or the
+alternative in @code{exp} before going to @code{eval-dispatch}.  Notice that
+restoring @code{env} and @code{continue} here sets up @code{eval-dispatch} to
+have the correct environment and to continue at the right place to receive the
+value of the @code{if} expression.
+
+@lisp
+ev-if-decide
+  (restore continue)
+  (restore env)
+  (restore exp)
+  (test (op true?) (reg val))
+  (branch (label ev-if-consequent))
+ev-if-alternative
+  (assign exp (op if-alternative) (reg exp))
+  (goto (label eval-dispatch))
+ev-if-consequent
+  (assign exp (op if-consequent) (reg exp))
+  (goto (label eval-dispatch))
+@end lisp
+
+@subsubheading Assignments and definitions
+
+Assignments are handled by @code{ev-assignment}, which is reached from
+@code{eval-dispatch} with the assignment expression in @code{exp}.  The code at
+@code{ev-assignment} first evaluates the value part of the expression and then
+installs the new value in the environment.  @code{Set-variable-value!} is
+assumed to be available as a machine operation.
+
+@lisp
+ev-assignment
+  (assign unev 
+          (op assignment-variable)
+          (reg exp))
+  (save unev)   @r{; save variable for later}
+  (assign exp
+          (op assignment-value)
+          (reg exp))
+  (save env)
+  (save continue)
+  (assign continue
+          (label ev-assignment-1))
+  @r{; evaluate the assignment value:}
+  (goto (label eval-dispatch))  
+ev-assignment-1
+  (restore continue)
+  (restore env)
+  (restore unev)
+  (perform (op set-variable-value!)
+           (reg unev)
+           (reg val)
+           (reg env))
+  (assign val
+          (const ok))
+  (goto (reg continue))
+@end lisp
+
+@noindent
+Definitions are handled in a similar way:
+
+@lisp
+ev-definition
+  (assign unev 
+          (op definition-variable)
+          (reg exp))
+  (save unev)   @r{; save variable for later}
+  (assign exp 
+          (op definition-value)
+          (reg exp))
+  (save env)
+  (save continue)
+  (assign continue (label ev-definition-1))
+  @r{; evaluate the definition value:}
+  (goto (label eval-dispatch))  
+ev-definition-1
+  (restore continue)
+  (restore env)
+  (restore unev)
+  (perform (op define-variable!)
+           (reg unev)
+           (reg val)
+           (reg env))
+  (assign val (const ok))
+  (goto (reg continue))
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 5.23}Exercise 5.23:} Extend the evaluator to handle
+derived expressions such as @code{cond}, @code{let}, and so on 
+(@ref{4.1.2}).  You may ``cheat'' and assume that the syntax transformers such
+as @code{cond->if} are available as machine operations.@footnote{This isn't
+really cheating.  In an actual implementation built from scratch, we would use
+our explicit-control evaluator to interpret a Scheme program that performs
+source-level transformations like @code{cond->if} in a syntax phase that runs
+before execution.}
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.24}Exercise 5.24:} Implement @code{cond} as a new
+basic special form without reducing it to @code{if}.  You will have to
+construct a loop that tests the predicates of successive @code{cond} clauses
+until you find one that is true, and then use @code{ev-sequence} to evaluate
+the actions of the clause.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.25}Exercise 5.25:} Modify the evaluator so that it
+uses normal-order evaluation, based on the lazy evaluator of @ref{4.2}.
+@end quotation
+
+@node	5.4.4, 5.5, 5.3, 5.4
+@subsection Running the Evaluator
+
+With the implementation of the explicit-control evaluator we come to the end of
+a development, begun in @ref{Chapter 1}, in which we have explored successively
+more precise models of the evaluation process.  We started with the relatively
+informal substitution model, then extended this in @ref{Chapter 3} to the
+environment model, which enabled us to deal with state and change.  In the
+metacircular evaluator of @ref{Chapter 4}, we used Scheme itself as a language
+for making more explicit the environment structure constructed during
+evaluation of an expression.  Now, with register machines, we have taken a
+close look at the evaluator's mechanisms for storage management, argument
+passing, and control.  At each new level of description, we have had to raise
+issues and resolve ambiguities that were not apparent at the previous, less
+precise treatment of evaluation.  To understand the behavior of the
+explicit-control evaluator, we can simulate it and monitor its performance.
+
+We will install a driver loop in our evaluator machine.  This plays the role of
+the @code{driver-loop} procedure of @ref{4.1.4}.  The evaluator will
+repeatedly print a prompt, read an expression, evaluate the expression by going
+to @code{eval-dispatch}, and print the result.  The following instructions form
+the beginning of the explicit-control evaluator's controller
+sequence:@footnote{We assume here that @code{read} and the various printing
+operations are available as primitive machine operations, which is useful for
+our simulation, but completely unrealistic in practice.  These are actually
+extremely complex operations.  In practice, they would be implemented using
+low-level input-output operations such as transferring single characters to and
+from a device.
+
+To support the @code{get-global-environment} operation we define
+
+@lisp
+(define the-global-environment
+  (setup-environment))
+
+(define (get-global-environment)
+  the-global-environment)
+@end lisp
+}
+
+@lisp
+read-eval-print-loop
+  (perform (op initialize-stack))
+  (perform (op prompt-for-input)
+           (const ";;; EC-Eval input:"))
+  (assign exp (op read))
+  (assign env (op get-global-environment))
+  (assign continue (label print-result))
+  (goto (label eval-dispatch))
+print-result
+  (perform (op announce-output)
+           (const ";;; EC-Eval value:"))
+  (perform (op user-print) (reg val))
+  (goto (label read-eval-print-loop))
+@end lisp
+
+@noindent
+When we encounter an error in a procedure (such as the ``unknown procedure type
+error'' indicated at @code{apply-dispatch}), we print an error message and
+return to the driver loop.@footnote{There are other errors that we would like
+the interpreter to handle, but these are not so simple.  See @ref{Exercise 5.30}.}
+
+@lisp
+unknown-expression-type
+  (assign 
+   val
+   (const unknown-expression-type-error))
+  (goto (label signal-error))
+unknown-procedure-type
+  @r{; clean up stack (from @code{apply-dispatch}):}
+  (restore continue)    
+  (assign 
+   val
+   (const unknown-procedure-type-error))
+  (goto (label signal-error))
+signal-error
+  (perform (op user-print) (reg val))
+  (goto (label read-eval-print-loop))
+@end lisp
+
+@noindent
+For the purposes of the simulation, we initialize the stack each time through
+the driver loop, since it might not be empty after an error (such as an
+undefined variable) interrupts an evaluation.@footnote{We could perform the
+stack initialization only after errors, but doing it in the driver loop will be
+convenient for monitoring the evaluator's performance, as described below.}
+
+If we combine all the code fragments presented in 
+@ref{5.4.1}--@ref{5.4.4}, we can create an evaluator machine model that we can
+run using the register-machine simulator of @ref{5.2}.
+
+@lisp
+(define eceval
+  (make-machine
+   '(exp env val proc argl continue unev)
+   eceval-operations
+   '(read-eval-print-loop
+     ⟨@emph{entire machine controller} 
+      @emph{as given above}⟩)))
+@end lisp
+
+@noindent
+We must define Scheme procedures to simulate the operations used as primitives
+by the evaluator.  These are the same procedures we used for the metacircular
+evaluator in @ref{4.1}, together with the few additional ones defined
+in footnotes throughout @ref{5.4}.
+
+@lisp
+(define eceval-operations
+  (list (list 'self-evaluating? 
+              self-evaluating)
+        ⟨@emph{complete list of operations} 
+         @emph{for eceval machine}⟩))
+@end lisp
+
+@noindent
+Finally, we can initialize the global environment and run the evaluator:
+
+@lisp
+(define the-global-environment
+  (setup-environment))
+
+(start eceval)
+
+@i{;;; EC-Eval input:}
+(define (append x y)
+  (if (null? x)
+      y
+      (cons (car x) (append (cdr x) y))))
+
+@i{;;; EC-Eval value:}
+@i{ok}
+
+@i{;;; EC-Eval input:}
+(append '(a b c) '(d e f))
+
+@i{;;; EC-Eval value:}
+@i{(a b c d e f)}
+@end lisp
+
+@noindent
+Of course, evaluating expressions in this way will take much longer than if we
+had directly typed them into Scheme, because of the multiple levels of
+simulation involved.  Our expressions are evaluated by the
+explicit-control-evaluator machine, which is being simulated by a Scheme
+program, which is itself being evaluated by the Scheme interpreter.
+
+@subsubheading Monitoring the performance of the evaluator
+
+Simulation can be a powerful tool to guide the implementation of evaluators.
+Simulations make it easy not only to explore variations of the register-machine
+design but also to monitor the performance of the simulated evaluator.  For
+example, one important factor in performance is how efficiently the evaluator
+uses the stack.  We can observe the number of stack operations required to
+evaluate various expressions by defining the evaluator register machine with
+the version of the simulator that collects statistics on stack use 
+(@ref{5.2.4}), and adding an instruction at the evaluator's @code{print-result}
+entry point to print the statistics:
+
+@lisp
+print-result
+  @r{; added instruction:}
+  (perform (op print-stack-statistics))
+  (perform (op announce-output)
+           (const ";;; EC-Eval value:"))
+  @r{…} @r{; same as before}
+@end lisp
+
+@noindent
+Interactions with the evaluator now look like this:
+
+@lisp
+@i{;;; EC-Eval input:}
+(define (factorial n)
+  (if (= n 1) 1 (* (factorial (- n 1)) n)))
+@i{(total-pushes = 3, maximum-depth = 3)}
+
+@i{;;; EC-Eval value:}
+@i{ok}
+
+@i{;;; EC-Eval input:}
+(factorial 5)
+@i{(total-pushes = 144, maximum-depth = 28)}
+
+@i{;;; EC-Eval value:}
+@i{120}
+@end lisp
+
+@noindent
+Note that the driver loop of the evaluator reinitializes the stack at the start
+of each interaction, so that the statistics printed will refer only to stack
+operations used to evaluate the previous expression.
+
+@quotation
+@strong{@anchor{Exercise 5.26}Exercise 5.26:} Use the monitored stack to
+explore the tail-recursive property of the evaluator (@ref{5.4.2}).
+Start the evaluator and define the iterative @code{factorial} procedure from
+@ref{1.2.1}:
+
+@lisp
+(define (factorial n)
+  (define (iter product counter)
+    (if (> counter n)
+        product
+        (iter (* counter product)
+              (+ counter 1))))
+  (iter 1 1))
+@end lisp
+
+Run the procedure with some small values of @math{n}.  Record the maximum stack
+depth and the number of pushes required to compute @math{{n!}} for each of these
+values.
+
+@enumerate a
+
+@item
+You will find that the maximum depth required to evaluate @math{{n!}} is independent
+of @math{n}.  What is that depth?
+
+@item
+Determine from your data a formula in terms of @math{n} for the total number of
+push operations used in evaluating @math{{n!}} for any @math{{n \ge 1}}.  Note that the
+number of operations used is a linear function of @math{n} and is thus determined
+by two constants.
+
+@end enumerate
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.27}Exercise 5.27:} For comparison with @ref{Exercise 5.26}, 
+explore the behavior of the following procedure for computing factorials
+recursively:
+
+@lisp
+(define (factorial n)
+  (if (= n 1)
+      1
+      (* (factorial (- n 1)) n)))
+@end lisp
+
+By running this procedure with the monitored stack, determine, as a function of
+@math{n}, the maximum depth of the stack and the total number of pushes used in
+evaluating @math{{n!}} for @math{{n \ge 1}}.  (Again, these functions will be linear.)
+Summarize your experiments by filling in the following table with the
+appropriate expressions in terms of @math{n}:
+@ifinfo
+
+@example
+               Maximum depth       Number of pushes
+
+Recursive
+factorial
+
+Iterative
+factorial
+@end example
+
+@end ifinfo
+@tex
+\[ % :82:
+
+\begin{array}{l|l|l}
+                	& \text{Maximum} 	& \text{Number of} 	\\
+                	& \text{depth} 	        & \text{pushes} 	\\
+\hline
+\text{Recursive} 	&	                &  \\
+\text{factorial} 	&  	                &  \\
+\hline
+\text{Iterative} 	&               	&  \\
+\text{factorial} 	&  	                & 
+\end{array}
+\]
+@end tex
+The maximum depth is a measure of the amount of space used by the evaluator in
+carrying out the computation, and the number of pushes correlates well with the
+time required.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.28}Exercise 5.28:} Modify the definition of the
+evaluator by changing @code{eval-sequence} as described in @ref{5.4.2}
+so that the evaluator is no longer tail-recursive.  Rerun your experiments from
+@ref{Exercise 5.26} and @ref{Exercise 5.27} to demonstrate that both versions
+of the @code{factorial} procedure now require space that grows linearly with
+their input.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.29}Exercise 5.29:} Monitor the stack operations in
+the tree-recursive Fibonacci computation:
+
+@lisp
+(define (fib n)
+  (if (< n 2)
+      n
+      (+ (fib (- n 1)) (fib (- n 2)))))
+@end lisp
+
+@enumerate a
+
+@item
+Give a formula in terms of @math{n} for the maximum depth of the stack required to
+compute @math{{\text{Fib}(n)}} for @math{{n \ge 2}}.  Hint: In @ref{1.2.2} we
+argued that the space used by this process grows linearly with @math{n}.
+
+@item
+Give a formula for the total number of pushes used to compute @math{{\text{Fib}(n)}}
+for @math{{n \ge 2}}.  You should find that the number of pushes (which correlates
+well with the time used) grows exponentially with @math{n}.  Hint: Let
+@math{{S(n)}} be the number of pushes used in computing @math{{\text{Fib}(n)}}.  You
+should be able to argue that there is a formula that expresses @math{{S(n)}} in
+terms of @math{{S(n - 1)}}, @math{{S(n - 2)}}, and some fixed ``overhead''
+constant @math{k} that is independent of @math{n}.  Give the formula, and say what
+@math{k} is.  Then show that @math{{S(n)}} can be expressed as 
+@math{{a\cdot\text{Fib}(n + 1) + b}} and give the values of @math{a} and @math{b}.
+
+@end enumerate
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.30}Exercise 5.30:} Our evaluator currently catches
+and signals only two kinds of errors---unknown expression types and unknown
+procedure types.  Other errors will take us out of the evaluator
+read-eval-print loop.  When we run the evaluator using the register-machine
+simulator, these errors are caught by the underlying Scheme system.  This is
+analogous to the computer crashing when a user program makes an
+error.@footnote{Regrettably, this is the normal state of affairs in
+conventional compiler-based language systems such as C.  In @abbr{UNIX}(tm)
+the system ``dumps core,'' and in @abbr{DOS}/Windows(tm) it becomes
+catatonic.  The Macintosh(tm) displays a picture of an exploding bomb and
+offers you the opportunity to reboot the computer---if you're lucky.}  It is a
+large project to make a real error system work, but it is well worth the effort
+to understand what is involved here.
+
+@enumerate a
+
+@item
+Errors that occur in the evaluation process, such as an attempt to access an
+unbound variable, could be caught by changing the lookup operation to make it
+return a distinguished condition code, which cannot be a possible value of any
+user variable.  The evaluator can test for this condition code and then do what
+is necessary to go to @code{signal-error}.  Find all of the places in the
+evaluator where such a change is necessary and fix them.  This is lots of work.
+
+@item
+Much worse is the problem of handling errors that are signaled by applying
+primitive procedures, such as an attempt to divide by zero or an attempt to
+extract the @code{car} of a symbol.  In a professionally written high-quality
+system, each primitive application is checked for safety as part of the
+primitive.  For example, every call to @code{car} could first check that the
+argument is a pair.  If the argument is not a pair, the application would
+return a distinguished condition code to the evaluator, which would then report
+the failure.  We could arrange for this in our register-machine simulator by
+making each primitive procedure check for applicability and returning an
+appropriate distinguished condition code on failure. Then the
+@code{primitive-apply} code in the evaluator can check for the condition code
+and go to @code{signal-error} if necessary.  Build this structure and make it
+work.  This is a major project.
+
+@end enumerate
+@end quotation
+
+@node	5.5, References, 5.4, Chapter 5
+@section Compilation
+
+The explicit-control evaluator of @ref{5.4} is a register machine whose
+controller interprets Scheme programs.  In this section we will see how to run
+Scheme programs on a register machine whose controller is not a Scheme
+interpreter.
+
+The explicit-control evaluator machine is universal---it can carry out any
+computational process that can be described in Scheme.  The evaluator's
+controller orchestrates the use of its data paths to perform the desired
+computation.  Thus, the evaluator's data paths are universal: They are
+sufficient to perform any computation we desire, given an appropriate
+controller.@footnote{This is a theoretical statement.  We are not claiming that
+the evaluator's data paths are a particularly convenient or efficient set of
+data paths for a general-purpose computer.  For example, they are not very good
+for implementing high-performance floating-point calculations or calculations
+that intensively manipulate bit vectors.}
+
+Commercial general-purpose computers are register machines or@-gan@-ized around a
+collection of registers and operations that constitute an efficient and
+convenient universal set of data paths.  The controller for a general-purpose
+machine is an interpreter for a register-machine language like the one we have
+been using.  This language is called the @newterm{native language} of the
+machine, or simply @newterm{machine language}.  Programs written in machine
+language are sequences of instructions that use the machine's data paths.  For
+example, the explicit-control evaluator's instruction sequence can be thought
+of as a machine-language program for a general-purpose computer rather than as
+the controller for a specialized interpreter machine.
+
+There are two common strategies for bridging the gap between higher-level
+languages and register-machine languages.  The explicit-control evaluator
+illustrates the strategy of interpretation.  An interpreter written in the
+native language of a machine configures the machine to execute programs written
+in a language (called the @newterm{source language}) that may differ from the
+native language of the machine performing the evaluation.  The primitive
+procedures of the source language are implemented as a library of subroutines
+written in the native language of the given machine.  A program to be
+interpreted (called the @newterm{source program}) is represented as a data
+structure.  The interpreter traverses this data structure, analyzing the source
+program.  As it does so, it simulates the intended behavior of the source
+program by calling appropriate primitive subroutines from the library.
+
+In this section, we explore the alternative strategy of @newterm{compilation}.
+A compiler for a given source language and machine translates a source program
+into an equivalent program (called the @newterm{object program}) written in the
+machine's native language.  The compiler that we implement in this section
+translates programs written in Scheme into sequences of instructions to be
+executed using the explicit-control evaluator machine's data
+paths.@footnote{Actually, the machine that runs compiled code can be simpler
+than the interpreter machine, because we won't use the @code{exp} and
+@code{unev} registers.  The interpreter used these to hold pieces of
+unevaluated expressions.  With the compiler, however, these expressions get
+built into the compiled code that the register machine will run.  For the same
+reason, we don't need the machine operations that deal with expression syntax.
+But compiled code will use a few additional machine operations (to represent
+compiled procedure objects) that didn't appear in the explicit-control
+evaluator machine.}
+
+Compared with interpretation, compilation can provide a great increase in the
+efficiency of program execution, as we will explain below in the overview of
+the compiler.  On the other hand, an interpreter provides a more powerful
+environment for interactive program development and debugging, because the
+source program being executed is available at run time to be examined and
+modified.  In addition, because the entire library of primitives is present,
+new programs can be constructed and added to the system during debugging.
+
+In view of the complementary advantages of compilation and interpretation,
+modern program-development environments pursue a mixed strategy.  Lisp
+interpreters are generally organized so that interpreted procedures and
+compiled procedures can call each other.  This enables a programmer to compile
+those parts of a program that are assumed to be debugged, thus gaining the
+efficiency advantage of compilation, while retaining the interpretive mode of
+execution for those parts of the program that are in the flux of interactive
+development and debugging.  In @ref{5.5.7}, after we have implemented
+the compiler, we will show how to interface it with our interpreter to produce
+an integrated interpreter-compiler development system.
+
+@subsubheading An overview of the compiler
+
+Our compiler is much like our interpreter, both in its structure and in the
+function it performs.  Accordingly, the mechanisms used by the compiler for
+analyzing expressions will be similar to those used by the interpreter.
+Moreover, to make it easy to interface compiled and interpreted code, we will
+design the compiler to generate code that obeys the same conventions of
+register usage as the interpreter: The environment will be kept in the
+@code{env} register, argument lists will be accumulated in @code{argl}, a
+procedure to be applied will be in @code{proc}, procedures will return their
+answers in @code{val}, and the location to which a procedure should return will
+be kept in @code{continue}.  In general, the compiler translates a source
+program into an object program that performs essentially the same register
+operations as would the interpreter in evaluating the same source program.
+
+This description suggests a strategy for implementing a rudimentary compiler:
+We traverse the expression in the same way the interpreter does.  When we
+encounter a register instruction that the interpreter would perform in
+evaluating the expression, we do not execute the instruction but instead
+accumulate it into a sequence.  The resulting sequence of instructions will be
+the object code.  Observe the efficiency advantage of compilation over
+interpretation.  Each time the interpreter evaluates an expression---for
+example, @code{(f 84 96)}---it performs the work of classifying the expression
+(discovering that this is a procedure application) and testing for the end of
+the operand list (discovering that there are two operands).  With a compiler,
+the expression is analyzed only once, when the instruction sequence is
+generated at compile time.  The object code produced by the compiler contains
+only the instructions that evaluate the operator and the two operands, assemble
+the argument list, and apply the procedure (in @code{proc}) to the arguments
+(in @code{argl}).
+
+This is the same kind of optimization we implemented in the analyzing evaluator
+of @ref{4.1.7}.  But there are further opportunities to gain efficiency
+in compiled code.  As the interpreter runs, it follows a process that must be
+applicable to any expression in the language.  In contrast, a given segment of
+compiled code is meant to execute some particular expression.  This can make a
+big difference, for example in the use of the stack to save registers.  When
+the interpreter evaluates an expression, it must be prepared for any
+contingency.  Before evaluating a subexpression, the interpreter saves all
+registers that will be needed later, because the subexpression might require an
+arbitrary evaluation.  A compiler, on the other hand, can exploit the structure
+of the particular expression it is processing to generate code that avoids
+unnecessary stack operations.
+
+As a case in point, consider the combination @code{(f 84 96)}.  Before the
+interpreter evaluates the operator of the combination, it prepares for this
+evaluation by saving the registers containing the operands and the environment,
+whose values will be needed later.  The interpreter then evaluates the operator
+to obtain the result in @code{val}, restores the saved registers, and finally
+moves the result from @code{val} to @code{proc}.  However, in the particular
+expression we are dealing with, the operator is the symbol @code{f}, whose
+evaluation is accomplished by the machine operation
+@code{lookup-variable-value}, which does not alter any registers.  The compiler
+that we implement in this section will take advantage of this fact and generate
+code that evaluates the operator using the instruction
+
+@lisp
+(assign proc 
+        (op lookup-variable-value)
+        (const f)
+        (reg env))
+@end lisp
+
+@noindent
+This code not only avoids the unnecessary saves and restores but also assigns
+the value of the lookup directly to @code{proc}, whereas the interpreter would
+obtain the result in @code{val} and then move this to @code{proc}.
+
+A compiler can also optimize access to the environment.  Having analyzed the
+code, the compiler can in many cases know in which frame a particular variable
+will be located and access that frame directly, rather than performing the
+@code{lookup-variable-value} search.  We will discuss how to implement such
+variable access in @ref{5.5.6}.  Until then, however, we will focus on
+the kind of register and stack optimizations described above.  There are many
+other optimizations that can be performed by a compiler, such as coding
+primitive operations ``in line'' instead of using a general @code{apply}
+mechanism (see @ref{Exercise 5.38}); but we will not emphasize these here.  Our
+main goal in this section is to illustrate the compilation process in a
+simplified (but still interesting) context.
+
+@menu
+* 5.5.1::            Structure of the Compiler
+* 5.5.2::            Compiling Expressions
+* 5.5.3::            Compiling Combinations
+* 5.5.4::            Combining Instruction Sequences
+* 5.5.5::            An Example of Compiled Code
+* 5.5.6::            Lexical Addressing
+* 5.5.7::            Interfacing Compiled Code to the Evaluator
+@end menu
+
+@node	5.5.1, 5.5.2, 5.5, 5.5
+@subsection Structure of the Compiler
+
+In @ref{4.1.7} we modified our original metacircular interpreter to
+separate analysis from execution.  We analyzed each expression to produce an
+execution procedure that took an environment as argument and performed the
+required operations.  In our compiler, we will do essentially the same
+analysis.  Instead of producing execution procedures, however, we will generate
+sequences of instructions to be run by our register machine.
+
+The procedure @code{compile} is the top-level dispatch in the compiler.  It
+corresponds to the @code{eval} procedure of @ref{4.1.1}, the
+@code{analyze} procedure of @ref{4.1.7}, and the @code{eval-dispatch}
+entry point of the explicit-control-evaluator in @ref{5.4.1}.  The
+compiler, like the interpreters, uses the expression-syntax procedures defined
+in @ref{4.1.2}.@footnote{Notice, however, that our compiler is a Scheme
+program, and the syntax procedures that it uses to manipulate expressions are
+the actual Scheme procedures used with the metacircular evaluator.  For the
+explicit-control evaluator, in contrast, we assumed that equivalent syntax
+operations were available as operations for the register machine.  (Of course,
+when we simulated the register machine in Scheme, we used the actual Scheme
+procedures in our register machine simulation.)}  @code{Compile} performs a
+case analysis on the syntactic type of the expression to be compiled.  For each
+type of expression, it dispatches to a specialized @newterm{code generator}:
+
+@lisp
+(define (compile exp target linkage)
+  (cond ((self-evaluating? exp)
+         (compile-self-evaluating 
+          exp target linkage))
+        ((quoted? exp) 
+         (compile-quoted exp target linkage))
+        ((variable? exp)
+         (compile-variable 
+          exp target linkage))
+        ((assignment? exp)
+         (compile-assignment
+          exp target linkage))
+        ((definition? exp)
+         (compile-definition
+          exp target linkage))
+        ((if? exp)
+         (compile-if exp target linkage))
+        ((lambda? exp)
+         (compile-lambda exp target linkage))
+        ((begin? exp)
+         (compile-sequence 
+          (begin-actions exp) target linkage))
+        ((cond? exp) 
+         (compile 
+          (cond->if exp) target linkage))
+        ((application? exp)
+         (compile-application 
+          exp target linkage))
+        (else
+         (error "Unknown expression type: 
+                 COMPILE" 
+                exp))))
+@end lisp
+
+@subsubheading Targets and linkages
+
+@code{Compile} and the code generators that it calls take two arguments in
+addition to the expression to compile.  There is a @newterm{target}, which
+specifies the register in which the compiled code is to return the value of the
+expression.  There is also a @newterm{linkage descriptor}, which describes how
+the code resulting from the compilation of the expression should proceed when
+it has finished its execution.  The linkage descriptor can require that the
+code do one of the following three things:
+
+@itemize @bullet
+
+@item
+continue at the next instruction in sequence (this is specified by the linkage
+descriptor @code{next}),
+
+@item
+return from the procedure being compiled (this is specified by the linkage
+descriptor @code{return}), or
+
+@item
+jump to a named entry point (this is specified by using the designated label as
+the linkage descriptor).
+
+@end itemize
+
+@noindent
+For example, compiling the expression @code{5} (which is self-evaluating) with
+a target of the @code{val} register and a linkage of @code{next} should produce
+the instruction
+
+@lisp
+(assign val (const 5))
+@end lisp
+
+@noindent
+Compiling the same expression with a linkage of @code{return} should produce
+the instructions
+
+@lisp
+(assign val (const 5))
+(goto (reg continue))
+@end lisp
+
+@noindent
+In the first case, execution will continue with the next instruction in the
+sequence. In the second case, we will return from a procedure call.  In both
+cases, the value of the expression will be placed into the target @code{val}
+register.
+
+@subsubheading Instruction sequences and stack usage
+
+Each code generator returns an @newterm{instruction sequence} containing the
+object code it has generated for the expression.  Code generation for a
+compound expression is accomplished by combining the output from simpler code
+generators for component expressions, just as evaluation of a compound
+expression is accomplished by evaluating the component expressions.
+
+The simplest method for combining instruction sequences is a procedure called
+@code{append-instruction-sequences}.  It takes as arguments any number of
+instruction sequences that are to be executed sequentially; it appends them and
+returns the combined sequence.  That is, if @math{{⟨\kern0.1em seq_1⟩}} 
+and @math{{⟨\kern0.1em seq_2⟩}} are sequences of instructions, then 
+evaluating
+
+@lisp
+(append-instruction-sequences ⟨@var{seq₁}⟩ ⟨@var{seq₂}⟩)
+@end lisp
+
+@noindent
+produces the sequence
+
+@lisp
+⟨@var{seq₁}⟩
+⟨@var{seq₂}⟩
+@end lisp
+
+@noindent
+Whenever registers might need to be saved, the compiler's code generators use
+@code{preserving}, which is a more subtle method for combining instruction
+sequences.  @code{Preserving} takes three arguments: a set of registers and two
+instruction sequences that are to be executed sequentially.  It appends the
+sequences in such a way that the contents of each register in the set is
+preserved over the execution of the first sequence, if this is needed for the
+execution of the second sequence.  That is, if the first sequence modifies the
+register and the second sequence actually needs the register's original
+contents, then @code{preserving} wraps a @code{save} and a @code{restore} of
+the register around the first sequence before appending the sequences.
+Otherwise, @code{preserving} simply returns the appended instruction sequences.
+Thus, for example,
+@code{(preserving (list ⟨@var{reg₁}⟩ ⟨@var{reg₂}⟩) ⟨@var{seg₁}⟩ ⟨@var{seg₂}⟩)}
+produces one of the following four sequences of instructions, depending on how
+@math{{⟨\kern0.1em seq_1⟩}} and @math{{⟨\kern0.1em seq_2⟩}} 
+use @math{{⟨\kern0.1em reg_1⟩}} and @math{{⟨\kern0.1em reg_2⟩}}:
+@ifinfo
+
+@smallexample
+<seq_1> | (save <reg_1>)    | (save <reg_2>)    | (save <reg_2>)
+<seq_2> | <seq_1>           | <seq_1>           | (save <reg_1>)
+        | (restore <reg_1>) | (restore <reg_2>) | <seq_1>
+        | <seq_2>           | <seq_2>           | (restore <reg_1>)
+        |                   |                   | (restore <reg_2>)
+        |                   |                   | <seq_2>
+@end smallexample
+
+@end ifinfo
+@tex
+\[ % :83:
+
+\begin{array}{l|l|l|l}
+⟨\kern0.1em{seq_1}⟩                     &
+\text{(save}                            &
+\text{(save}                            &
+\text{(save} \kern1ex ⟨\kern0.1em{reg_2}⟩\text{)}    \\
+
+⟨\kern0.1em{seq_2}⟩  		        &
+\kern1ex ⟨\kern0.1em{reg_1}⟩\text{)}    &
+\kern1ex ⟨\kern0.1em{reg_2}⟩\text{)}    &
+\text{(save} \kern1ex ⟨\kern0.1em{reg_1}⟩\text{)}    \\
+
+                                        &
+⟨\kern0.1em{seq_1}⟩                     &
+⟨\kern0.1em{seq_1}⟩                     &
+⟨\kern0.1em{seq_1}⟩                                  \\
+
+                                        &
+\text{(restore}                         &
+\text{(restore}                         &
+\text{(restore} \kern1ex ⟨\kern0.1em{reg_1}⟩\text{)} \\
+
+                                        &
+\kern1ex ⟨\kern0.1em{reg_1}⟩\text{)}    &
+\kern1ex ⟨\kern0.1em{reg_2}⟩\text{)}    &

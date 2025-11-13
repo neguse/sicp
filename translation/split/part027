@@ -1,0 +1,1000 @@
+@lisp
+(define count 0)
+(let ((x (an-element-of '(a b c)))
+      (y (an-element-of '(a b c))))
+  (permanent-set! count (+ count 1))
+  (require (not (eq? x y)))
+  (list x y count))
+
+@i{;;; Starting a new problem}
+@i{;;; Amb-Eval value:}
+@i{(a b 2)}
+
+@i{;;; Amb-Eval input:}
+try-again
+
+@i{;;; Amb-Eval value:}
+@i{(a c 3)}
+@end lisp
+
+What values would have been displayed if we had used @code{set!} here
+rather than @code{permanent-set!}?
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.52}Exercise 4.52:} Implement a new construct called
+@code{if-fail} that permits the user to catch the failure of an expression.
+@code{If-fail} takes two expressions.  It evaluates the first expression as
+usual and returns as usual if the evaluation succeeds.  If the evaluation
+fails, however, the value of the second expression is returned, as in the
+following example:
+
+@lisp
+@i{;;; Amb-Eval input:}
+(if-fail 
+ (let ((x (an-element-of '(1 3 5))))
+   (require (even? x))
+   x)
+ 'all-odd)
+
+@i{;;; Starting a new problem}
+@i{;;; Amb-Eval value:}
+@i{all-odd}
+
+@i{;;; Amb-Eval input:}
+(if-fail
+ (let ((x (an-element-of '(1 3 5 8))))
+   (require (even? x))
+   x)
+ 'all-odd)
+
+@i{;;; Starting a new problem}
+@i{;;; Amb-Eval value:}
+@i{8}
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.53}Exercise 4.53:} With @code{permanent-set!} as
+described in @ref{Exercise 4.51} and @code{if-fail} as in @ref{Exercise 4.52},
+what will be the result of evaluating
+
+@lisp
+(let ((pairs '()))
+  (if-fail 
+   (let ((p (prime-sum-pair 
+             '(1 3 5 8) 
+             '(20 35 110))))
+     (permanent-set! pairs 
+                     (cons p pairs))
+     (amb))
+   pairs))
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.54}Exercise 4.54:} If we had not realized that
+@code{require} could be implemented as an ordinary procedure that uses
+@code{amb}, to be defined by the user as part of a nondeterministic program, we
+would have had to implement it as a special form.  This would require syntax
+procedures
+
+@lisp
+(define (require? exp) 
+  (tagged-list? exp 'require))
+
+(define (require-predicate exp) 
+  (cadr exp))
+@end lisp
+
+@noindent
+and a new clause in the dispatch in @code{analyze}
+
+@lisp
+((require? exp) (analyze-require exp))
+@end lisp
+
+@noindent
+as well the procedure @code{analyze-require} that handles @code{require}
+expressions.  Complete the following definition of @code{analyze-require}.
+
+@lisp
+(define (analyze-require exp)
+  (let ((pproc (analyze 
+                (require-predicate exp))))
+    (lambda (env succeed fail)
+      (pproc env
+             (lambda (pred-value fail2)
+               (if ⟨??⟩
+                   ⟨??⟩
+                   (succeed 'ok fail2)))
+             fail))))
+@end lisp
+@end quotation
+
+@node	4.4, Chapter 5, 4.3, Chapter 4
+@section Logic Programming
+
+In @ref{Chapter 1} we stressed that computer science deals with imperative (how
+to) knowledge, whereas mathematics deals with declarative (what is) knowledge.
+Indeed, programming languages require that the programmer express knowledge in
+a form that indicates the step-by-step methods for solving particular problems.
+On the other hand, high-level languages provide, as part of the language
+implementation, a substantial amount of methodological knowledge that frees the
+user from concern with numerous details of how a specified computation will
+progress.
+
+Most programming languages, including Lisp, are organized around computing the
+values of mathematical functions.  Expression-oriented languages (such as Lisp,
+Fortran, and Algol) capitalize on the ``pun'' that an expression that describes
+the value of a function may also be interpreted as a means of computing that
+value.  Because of this, most programming languages are strongly biased toward
+unidirectional computations (computations with well-defined inputs and
+outputs).  There are, however, radically different programming languages that
+relax this bias.  We saw one such example in @ref{3.3.5}, where the
+objects of computation were arithmetic constraints.  In a constraint system the
+direction and the order of computation are not so well specified; in carrying
+out a computation the system must therefore provide more detailed ``how to''
+knowledge than would be the case with an ordinary arithmetic computation.  This
+does not mean, however, that the user is released altogether from the
+responsibility of providing imperative knowledge.  There are many constraint
+networks that implement the same set of constraints, and the user must choose
+from the set of mathematically equivalent networks a suitable network to
+specify a particular computation.
+
+The nondeterministic program evaluator of @ref{4.3} also moves away
+from the view that programming is about constructing algorithms for computing
+unidirectional functions.  In a nondeterministic language, expressions can have
+more than one value, and, as a result, the computation is dealing with
+relations rather than with single-valued functions.  Logic programming extends
+this idea by combining a relational vision of programming with a powerful kind
+of symbolic pattern matching called @newterm{unification}.@footnote{Logic
+programming has grown out of a long history of research in automatic theorem
+proving.  Early theorem-proving programs could accomplish very little, because
+they exhaustively searched the space of possible proofs.  The major
+breakthrough that made such a search plausible was the discovery in the early
+1960s of the @newterm{unification algorithm} and the @newterm{resolution principle} 
+(@ref{Robinson 1965}).  Resolution was used, for example, by 
+@ref{Green and Raphael (1968)} (see also @ref{Green 1969}) as the basis for a deductive
+question-answering system.  During most of this period, researchers
+concentrated on algorithms that are guaranteed to find a proof if one exists.
+Such algorithms were difficult to control and to direct toward a proof.  
+@ref{Hewitt (1969)} recognized the possibility of merging the control structure of a
+programming language with the operations of a logic-manipulation system,
+leading to the work in automatic search mentioned in @ref{4.3.1}
+(@ref{Footnote 250}).  At the same time that this was being done,
+Colmerauer, in Marseille, was developing rule-based systems for manipulating
+natural language (see @ref{Colmerauer et al. 1973}).  He invented a programming
+language called Prolog for representing those rules.  @ref{Kowalski (1973; 1979)}, in
+Edinburgh, recognized that execution of a Prolog program could be interpreted
+as proving theorems (using a proof technique called linear Horn-clause
+resolution).  The merging of the last two strands led to the logic-programming
+movement.  Thus, in assigning credit for the development of logic programming,
+the French can point to Prolog's genesis at the University of Marseille, while
+the British can highlight the work at the University of Edinburgh.  According
+to people at @abbr{MIT}, logic programming was developed by these groups in
+an attempt to figure out what Hewitt was talking about in his brilliant but
+impenetrable Ph.D. thesis.  For a history of logic programming, see 
+@ref{Robinson 1983}.}
+
+This approach, when it works, can be a very powerful way to write programs.
+Part of the power comes from the fact that a single ``what is'' fact can be
+used to solve a number of different problems that would have different ``how
+to'' components.  As an example, consider the @code{append} operation, which
+takes two lists as arguments and combines their elements to form a single list.
+In a procedural language such as Lisp, we could define @code{append} in terms
+of the basic list constructor @code{cons}, as we did in @ref{2.2.1}:
+
+@lisp
+(define (append x y)
+  (if (null? x) 
+      y 
+      (cons (car x) (append (cdr x) y))))
+@end lisp
+
+@noindent
+This procedure can be regarded as a translation into Lisp of the following two
+rules, the first of which covers the case where the first list is empty and the
+second of which handles the case of a nonempty list, which is a @code{cons} of
+two parts:
+
+@itemize @bullet
+
+@item
+For any list @code{y}, the empty list and @code{y} @code{append} to form
+@code{y}.
+
+@item
+For any @code{u}, @code{v}, @code{y}, and @code{z}, @code{(cons u v)} and
+@code{y} @code{append} to form @code{(cons u z)} if @code{v} and @code{y}
+@code{append} to form @code{z}.@footnote{To see the correspondence between the
+rules and the procedure, let @code{x} in the procedure (where @code{x} is
+nonempty) correspond to @code{(cons u v)} in the rule.  Then @code{z} in the
+rule corresponds to the @code{append} of @code{(cdr x)} and @code{y}.}
+
+@end itemize
+
+@noindent
+Using the @code{append} procedure, we can answer questions such as
+
+@quotation
+Find the @code{append} of @code{(a b)} and @code{(c d)}.
+@end quotation
+
+@noindent
+But the same two rules are also sufficient for answering the following sorts of
+questions, which the procedure can't answer:
+
+@quotation
+Find a list @code{y} that @code{append}s with @code{(a b)} to produce @code{(a
+b c d)}.
+
+Find all @code{x} and @code{y} that @code{append} to form @code{(a b c d)}.
+@end quotation
+
+@noindent
+In a logic programming language, the programmer writes an @code{append}
+``procedure'' by stating the two rules about @code{append} given above.  ``How
+to'' knowledge is provided automatically by the interpreter to allow this
+single pair of rules to be used to answer all three types of questions about
+@code{append}.@footnote{This certainly does not relieve the user of the entire
+problem of how to compute the answer.  There are many different mathematically
+equivalent sets of rules for formulating the @code{append} relation, only some
+of which can be turned into effective devices for computing in any direction.
+In addition, sometimes ``what is'' information gives no clue ``how to'' compute
+an answer.  For example, consider the problem of computing the @math{y} such that
+@math{{y^2 = x}}.}
+
+Contemporary logic programming languages (including the one we implement here)
+have substantial deficiencies, in that their general ``how to'' methods can
+lead them into spurious infinite loops or other undesirable behavior.  Logic
+programming is an active field of research in computer
+science.@footnote{Interest in logic programming peaked during the early 80s
+when the Japanese government began an ambitious project aimed at building
+superfast computers optimized to run logic programming languages.  The speed of
+such computers was to be measured in LIPS (Logical Inferences Per Second)
+rather than the usual FLOPS (FLoating-point Operations Per Second).  Although
+the project succeeded in developing hardware and software as originally
+planned, the international computer industry moved in a different direction.
+See @ref{Feigenbaum and Shrobe 1993} for an overview evaluation of the Japanese
+project.  The logic programming community has also moved on to consider
+relational programming based on techniques other than simple pattern matching,
+such as the ability to deal with numerical constraints such as the ones
+illustrated in the constraint-propagation system of @ref{3.3.5}.}
+
+Earlier in this chapter we explored the technology of implementing interpreters
+and described the elements that are essential to an interpreter for a Lisp-like
+language (indeed, to an interpreter for any conventional language).  Now we
+will apply these ideas to discuss an interpreter for a logic programming
+language.  We call this language the @newterm{query language}, because it is
+very useful for retrieving information from data bases by formulating
+@newterm{queries}, or questions, expressed in the language.  Even though the
+query language is very different from Lisp, we will find it convenient to
+describe the language in terms of the same general framework we have been using
+all along: as a collection of primitive elements, together with means of
+combination that enable us to combine simple elements to create more complex
+elements and means of abstraction that enable us to regard complex elements as
+single conceptual units.  An interpreter for a logic programming language is
+considerably more complex than an interpreter for a language like Lisp.
+Nevertheless, we will see that our query-language interpreter contains many of
+the same elements found in the interpreter of @ref{4.1}.  In
+particular, there will be an ``eval'' part that classifies expressions
+according to type and an ``apply'' part that implements the language's
+abstraction mechanism (procedures in the case of Lisp, and @newterm{rules} in
+the case of logic programming).  Also, a central role is played in the
+implementation by a frame data structure, which determines the correspondence
+between symbols and their associated values.  One additional interesting aspect
+of our query-language implementation is that we make substantial use of
+streams, which were introduced in @ref{Chapter 3}.
+
+@menu
+* 4.4.1::            Deductive Information Retrieval
+* 4.4.2::            How the Query System Works
+* 4.4.3::            Is Logic Programming Mathematical Logic?
+* 4.4.4::            Implementing the Query System
+@end menu
+
+@node	4.4.1, 4.4.2, 4.4, 4.4
+@subsection Deductive Information Retrieval
+
+Logic programming excels in providing interfaces to data bases for information
+retrieval.  The query language we shall implement in this chapter is designed
+to be used in this way.
+
+In order to illustrate what the query system does, we will show how it can be
+used to manage the data base of personnel records for Microshaft, a thriving
+high-technology company in the Boston area.  The language provides
+pattern-directed access to personnel information and can also take advantage of
+general rules in order to make logical deductions.
+
+@subsubheading A sample data base
+
+The personnel data base for Microshaft contains @newterm{assertions} about
+company personnel.  Here is the information about Ben Bitdiddle, the resident
+computer wizard:
+
+@lisp
+(address (Bitdiddle Ben) 
+         (Slumerville (Ridge Road) 10))
+(job (Bitdiddle Ben) (computer wizard))
+(salary (Bitdiddle Ben) 60000)
+@end lisp
+
+@noindent
+Each assertion is a list (in this case a triple) whose elements can themselves
+be lists.
+
+As resident wizard, Ben is in charge of the company's computer division, and he
+supervises two programmers and one technician.  Here is the information about
+them:
+
+@lisp
+(address (Hacker Alyssa P) 
+         (Cambridge (Mass Ave) 78))
+(job (Hacker Alyssa P) (computer programmer))
+(salary (Hacker Alyssa P) 40000)
+(supervisor (Hacker Alyssa P) (Bitdiddle Ben))
+
+(address (Fect Cy D) 
+         (Cambridge (Ames Street) 3))
+(job (Fect Cy D) (computer programmer))
+(salary (Fect Cy D) 35000)
+(supervisor (Fect Cy D) (Bitdiddle Ben))
+
+(address (Tweakit Lem E) 
+         (Boston (Bay State Road) 22))
+(job (Tweakit Lem E) (computer technician))
+(salary (Tweakit Lem E) 25000)
+(supervisor (Tweakit Lem E) (Bitdiddle Ben))
+@end lisp
+
+@noindent
+There is also a programmer trainee, who is supervised by Alyssa:
+
+@lisp
+(address (Reasoner Louis) 
+         (Slumerville (Pine Tree Road) 80))
+(job (Reasoner Louis) 
+     (computer programmer trainee))
+(salary (Reasoner Louis) 30000)
+(supervisor (Reasoner Louis) 
+            (Hacker Alyssa P))
+@end lisp
+
+@noindent
+All of these people are in the computer division, as indicated by the word
+@code{computer} as the first item in their job descriptions.
+
+Ben is a high-level employee.  His supervisor is the company's big wheel
+himself:
+
+@lisp
+(supervisor (Bitdiddle Ben) (Warbucks Oliver))
+(address (Warbucks Oliver) 
+         (Swellesley (Top Heap Road)))
+(job (Warbucks Oliver) 
+     (administration big wheel))
+(salary (Warbucks Oliver) 150000)
+@end lisp
+
+@noindent
+Besides the computer division supervised by Ben, the company has an accounting
+division, consisting of a chief accountant and his assistant:
+
+@lisp
+(address (Scrooge Eben) 
+         (Weston (Shady Lane) 10))
+(job (Scrooge Eben) 
+     (accounting chief accountant))
+(salary (Scrooge Eben) 75000)
+(supervisor (Scrooge Eben) (Warbucks Oliver))
+
+(address (Cratchet Robert) 
+         (Allston (N Harvard Street) 16))
+(job (Cratchet Robert) (accounting scrivener))
+(salary (Cratchet Robert) 18000)
+(supervisor (Cratchet Robert) (Scrooge Eben))
+@end lisp
+
+@noindent
+There is also a secretary for the big wheel:
+
+@lisp
+(address (Aull DeWitt) 
+         (Slumerville (Onion Square) 5))
+(job (Aull DeWitt) (administration secretary))
+(salary (Aull DeWitt) 25000)
+(supervisor (Aull DeWitt) (Warbucks Oliver))
+@end lisp
+
+@noindent
+The data base also contains assertions about which kinds of jobs can be done by
+people holding other kinds of jobs.  For instance, a computer wizard can do the
+jobs of both a computer programmer and a computer technician:
+
+@lisp
+(can-do-job (computer wizard) 
+            (computer programmer))
+
+(can-do-job (computer wizard) 
+            (computer technician))
+@end lisp
+
+@noindent
+A computer programmer could fill in for a trainee:
+
+@lisp
+(can-do-job (computer programmer)
+            (computer programmer trainee))
+@end lisp
+
+@noindent
+Also, as is well known,
+
+@lisp
+(can-do-job (administration secretary)
+            (administration big wheel))
+@end lisp
+
+@subsubheading Simple queries
+
+The query language allows users to retrieve information from the data base by
+posing queries in response to the system's prompt.  For example, to find all
+computer programmers one can say
+
+@lisp
+@i{;;; Query input:}
+(job ?x (computer programmer))
+@end lisp
+
+@noindent
+The system will respond with the following items:
+
+@lisp
+@i{;;; Query results:}
+(job (Hacker Alyssa P) (computer programmer))
+(job (Fect Cy D) (computer programmer))
+@end lisp
+
+@noindent
+The input query specifies that we are looking for entries in the data base that
+match a certain @newterm{pattern}.  In this example, the pattern specifies
+entries consisting of three items, of which the first is the literal symbol
+@code{job}, the second can be anything, and the third is the literal list
+@code{(computer programmer)}.  The ``anything'' that can be the second item in
+the matching list is specified by a @newterm{pattern variable}, @code{?x}.  The
+general form of a pattern variable is a symbol, taken to be the name of the
+variable, preceded by a question mark.  We will see below why it is useful to
+specify names for pattern variables rather than just putting @code{?} into
+patterns to represent ``anything.''  The system responds to a simple query by
+showing all entries in the data base that match the specified pattern.
+
+A pattern can have more than one variable.  For example, the query
+
+@lisp
+(address ?x ?y)
+@end lisp
+
+@noindent
+will list all the employees' addresses.
+
+A pattern can have no variables, in which case the query simply determines
+whether that pattern is an entry in the data base.  If so, there will be one
+match; if not, there will be no matches.
+
+The same pattern variable can appear more than once in a query, specifying that
+the same ``anything'' must appear in each position.  This is why variables have
+names.  For example,
+
+@lisp
+(supervisor ?x ?x)
+@end lisp
+
+@noindent
+finds all people who supervise themselves (though there are no such assertions
+in our sample data base).
+
+The query
+
+@lisp
+(job ?x (computer ?type))
+@end lisp
+
+@noindent
+matches all job entries whose third item is a two-element list whose first item
+is @code{computer}:
+
+@lisp
+(job (Bitdiddle Ben) (computer wizard))
+(job (Hacker Alyssa P) (computer programmer))
+(job (Fect Cy D) (computer programmer))
+(job (Tweakit Lem E) (computer technician))
+@end lisp
+
+@noindent
+This same pattern does @emph{not} match
+
+@lisp
+(job (Reasoner Louis) 
+     (computer programmer trainee))
+@end lisp
+
+@noindent
+because the third item in the entry is a list of three elements, and the
+pattern's third item specifies that there should be two elements.  If we wanted
+to change the pattern so that the third item could be any list beginning with
+@code{computer}, we could specify@footnote{This uses the dotted-tail notation
+introduced in @ref{Exercise 2.20}.}
+
+@lisp
+(job ?x (computer . ?type))
+@end lisp
+
+@noindent
+For example,
+
+@lisp
+(computer . ?type)
+@end lisp
+
+@noindent
+matches the data
+
+@lisp
+(computer programmer trainee)
+@end lisp
+
+@noindent
+with @code{?type} as the list @code{(programmer trainee)}.  It also
+matches the data
+
+@lisp
+(computer programmer)
+@end lisp
+
+@noindent
+with @code{?type} as the list @code{(programmer)}, and matches the data
+
+@lisp
+(computer)
+@end lisp
+
+@noindent
+with @code{?type} as the empty list @code{()}.
+
+We can describe the query language's processing of simple queries as follows:
+
+@itemize @bullet
+
+@item
+The system finds all assignments to variables in the query pattern that
+@newterm{satisfy} the pattern---that is, all sets of values for the variables
+such that if the pattern variables are @newterm{instantiated with} (replaced
+by) the values, the result is in the data base.
+
+@item
+The system responds to the query by listing all instantiations of the query
+pattern with the variable assignments that satisfy it.
+
+@end itemize
+
+@noindent
+Note that if the pattern has no variables, the query reduces to a determination
+of whether that pattern is in the data base.  If so, the empty assignment,
+which assigns no values to variables, satisfies that pattern for that data
+base.
+
+@quotation
+@strong{@anchor{Exercise 4.55}Exercise 4.55:} Give simple queries that retrieve
+the following information from the data base:
+
+@enumerate
+
+@item
+all people supervised by Ben Bitdiddle;
+
+@item
+the names and jobs of all people in the accounting division;
+
+@item
+the names and addresses of all people who live in Slumerville.
+
+@end enumerate
+@end quotation
+
+@subsubheading Compound queries
+
+Simple queries form the primitive operations of the query language.  In order
+to form compound operations, the query language provides means of combination.
+One thing that makes the query language a logic programming language is that
+the means of combination mirror the means of combination used in forming
+logical expressions: @code{and}, @code{or}, and @code{not}.  (Here @code{and},
+@code{or}, and @code{not} are not the Lisp primitives, but rather operations
+built into the query language.)
+
+We can use @code{and} as follows to find the addresses of all the computer
+programmers:
+
+@lisp
+(and (job ?person (computer programmer))
+     (address ?person ?where))
+@end lisp
+
+@noindent
+The resulting output is
+
+@lisp
+(and (job (Hacker Alyssa P) 
+          (computer programmer))
+     (address (Hacker Alyssa P) 
+              (Cambridge (Mass Ave) 78)))
+
+(and (job (Fect Cy D) (computer programmer))
+     (address (Fect Cy D) 
+              (Cambridge (Ames Street) 3)))
+@end lisp
+
+@noindent
+In general,
+
+@lisp
+(and ⟨@var{query₁}⟩ ⟨@var{query₂}⟩ @r{…} ⟨@var{queryₙ}⟩)
+@end lisp
+
+@noindent
+is satisfied by all sets of values for the pattern variables that
+simultaneously satisfy @math{{⟨\kern0.1em query_1⟩}} @r{…} @math{{⟨\kern0.1em query_n⟩}}.
+
+As for simple queries, the system processes a compound query by finding all
+assignments to the pattern variables that satisfy the query, then displaying
+instantiations of the query with those values.
+
+Another means of constructing compound queries is through @code{or}.  For
+example,
+
+@lisp
+(or (supervisor ?x (Bitdiddle Ben))
+    (supervisor ?x (Hacker Alyssa P)))
+@end lisp
+
+@noindent
+will find all employees supervised by Ben Bitdiddle or Alyssa P.  Hacker:
+
+@lisp
+(or (supervisor (Hacker Alyssa P) 
+                (Bitdiddle Ben))
+    (supervisor (Hacker Alyssa P) 
+                (Hacker Alyssa P)))
+
+(or (supervisor (Fect Cy D) 
+                (Bitdiddle Ben))
+    (supervisor (Fect Cy D) 
+                (Hacker Alyssa P)))
+
+(or (supervisor (Tweakit Lem E) 
+                (Bitdiddle Ben))
+    (supervisor (Tweakit Lem E) 
+                (Hacker Alyssa P)))
+
+(or (supervisor (Reasoner Louis) 
+                (Bitdiddle Ben))
+    (supervisor (Reasoner Louis) 
+                (Hacker Alyssa P)))
+@end lisp
+
+@noindent
+In general,
+
+@lisp
+(or ⟨@var{query₁}⟩ ⟨@var{query₂}⟩ @r{…} ⟨@var{queryₙ}⟩)
+@end lisp
+
+@noindent
+is satisfied by all sets of values for the pattern variables that satisfy at
+least one of @math{{⟨\kern0.1em query_1⟩}} @r{…} @math{{⟨\kern0.1em query_n⟩}}.
+
+Compound queries can also be formed with @code{not}. For example,
+
+@lisp
+(and (supervisor ?x (Bitdiddle Ben))
+     (not (job ?x (computer programmer))))
+@end lisp
+
+@noindent
+finds all people supervised by Ben Bitdiddle who are not computer programmers.
+In general,
+
+@lisp
+(not ⟨@var{query₁}⟩)
+@end lisp
+
+@noindent
+is satisfied by all assignments to the pattern variables that do not satisfy
+@math{{⟨\kern0.1em query_1⟩}}.@footnote{Actually, this description of @code{not} is valid
+only for simple cases.  The real behavior of @code{not} is more complex.  We
+will examine @code{not}'s peculiarities in @ref{4.4.2} and
+@ref{4.4.3}.}
+
+The final combining form is called @code{lisp-value}.  When @code{lisp-value}
+is the first element of a pattern, it specifies that the next element is a Lisp
+predicate to be applied to the rest of the (instantiated) elements as
+arguments.  In general,
+
+@lisp
+(lisp-value ⟨@var{predicate}⟩ ⟨@var{arg₁}⟩ @r{…} ⟨@var{argₙ}⟩)
+@end lisp
+
+@noindent
+will be satisfied by assignments to the pattern variables for which the
+@code{⟨}@var{predicate}@code{⟩} applied to the instantiated @math{{⟨\kern0.1em arg_1⟩}} @r{…}
+@math{{⟨\kern0.1em arg_n⟩}} is true.  For example, to find all people whose salary is
+greater than $30,000 we could write@footnote{@code{Lisp-value} should be used
+only to perform an operation not provided in the query language.  In
+particular, it should not be used to test equality (since that is what the
+matching in the query language is designed to do) or inequality (since that can
+be done with the @code{same} rule shown below).}
+
+@lisp
+(and (salary ?person ?amount)
+     (lisp-value > ?amount 30000))
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 4.56}Exercise 4.56:} Formulate compound queries that
+retrieve the following information:
+
+@enumerate a
+
+@item
+the names of all people who are supervised by Ben Bitdiddle, together with
+their addresses;
+
+@item
+all people whose salary is less than Ben Bitdiddle's, together with their
+salary and Ben Bitdiddle's salary;
+
+@item
+all people who are supervised by someone who is not in the computer division,
+together with the supervisor's name and job.
+
+@end enumerate
+@end quotation
+
+@subsubheading Rules
+
+In addition to primitive queries and compound queries, the query language
+provides means for abstracting queries.  These are given by @newterm{rules}.
+The rule
+
+@lisp
+(rule (lives-near ?person-1 ?person-2)
+      (and (address ?person-1 
+                    (?town . ?rest-1))
+           (address ?person-2 
+                    (?town . ?rest-2))
+           (not (same ?person-1 ?person-2))))
+@end lisp
+
+@noindent
+specifies that two people live near each other if they live in the same town.
+The final @code{not} clause prevents the rule from saying that all people live
+near themselves.  The @code{same} relation is defined by a very simple
+rule:@footnote{Notice that we do not need @code{same} in order to make two
+things be the same: We just use the same pattern variable for each---in effect,
+we have one thing instead of two things in the first place.  For example, see
+@code{?town} in the @code{lives-near} rule and @code{?middle-manager} in the
+@code{wheel} rule below.  @code{Same} is useful when we want to force two
+things to be different, such as @code{?person-1} and @code{?person-2} in the
+@code{lives-near} rule.  Although using the same pattern variable in two parts
+of a query forces the same value to appear in both places, using different
+pattern variables does not force different values to appear.  (The values
+assigned to different pattern variables may be the same or different.)}
+
+@lisp
+(rule (same ?x ?x))
+@end lisp
+
+@noindent
+The following rule declares that a person is a ``wheel'' in an organization if
+he supervises someone who is in turn a supervisor:
+
+@lisp
+(rule (wheel ?person)
+      (and (supervisor ?middle-manager 
+                       ?person)
+           (supervisor ?x ?middle-manager)))
+@end lisp
+
+@noindent
+The general form of a rule is
+
+@lisp
+(rule ⟨@var{conclusion}⟩ ⟨@var{body}⟩)
+@end lisp
+
+@noindent
+where @code{⟨}@var{conclusion}@code{⟩} is a pattern and @code{⟨}@var{body}@code{⟩} is any
+query.@footnote{We will also allow rules without bodies, as in @code{same}, and
+we will interpret such a rule to mean that the rule conclusion is satisfied by
+any values of the variables.} We can think of a rule as representing a large
+(even infinite) set of assertions, namely all instantiations of the rule
+conclusion with variable assignments that satisfy the rule body.  When we
+described simple queries (patterns), we said that an assignment to variables
+satisfies a pattern if the instantiated pattern is in the data base.  But the
+pattern needn't be explicitly in the data base as an assertion.  It can be an
+implicit assertion implied by a rule.  For example, the query
+
+@lisp
+(lives-near ?x (Bitdiddle Ben))
+@end lisp
+
+@noindent
+results in
+
+@lisp
+(lives-near (Reasoner Louis) (Bitdiddle Ben))
+(lives-near (Aull DeWitt) (Bitdiddle Ben))
+@end lisp
+
+@noindent
+To find all computer programmers who live near Ben Bitdiddle, we can ask
+
+@lisp
+(and (job ?x (computer programmer))
+     (lives-near ?x (Bitdiddle Ben)))
+@end lisp
+
+@noindent
+As in the case of compound procedures, rules can be used as parts of other
+rules (as we saw with the @code{lives-near} rule above) or even be defined
+recursively.  For instance, the rule
+
+@lisp
+(rule (outranked-by ?staff-person ?boss)
+      (or (supervisor ?staff-person ?boss)
+          (and (supervisor ?staff-person 
+                           ?middle-manager)
+               (outranked-by ?middle-manager 
+                             ?boss))))
+@end lisp
+
+@noindent
+says that a staff person is outranked by a boss in the organization if the boss
+is the person's supervisor or (recursively) if the person's supervisor is
+outranked by the boss.
+
+@quotation
+@strong{@anchor{Exercise 4.57}Exercise 4.57:} Define a rule that says that
+person 1 can replace person 2 if either person 1 does the same job as person 2
+or someone who does person 1's job can also do person 2's job, and if person 1
+and person 2 are not the same person. Using your rule, give queries that find
+the following:
+
+@enumerate a
+
+@item
+all people who can replace Cy D. Fect;
+
+@item
+all people who can replace someone who is being paid more than they are,
+together with the two salaries.
+
+@end enumerate
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.58}Exercise 4.58:} Define a rule that says that a
+person is a ``big shot'' in a division if the person works in the division but
+does not have a supervisor who works in the division.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.59}Exercise 4.59:} Ben Bitdiddle has missed one
+meeting too many.  Fearing that his habit of forgetting meetings could cost him
+his job, Ben decides to do something about it.  He adds all the weekly meetings
+of the firm to the Microshaft data base by asserting the following:
+
+@lisp
+(meeting accounting (Monday 9am))
+(meeting administration (Monday 10am))
+(meeting computer (Wednesday 3pm))
+(meeting administration (Friday 1pm))
+@end lisp
+
+Each of the above assertions is for a meeting of an entire division.  Ben also
+adds an entry for the company-wide meeting that spans all the divisions.  All
+of the company's employees attend this meeting.
+
+@lisp
+(meeting whole-company (Wednesday 4pm))
+@end lisp
+
+@enumerate a
+
+@item
+On Friday morning, Ben wants to query the data base for all the meetings that
+occur that day.  What query should he use?
+
+@item
+Alyssa P. Hacker is unimpressed.  She thinks it would be much more useful to be
+able to ask for her meetings by specifying her name.  So she designs a rule
+that says that a person's meetings include all @code{whole-company} meetings
+plus all meetings of that person's division.  Fill in the body of Alyssa's
+rule.
+
+@lisp
+(rule (meeting-time ?person ?day-and-time)
+      ⟨@var{rule-body}⟩)
+@end lisp
+
+@item
+Alyssa arrives at work on Wednesday morning and wonders what meetings she has
+to attend that day.  Having defined the above rule, what query should she make
+to find this out?
+
+@end enumerate
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.60}Exercise 4.60:} By giving the query
+
+@lisp
+(lives-near ?person (Hacker Alyssa P))
+@end lisp
+
+Alyssa P. Hacker is able to find people who live near her, with whom she can
+ride to work.  On the other hand, when she tries to find all pairs of people
+who live near each other by querying
+
+@lisp
+(lives-near ?person-1 ?person-2)
+@end lisp
+
+@noindent
+she notices that each pair of people who live near each other is listed twice;
+for example,
+
+@lisp
+(lives-near (Hacker Alyssa P) (Fect Cy D))
+(lives-near (Fect Cy D) (Hacker Alyssa P))
+@end lisp
+
+Why does this happen?  Is there a way to find a list of people who live near
+each other, in which each pair appears only once?  Explain.
+@end quotation
+
+@subsubheading Logic as programs
+
+We can regard a rule as a kind of logical implication: @emph{If} an assignment
+of values to pattern variables satisfies the body, @emph{then} it satisfies the
+conclusion.  Consequently, we can regard the query language as having the
+ability to perform @newterm{logical deductions} based upon the rules.  As an
+example, consider the @code{append} operation described at the beginning of
+@ref{4.4}.  As we said, @code{append} can be characterized by the
+following two rules:
+
+@itemize @bullet
+
+@item
+For any list @code{y}, the empty list and @code{y} @code{append} to form
+@code{y}.
+
+@item
+For any @code{u}, @code{v}, @code{y}, and @code{z}, @code{(cons u v)} and
+@code{y} @code{append} to form @code{(cons u z)} if @code{v} and @code{y}
+@code{append} to form @code{z}.
+
+@end itemize
+
+@noindent
+To express this in our query language, we define two rules for a relation
+
+@lisp
+(append-to-form x y z)
+@end lisp
+
+@noindent
+which we can interpret to mean ``@code{x} and @code{y} @code{append} to form
+@code{z}'':
+
+@lisp

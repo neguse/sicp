@@ -1,0 +1,1000 @@
+|             |             |    |      |      |             |
+|  identity   +-------------+    +------+------+-------------+
+|             |             |    |             | right-split |
+|             | right-split |    |             |     n-1     |
+|             |             |    |  identity   +-------------+
+|             |     n-1     |    |             | right-split |
+|             |             |    |             |     n-1     |
++-------------+-------------+    +-------------+-------------+
+
+       right-split n                    corner-split n
+@end example
+
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap2/Fig2.13a,132mm,,,.std.svg}
+@caption{@strong{Figure 2.13:} Recursive plans for @code{right-split} and @code{corner-split}.}
+@end iftex
+@end float
+
+@noindent
+We can produce balanced patterns by branching upwards as well as towards the
+right (see @ref{Exercise 2.44}, @ref{Figure 2.13} and @ref{Figure 2.14}):
+
+@lisp
+(define (corner-split painter n)
+  (if (= n 0)
+      painter
+      (let ((up (up-split painter (- n 1)))
+            (right (right-split painter 
+                                (- n 1))))
+        (let ((top-left (beside up up))
+              (bottom-right (below right 
+                                   right))
+              (corner (corner-split painter 
+                                    (- n 1))))
+          (beside (below painter top-left)
+                  (below bottom-right 
+                         corner))))))
+@end lisp
+
+@float
+@anchor{Figure 2.14}
+@ifinfo
+@quotation
+@strong{Figure 2.14:} The recursive operations
+@code{right-split} and @code{corner-split} applied to the painters @code{wave}
+and @code{rogers}.  Combining four @code{corner-split} figures produces
+symmetric @code{square-limit} designs as shown in @ref{Figure 2.9}.
+
+[two graphic images not included]
+
+@lisp
+(right-split wave 4)         (right-split rogers 4)
+@end lisp
+
+[two graphic images not included]
+
+@lisp
+(corner-split wave 4)        (corner-split rogers 4)
+@end lisp
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap2/Fig2.14b,136mm,,,.std.svg}
+@caption{@strong{Figure 2.14:} The recursive operations @code{right-split} and @code{corner-split} applied to the painters @code{wave} and @code{rogers}.  Combining four @code{corner-split} figures produces symmetric @code{square-limit} designs as shown in @ref{Figure 2.9}.}
+@end iftex
+@end float
+
+By placing four copies of a @code{corner-split} appropriately, we obtain a
+pattern called @code{square-limit}, whose application to @code{wave} and
+@code{rogers} is shown in @ref{Figure 2.9}:
+
+@lisp
+(define (square-limit painter n)
+  (let ((quarter (corner-split painter n)))
+    (let ((half (beside (flip-horiz quarter) 
+                        quarter)))
+      (below (flip-vert half) half))))
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 2.44}Exercise 2.44:} Define the procedure
+@code{up-split} used by @code{corner-split}.  It is similar to
+@code{right-split}, except that it switches the roles of @code{below} and
+@code{beside}.
+@end quotation
+
+@subsubheading Higher-order operations
+
+In addition to abstracting patterns of combining painters, we can work at a
+higher level, abstracting patterns of combining painter operations.  That is,
+we can view the painter operations as elements to manipulate and can write
+means of combination for these elements---procedures that take painter
+operations as arguments and create new painter operations.
+
+For example, @code{flipped-pairs} and @code{square-limit} each arrange four
+copies of a painter's image in a square pattern; they differ only in how they
+orient the copies.  One way to abstract this pattern of painter combination is
+with the following procedure, which takes four one-argument painter operations
+and produces a painter operation that transforms a given painter with those
+four operations and arranges the results in a square.  @code{Tl}, @code{tr},
+@code{bl}, and @code{br} are the transformations to apply to the top left copy,
+the top right copy, the bottom left copy, and the bottom right copy,
+respectively.
+
+@lisp
+(define (square-of-four tl tr bl br)
+  (lambda (painter)
+    (let ((top (beside (tl painter) 
+                       (tr painter)))
+          (bottom (beside (bl painter) 
+                          (br painter))))
+      (below bottom top))))
+@end lisp
+
+@noindent
+Then @code{flipped-pairs} can be defined in terms of @code{square-of-four} as
+follows:@footnote{Equivalently, we could write
+
+@lisp
+(define flipped-pairs
+  (square-of-four 
+   identity flip-vert identity flip-vert))
+@end lisp
+}
+
+@lisp
+(define (flipped-pairs painter)
+  (let ((combine4 
+         (square-of-four identity 
+                         flip-vert
+                         identity 
+                         flip-vert)))
+    (combine4 painter)))
+@end lisp
+
+@noindent
+and @code{square-limit} can be expressed as@footnote{@code{Rotate180} rotates a
+painter by 180 degrees (see @ref{Exercise 2.50}).  Instead of @code{rotate180}
+we could say @code{(compose flip-vert flip-horiz)}, using the @code{compose}
+procedure from @ref{Exercise 1.42}.}
+
+@lisp
+(define (square-limit painter n)
+  (let ((combine4 
+         (square-of-four flip-horiz 
+                         identity
+                         rotate180 
+                         flip-vert)))
+    (combine4 (corner-split painter n))))
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 2.45}Exercise 2.45:} @code{Right-split} and
+@code{up-split} can be expressed as instances of a general splitting operation.
+Define a procedure @code{split} with the property that evaluating
+
+@lisp
+(define right-split (split beside below))
+(define up-split (split below beside))
+@end lisp
+
+@noindent
+produces procedures @code{right-split} and @code{up-split} with the same
+behaviors as the ones already defined.
+@end quotation
+
+@subsubheading Frames
+
+Before we can show how to implement painters and their means of combination, we
+must first consider frames.  A frame can be described by three vectors---an
+origin vector and two edge vectors.  The origin vector specifies the offset of
+the frame's origin from some absolute origin in the plane, and the edge vectors
+specify the offsets of the frame's corners from its origin.  If the edges are
+perpendicular, the frame will be rectangular.  Otherwise the frame will be a
+more general parallelogram.
+
+@ref{Figure 2.15} shows a frame and its associated vectors.
+In accordance with data abstraction, we need not be specific yet about how
+frames are represented, other than to say that there is a constructor
+@code{make-frame}, which takes three vectors and produces a frame, and three
+corresponding selectors @code{origin-frame}, @code{edge1-frame}, and
+@code{edge2-frame} (see @ref{Exercise 2.47}).
+
+@float
+@anchor{Figure 2.15}
+@ifinfo
+@quotation
+@strong{Figure 2.15:} A frame is described by three vectors
+-- an origin and two edges.
+
+@example
+                         __
+                     __--  \
+                 __--       \
+      __     __--            \   __
+     |\  __--                 \__-|
+       \-                  __--
+frame   \              __--
+edge2    \         __--    frame
+vector    \    __--        edge1
+           \_--            vector
+            -   <--+
+          frame    |
+          origin   +-- (0, 0) point
+          vector       on display screen
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap2/Fig2.15a,78mm,,,.std.svg}
+@caption{@strong{Figure 2.15:} A frame is described by three vectors --- an origin and two edges.}
+@end iftex
+@end float
+
+@noindent
+We will use coordinates in the unit square @math{{(0 \le x, y \le 1)}} to specify
+images.  With each frame, we associate a @newterm{frame coordinate map}, which
+will be used to shift and scale images to fit the frame.  The map transforms
+the unit square into the frame by mapping the vector @math{{{\bf v} = (x, y)}} to
+the vector sum
+@ifinfo
+
+@example
+Origin(Frame) + x * Edge_1(Frame) + y * Edge_2(Frame)
+@end example
+
+@end ifinfo
+@tex
+\[ % :40:
+  {\text{Origin(Frame)}} + {x \cdot \text{Edge}_1\text{(Frame)}} + {y \cdot \text{Edge}_2\text{(Frame)}.} \]
+@end tex
+@noindent
+For example, (0, 0) is mapped to the origin of the frame, (1, 1) to the vertex
+diagonally opposite the origin, and (0.5, 0.5) to the center of the frame.  We
+can create a frame's coordinate map with the following
+procedure:@footnote{@code{Frame-coord-map} uses the vector operations described
+in @ref{Exercise 2.46} below, which we assume have been implemented using some
+representation for vectors.  Because of data abstraction, it doesn't matter
+what this vector representation is, so long as the vector operations behave
+correctly.}
+
+@lisp
+(define (frame-coord-map frame)
+  (lambda (v)
+    (add-vect
+     (origin-frame frame)
+     (add-vect 
+      (scale-vect (xcor-vect v)
+                  (edge1-frame frame))
+      (scale-vect (ycor-vect v)
+                  (edge2-frame frame))))))
+@end lisp
+
+@noindent
+Observe that applying @code{frame-coord-map} to a frame returns a procedure
+that, given a vector, returns a vector.  If the argument vector is in the unit
+square, the result vector will be in the frame.  For example,
+
+@lisp
+((frame-coord-map a-frame) (make-vect 0 0))
+@end lisp
+
+@noindent
+returns the same vector as
+
+@lisp
+(origin-frame a-frame)
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 2.46}Exercise 2.46:} A two-dimensional vector @math{\bf v}
+running from the origin to a point can be represented as a pair consisting of
+an @math{x}-coordinate and a @math{y}-coordinate.  Implement a data abstraction for
+vectors by giving a constructor @code{make-vect} and corresponding selectors
+@code{xcor-vect} and @code{ycor-vect}.  In terms of your selectors and
+constructor, implement procedures @code{add-vect}, @code{sub-vect}, and
+@code{scale-vect} that perform the operations vector addition, vector
+subtraction, and multiplying a vector by a scalar:
+@ifinfo
+
+@example
+(x_1, y_1) + (x_2, y_2) = (x_1 + x_2, y_1 + y_2)
+(x_1, y_1) - (x_2, y_2) = (x_1 - x_2, y_1 - y_2)
+             s * (x, y) = (sx, sy)
+@end example
+@end ifinfo
+@tex
+\[ % :41:
+  
+\begin{eqnarray}
+	(x_1, y_1) + (x_2, y_2)  &=&  (x_1 + x_2, y_1 + y_2), \\
+	(x_1, y_1) - (x_2, y_2)  &=&  (x_1 - x_2, y_1 - y_2), \\
+	s \cdot (x, y) 		 &=&  (sx, sy).
+\end{eqnarray}
+\]
+@end tex
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.47}Exercise 2.47:} Here are two possible
+constructors for frames:
+
+@lisp
+(define (make-frame origin edge1 edge2)
+  (list origin edge1 edge2))
+
+(define (make-frame origin edge1 edge2)
+  (cons origin (cons edge1 edge2)))
+@end lisp
+
+For each constructor supply the appropriate selectors to produce an
+implementation for frames.
+@end quotation
+
+@subsubheading Painters
+
+A painter is represented as a procedure that, given a frame as argument, draws
+a particular image shifted and scaled to fit the frame.  That is to say, if
+@code{p} is a painter and @code{f} is a frame, then we produce @code{p}'s image
+in @code{f} by calling @code{p} with @code{f} as argument.
+
+The details of how primitive painters are implemented depend on the particular
+characteristics of the graphics system and the type of image to be drawn.  For
+instance, suppose we have a procedure @code{draw-line} that draws a line on the
+screen between two specified points.  Then we can create painters for line
+drawings, such as the @code{wave} painter in @ref{Figure 2.10}, from lists of
+line segments as follows:@footnote{@code{Segments->painter} uses the
+representation for line segments described in @ref{Exercise 2.48} below.  It
+also uses the @code{for-each} procedure described in @ref{Exercise 2.23}.}
+
+@lisp
+(define (segments->painter segment-list)
+  (lambda (frame)
+    (for-each
+     (lambda (segment)
+       (draw-line
+        ((frame-coord-map frame) 
+         (start-segment segment))
+        ((frame-coord-map frame) 
+         (end-segment segment))))
+     segment-list)))
+@end lisp
+
+@noindent
+The segments are given using coordinates with respect to the unit square.  For
+each segment in the list, the painter transforms the segment endpoints with the
+frame coordinate map and draws a line between the transformed points.
+
+Representing painters as procedures erects a powerful abstraction barrier in
+the picture language.  We can create and intermix all sorts of primitive
+painters, based on a variety of graphics capabilities. The details of their
+implementation do not matter.  Any procedure can serve as a painter, provided
+that it takes a frame as argument and draws something scaled to fit the
+frame.@footnote{For example, the @code{rogers} painter of @ref{Figure 2.11} was
+constructed from a gray-level image.  For each point in a given frame, the
+@code{rogers} painter determines the point in the image that is mapped to it
+under the frame coordinate map, and shades it accordingly.  By allowing
+different types of painters, we are capitalizing on the abstract data idea
+discussed in @ref{2.1.3}, where we argued that a rational-number
+representation could be anything at all that satisfies an appropriate
+condition.  Here we're using the fact that a painter can be implemented in any
+way at all, so long as it draws something in the designated frame.  
+@ref{2.1.3} also showed how pairs could be implemented as procedures.  Painters
+are our second example of a procedural representation for data.}
+
+@quotation
+@strong{@anchor{Exercise 2.48}Exercise 2.48:} A directed line segment in the
+plane can be represented as a pair of vectors---the vector running from the
+origin to the start-point of the segment, and the vector running from the
+origin to the end-point of the segment.  Use your vector representation from
+@ref{Exercise 2.46} to define a representation for segments with a constructor
+@code{make-segment} and selectors @code{start-segment} and @code{end-segment}.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.49}Exercise 2.49:} Use @code{segments->painter}
+to define the following primitive painters:
+
+@enumerate a
+
+@item
+The painter that draws the outline of the designated frame.
+
+@item
+The painter that draws an ``X'' by connecting opposite corners of the frame.
+
+@item
+The painter that draws a diamond shape by connecting the midpoints of the sides
+of the frame.
+
+@item
+The @code{wave} painter.
+
+@end enumerate
+@end quotation
+
+@subsubheading Transforming and combining painters
+
+An operation on painters (such as @code{flip-vert} or @code{beside}) works by
+creating a painter that invokes the original painters with respect to frames
+derived from the argument frame.  Thus, for example, @code{flip-vert} doesn't
+have to know how a painter works in order to flip it---it just has to know how
+to turn a frame upside down: The flipped painter just uses the original
+painter, but in the inverted frame.
+
+Painter operations are based on the procedure @code{transform-painter}, which
+takes as arguments a painter and information on how to transform a frame and
+produces a new painter.  The transformed painter, when called on a frame,
+transforms the frame and calls the original painter on the transformed frame.
+The arguments to @code{transform-painter} are points (represented as vectors)
+that specify the corners of the new frame: When mapped into the frame, the
+first point specifies the new frame's origin and the other two specify the ends
+of its edge vectors.  Thus, arguments within the unit square specify a frame
+contained within the original frame.
+
+@lisp
+(define (transform-painter 
+         painter origin corner1 corner2)
+  (lambda (frame)
+    (let ((m (frame-coord-map frame)))
+      (let ((new-origin (m origin)))
+        (painter (make-frame new-origin
+                  (sub-vect (m corner1) 
+                            new-origin)
+                  (sub-vect (m corner2)
+                            new-origin)))))))
+@end lisp
+
+@noindent
+Here's how to flip painter images vertically:
+
+@lisp
+(define (flip-vert painter)
+  (transform-painter 
+   painter
+   (make-vect 0.0 1.0)   @r{; new @code{origin}}
+   (make-vect 1.0 1.0)   @r{; new end of @code{edge1}}
+   (make-vect 0.0 0.0))) @r{; new end of @code{edge2}}
+@end lisp
+
+@noindent
+Using @code{transform-painter}, we can easily define new transformations.
+For example, we can define a painter that shrinks its image to the
+upper-right quarter of the frame it is given:
+
+@lisp
+(define (shrink-to-upper-right painter)
+  (transform-painter painter
+                     (make-vect 0.5 0.5)
+                     (make-vect 1.0 0.5)
+                     (make-vect 0.5 1.0)))
+@end lisp
+
+@noindent
+Other transformations rotate images counterclockwise by 90
+degrees@footnote{@code{Rotate90} is a pure rotation only for square frames,
+because it also stretches and shrinks the image to fit into the rotated frame.}
+
+@lisp
+(define (rotate90 painter)
+  (transform-painter painter
+                     (make-vect 1.0 0.0)
+                     (make-vect 1.0 1.0)
+                     (make-vect 0.0 0.0)))
+@end lisp
+
+@noindent
+or squash images towards the center of the frame:@footnote{The diamond-shaped
+images in @ref{Figure 2.10} and @ref{Figure 2.11} were created with
+@code{squash-inwards} applied to @code{wave} and @code{rogers}.}
+
+@lisp
+(define (squash-inwards painter)
+  (transform-painter painter
+                     (make-vect 0.0 0.0)
+                     (make-vect 0.65 0.35)
+                     (make-vect 0.35 0.65)))
+@end lisp
+
+@noindent
+Frame transformation is also the key to defining means of combining two or more
+painters.  The @code{beside} procedure, for example, takes two painters,
+transforms them to paint in the left and right halves of an argument frame
+respectively, and produces a new, compound painter.  When the compound painter
+is given a frame, it calls the first transformed painter to paint in the left
+half of the frame and calls the second transformed painter to paint in the
+right half of the frame:
+
+@lisp
+(define (beside painter1 painter2)
+  (let ((split-point (make-vect 0.5 0.0)))
+    (let ((paint-left  (transform-painter 
+                        painter1
+                        (make-vect 0.0 0.0)
+                        split-point
+                        (make-vect 0.0 1.0)))
+          (paint-right (transform-painter
+                        painter2
+                        split-point
+                        (make-vect 1.0 0.0)
+                        (make-vect 0.5 1.0))))
+      (lambda (frame)
+        (paint-left frame)
+        (paint-right frame)))))
+@end lisp
+
+@noindent
+Observe how the painter data abstraction, and in particular the representation
+of painters as procedures, makes @code{beside} easy to implement.  The
+@code{beside} procedure need not know anything about the details of the
+component painters other than that each painter will draw something in its
+designated frame.
+
+@quotation
+@strong{@anchor{Exercise 2.50}Exercise 2.50:} Define the transformation
+@code{flip-horiz}, which flips painters horizontally, and transformations that
+rotate painters counterclockwise by 180 degrees and 270 degrees.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.51}Exercise 2.51:} Define the @code{below} operation
+for painters.  @code{Below} takes two painters as arguments.  The resulting
+painter, given a frame, draws with the first painter in the bottom of the frame
+and with the second painter in the top.  Define @code{below} in two different
+ways---first by writing a procedure that is analogous to the @code{beside}
+procedure given above, and again in terms of @code{beside} and suitable
+rotation operations (from @ref{Exercise 2.50}).
+@end quotation
+
+@subsubheading Levels of language for robust design
+
+The picture language exercises some of the critical ideas we've introduced
+about abstraction with procedures and data.  The fundamental data abstractions,
+painters, are implemented using procedural representations, which enables the
+language to handle different basic drawing capabilities in a uniform way.  The
+means of combination satisfy the closure property, which permits us to easily
+build up complex designs.  Finally, all the tools for abstracting procedures
+are available to us for abstracting means of combination for painters.
+
+We have also obtained a glimpse of another crucial idea about languages and
+program design.  This is the approach of @newterm{stratified design}, the
+notion that a complex system should be structured as a sequence of levels that
+are described using a sequence of languages.  Each level is constructed by
+combining parts that are regarded as primitive at that level, and the parts
+constructed at each level are used as primitives at the next level.  The
+language used at each level of a stratified design has primitives, means of
+combination, and means of abstraction appropriate to that level of detail.
+
+Stratified design pervades the engineering of complex systems.  For example, in
+computer engineering, resistors and transistors are combined (and described
+using a language of analog circuits) to produce parts such as and-gates and
+or-gates, which form the primitives of a language for digital-circuit
+design.@footnote{Section @ref{3.3.4} describes one such language.} These parts
+are combined to build processors, bus structures, and memory systems, which are
+in turn combined to form computers, using languages appropriate to computer
+architecture.  Computers are combined to form distributed systems, using
+languages appropriate for describing network interconnections, and so on.
+
+As a tiny example of stratification, our picture language uses primitive
+elements (primitive painters) that are created using a language that specifies
+points and lines to provide the lists of line segments for
+@code{segments->painter}, or the shading details for a painter like
+@code{rogers}.  The bulk of our description of the picture language focused on
+combining these primitives, using geometric combiners such as @code{beside} and
+@code{below}.  We also worked at a higher level, regarding @code{beside} and
+@code{below} as primitives to be manipulated in a language whose operations,
+such as @code{square-of-four}, capture common patterns of combining geometric
+combiners.
+
+Stratified design helps make programs @newterm{robust}, that is, it makes it
+likely that small changes in a specification will require correspondingly small
+changes in the program.  For instance, suppose we wanted to change the image
+based on @code{wave} shown in @ref{Figure 2.9}.  We could work at the lowest
+level to change the detailed appearance of the @code{wave} element; we could
+work at the middle level to change the way @code{corner-split} replicates the
+@code{wave}; we could work at the highest level to change how
+@code{square-limit} arranges the four copies of the corner.  In general, each
+level of a stratified design provides a different vocabulary for expressing the
+characteristics of the system, and a different kind of ability to change it.
+
+@quotation
+@strong{@anchor{Exercise 2.52}Exercise 2.52:} Make changes to the square limit
+of @code{wave} shown in @ref{Figure 2.9} by working at each of the levels
+described above.  In particular:
+
+@enumerate a
+
+@item
+Add some segments to the primitive @code{wave} painter of @ref{Exercise 2.49}
+(to add a smile, for example).
+
+@item
+Change the pattern constructed by @code{corner-split} (for example, by using
+only one copy of the @code{up-split} and @code{right-split} images instead of
+two).
+
+@item
+Modify the version of @code{square-limit} that uses @code{square-of-four} so as
+to assemble the corners in a different pattern.  (For example, you might make
+the big Mr. Rogers look outward from each corner of the square.)
+
+@end enumerate
+@end quotation
+
+@node	2.3, 2.4, 2.2, Chapter 2
+@section Symbolic Data
+
+All the compound data objects we have used so far were constructed ultimately
+from numbers.  In this section we extend the representational capability of our
+language by introducing the ability to work with arbitrary symbols as data.
+
+@menu
+* 2.3.1::            Quotation
+* 2.3.2::            Example: Symbolic Differentiation
+* 2.3.3::            Example: Representing Sets
+* 2.3.4::            Example: Huffman Encoding Trees
+@end menu
+
+@node	2.3.1, 2.3.2, 2.3, 2.3
+@subsection Quotation
+
+If we can form compound data using symbols, we can have lists such as
+
+@lisp
+(a b c d)
+(23 45 17)
+((Norah 12) 
+ (Molly 9) 
+ (Anna 7) 
+ (Lauren 6) 
+ (Charlotte 4))
+@end lisp
+
+@noindent
+Lists containing symbols can look just like the expressions of our
+language:
+
+@lisp
+(* (+ 23 45) (+ x 9))
+(define (fact n) 
+  (if (= n 1) 
+      1 
+      (* n (fact (- n 1)))))
+@end lisp
+
+@noindent
+In order to manipulate symbols we need a new element in our language: the
+ability to @newterm{quote} a data object.  Suppose we want to construct the
+list @code{(a b)}.  We can't accomplish this with @code{(list a b)}, because
+this expression constructs a list of the @newterm{values} of @code{a} and
+@code{b} rather than the symbols themselves.  This issue is well known in the
+context of natural languages, where words and sentences may be regarded either
+as semantic entities or as character strings (syntactic entities).  The common
+practice in natural languages is to use quotation marks to indicate that a word
+or a sentence is to be treated literally as a string of characters.  For
+instance, the first letter of ``John'' is clearly ``J.''  If we tell somebody
+``say your name aloud,'' we expect to hear that person's name.  However, if we
+tell somebody ``say `your name' aloud,'' we expect to hear the words ``your
+name.''  Note that we are forced to nest quotation marks to describe what
+somebody else might say.@footnote{Allowing quotation in a language wreaks havoc
+with the ability to reason about the language in simple terms, because it
+destroys the notion that equals can be substituted for equals.  For example,
+three is one plus two, but the word ``three'' is not the phrase ``one plus
+two.''  Quotation is powerful because it gives us a way to build expressions
+that manipulate other expressions (as we will see when we write an interpreter
+in @ref{Chapter 4}). But allowing statements in a language that talk about
+other statements in that language makes it very difficult to maintain any
+coherent principle of what ``equals can be substituted for equals'' should
+mean.  For example, if we know that the evening star is the morning star, then
+from the statement ``the evening star is Venus'' we can deduce ``the morning
+star is Venus.''  However, given that ``John knows that the evening star is
+Venus'' we cannot infer that ``John knows that the morning star is Venus.''}
+
+We can follow this same practice to identify lists and symbols that are to be
+treated as data objects rather than as expressions to be evaluated.  However,
+our format for quoting differs from that of natural languages in that we place
+a quotation mark (traditionally, the single quote @w{symbol @code{'})} only at the
+beginning of the object to be quoted.  We can get away with this in Scheme
+syntax because we rely on blanks and parentheses to delimit objects.  Thus, the
+meaning of the single quote character is to quote the next object.@footnote{The
+single quote is different from the double quote we have been using to enclose
+character strings to be printed.  Whereas the single quote can be used to
+denote lists or symbols, the double quote is used only with character strings.
+In this book, the only use for character strings is as items to be printed.}
+
+Now we can distinguish between symbols and their values:
+
+@lisp
+(define a 1)
+(define b 2)
+
+(list a b)
+@i{(1 2)}
+
+(list 'a 'b)
+@i{(a b)}
+
+(list 'a b)
+@i{(a 2)}
+@end lisp
+
+@noindent
+Quotation also allows us to type in compound objects, using the conventional
+printed representation for lists:@footnote{Strictly, our use of the quotation
+mark violates the general rule that all compound expressions in our language
+should be delimited by parentheses and look like lists.  We can recover this
+consistency by introducing a special form @code{quote}, which serves the same
+purpose as the quotation mark.  Thus, we would type @code{(quote a)} instead of
+@code{'a}, and we would type @code{(quote (a b c))} instead of @code{'(a b c)}.
+This is precisely how the interpreter works.  The quotation mark is just a
+single-character abbreviation for wrapping the next complete expression with
+@code{quote} to form @code{(quote ⟨@var{expression}⟩)}.  This is
+important because it maintains the principle that any expression seen by the
+interpreter can be manipulated as a data object.  For instance, we could
+construct the expression @code{(car '(a b c))}, which is the same as @code{(car
+(quote (a b c)))}, by evaluating @code{(list 'car (list 'quote '(a b c)))}.}
+
+@lisp
+(car '(a b c))
+@i{a}
+
+(cdr '(a b c))
+@i{(b c)}
+@end lisp
+
+@noindent
+In keeping with this, we can obtain the empty list by evaluating @code{'()},
+and thus dispense with the variable @code{nil}.
+
+One additional primitive used in manipulating symbols is @code{eq?}, which
+takes two symbols as arguments and tests whether they are the same.@footnote{We
+can consider two symbols to be ``the same'' if they consist of the same
+characters in the same order.  Such a definition skirts a deep issue that we
+are not yet ready to address: the meaning of ``sameness'' in a programming
+language.  We will return to this in @ref{Chapter 3} (@ref{3.1.3}).}
+Using @code{eq?}, we can implement a useful procedure called @code{memq}.  This
+takes two arguments, a symbol and a list.  If the symbol is not contained in
+the list (i.e., is not @code{eq?} to any item in the list), then @code{memq}
+returns false.  Otherwise, it returns the sublist of the list beginning with
+the first occurrence of the symbol:
+
+@lisp
+(define (memq item x)
+  (cond ((null? x) false)
+        ((eq? item (car x)) x)
+        (else (memq item (cdr x)))))
+@end lisp
+
+@noindent
+For example, the value of
+
+@lisp
+(memq 'apple '(pear banana prune))
+@end lisp
+
+@noindent
+is false, whereas the value of
+
+@lisp
+(memq 'apple '(x (apple sauce) y apple pear))
+@end lisp
+
+@noindent
+is @code{(apple pear)}.
+
+@quotation
+@strong{@anchor{Exercise 2.53}Exercise 2.53:} What would the interpreter print
+in response to evaluating each of the following expressions?
+
+@lisp
+(list 'a 'b 'c)
+(list (list 'george))
+(cdr '((x1 x2) (y1 y2)))
+(cadr '((x1 x2) (y1 y2)))
+(pair? (car '(a short list)))
+(memq 'red '((red shoes) (blue socks)))
+(memq 'red '(red shoes blue socks))
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.54}Exercise 2.54:} Two lists are said to be
+@code{equal?} if they contain equal elements arranged in the same order.  For
+example,
+
+@lisp
+(equal? '(this is a list) 
+        '(this is a list))
+@end lisp
+
+@noindent
+is true, but
+
+@lisp
+(equal? '(this is a list) 
+        '(this (is a) list))
+@end lisp
+
+@noindent
+is false.  To be more precise, we can define @code{equal?}  recursively in
+terms of the basic @code{eq?} equality of symbols by saying that @code{a} and
+@code{b} are @code{equal?} if they are both symbols and the symbols are
+@code{eq?}, or if they are both lists such that @code{(car a)} is @code{equal?}
+to @code{(car b)} and @code{(cdr a)} is @code{equal?} to @code{(cdr b)}.  Using
+this idea, implement @code{equal?} as a procedure.@footnote{In practice,
+programmers use @code{equal?} to compare lists that contain numbers as well as
+symbols.  Numbers are not considered to be symbols.  The question of whether
+two numerically equal numbers (as tested by @code{=}) are also @code{eq?} is
+highly implementation-dependent.  A better definition of @code{equal?} (such as
+the one that comes as a primitive in Scheme) would also stipulate that if
+@code{a} and @code{b} are both numbers, then @code{a} and @code{b} are
+@code{equal?} if they are numerically equal.}
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.55}Exercise 2.55:} Eva Lu Ator types to the
+interpreter the expression
+
+@lisp
+(car ''abracadabra)
+@end lisp
+
+To her surprise, the interpreter prints back @code{quote}.  Explain.
+@end quotation
+
+@node	2.3.2, 2.3.3, 2.3.1, 2.3
+@subsection Example: Symbolic Differentiation
+
+As an illustration of symbol manipulation and a further illustration of data
+abstraction, consider the design of a procedure that performs symbolic
+differentiation of algebraic expressions.  We would like the procedure to take
+as arguments an algebraic expression and a variable and to return the
+derivative of the expression with respect to the variable.  For example, if the
+arguments to the procedure are @math{{ax^2 + bx + c}} and @math{x}, the
+procedure should return @math{{2ax + b}}.  Symbolic differentiation is of
+special historical significance in Lisp.  It was one of the motivating examples
+behind the development of a computer language for symbol manipulation.
+Furthermore, it marked the beginning of the line of research that led to the
+development of powerful systems for symbolic mathematical work, which are
+currently being used by a growing number of applied mathematicians and
+physicists.
+
+In developing the symbolic-differentiation program, we will follow the same
+strategy of data abstraction that we followed in developing the rational-number
+system of @ref{2.1.1}.  That is, we will first define a differentiation
+algorithm that operates on abstract objects such as ``sums,'' ``products,'' and
+``variables'' without worrying about how these are to be represented.  Only
+afterward will we address the representation problem.
+
+@subsubheading The differentiation program with abstract data
+
+In order to keep things simple, we will consider a very simple
+symbolic-differentiation program that handles expressions that are built up
+using only the operations of addition and multiplication with two arguments.
+Differentiation of any such expression can be carried out by applying the
+following reduction rules:
+@ifinfo
+
+@example
+dc
+-- = 0  for c a constant, or a variable different from x
+dx
+
+dx
+-- = 1
+dx
+
+d(u + v)   du   dv
+-------- = -- + --
+   dx      dx   dx
+
+d(uv)     / dv \     / du \
+----- = u | -- | + v | -- |
+ dx       \ dx /     \ dx /
+@end example
+
+@end ifinfo
+@tex
+\[ % :42:
+{{dc \over dx} \,=\, 0,} 
+  \quad {\text{for } c \text{ a constant }} {\text{or a variable }} {\text{different from } x,}
+\]
+@end tex
+@tex
+\[ % :43:
+\begin{eqnarray}
+{dx \over dx}         &=&   1, \\
+{d(u + v) \over dx}   &=&   {du \over dx} + {dv \over dx}, \\
+{d(uv) \over dx}      &=&   u \kern0.1em {dv \over dx} + v \kern0.1em {du \over dx}.
+\end{eqnarray}
+\]
+@end tex
+@noindent
+Observe that the latter two rules are recursive in nature.  That is, to obtain
+the derivative of a sum we first find the derivatives of the terms and add
+them.  Each of the terms may in turn be an expression that needs to be
+decomposed.  Decomposing into smaller and smaller pieces will eventually
+produce pieces that are either constants or variables, whose derivatives will
+be either 0 or 1.
+
+To embody these rules in a procedure we indulge in a little wishful thinking,
+as we did in designing the rational-number implementation.  If we had a means
+for representing algebraic expressions, we should be able to tell whether an
+expression is a sum, a product, a constant, or a variable.  We should be able
+to extract the parts of an expression.  For a sum, for example we want to be
+able to extract the addend (first term) and the augend (second term).  We
+should also be able to construct expressions from parts.  Let us assume that we
+already have procedures to implement the following selectors, constructors, and
+predicates:
+
+@example
+(variable? e)          @r{Is @code{e} a variable?}
+(same-variable? v1 v2) @r{Are @code{v1} and @code{v2} the same variable?}
+(sum? e)               @r{Is @code{e} a sum?}
+(addend e)             @r{Addend of the sum @code{e}.}
+(augend e)             @r{Augend of the sum @code{e}.}
+(make-sum a1 a2)       @r{Construct the sum of @code{a1} and @code{a2}.}
+(product? e)           @r{Is @code{e} a product?}
+(multiplier e)         @r{Multiplier of the product @code{e}.}
+(multiplicand e)       @r{Multiplicand of the product @code{e}.}
+(make-product m1 m2)   @r{Construct the product of @code{m1} and @code{m2}.}
+@end example
+
+@noindent
+Using these, and the primitive predicate @code{number?}, which identifies
+numbers, we can express the differentiation rules as the following procedure:
+
+@lisp
+(define (deriv exp var)
+  (cond ((number? exp) 0)
+        ((variable? exp)
+         (if (same-variable? exp var) 1 0))
+        ((sum? exp)
+         (make-sum (deriv (addend exp) var)
+                   (deriv (augend exp) var)))
+        ((product? exp)
+         (make-sum
+          (make-product 
+           (multiplier exp)
+           (deriv (multiplicand exp) var))
+          (make-product 
+           (deriv (multiplier exp) var)
+           (multiplicand exp))))
+        (else (error "unknown expression 
+                      type: DERIV" exp))))
+@end lisp
+
+@noindent
+This @code{deriv} procedure incorporates the complete differentiation
+algorithm.  Since it is expressed in terms of abstract data, it will work no
+matter how we choose to represent algebraic expressions, as long as we design a
+proper set of selectors and constructors.  This is the issue we must address
+next.
+
+@subsubheading Representing algebraic expressions
+
+We can imagine many ways to use list structure to represent algebraic
+expressions.  For example, we could use lists of symbols that mirror the usual
+algebraic notation, representing @math{{ax + b}} as the list @code{(a * x + b)}.  
+However, one especially straightforward choice is to use the same
+parenthesized prefix notation that Lisp uses for combinations; that is, to
+represent @math{{ax + b}} as @code{(+ (* a x) b)}.  Then our data
+representation for the differentiation problem is as follows:
+
+@itemize @bullet
+
+@item
+The variables are symbols.  They are identified by the primitive predicate
+@code{symbol?}:
+
+@lisp
+(define (variable? x) (symbol? x))
+@end lisp
+
+@item
+Two variables are the same if the symbols representing them are @code{eq?}:
+
+@lisp
+(define (same-variable? v1 v2)
+  (and (variable? v1)
+       (variable? v2)
+       (eq? v1 v2)))
+@end lisp
+
+@item
+Sums and products are constructed as lists:
+
+@lisp
+(define (make-sum a1 a2) (list '+ a1 a2))
+(define (make-product m1 m2) (list '* m1 m2))
+@end lisp
+
+@item
+A sum is a list whose first element is the symbol @code{+}:
+
+@lisp
+(define (sum? x)
+  (and (pair? x) (eq? (car x) '+)))

@@ -1,0 +1,1000 @@
+(define the-global-environment 
+  (setup-environment))
+
+(driver-loop)
+
+@i{;;; M-Eval input:}
+(define (append x y)
+  (if (null? x)
+      y
+      (cons (car x) (append (cdr x) y))))
+
+@i{;;; M-Eval value:}
+@i{ok}
+
+@i{;;; M-Eval input:}
+(append '(a b c) '(d e f))
+
+@i{;;; M-Eval value:}
+@i{(a b c d e f)}
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 4.14}Exercise 4.14:} Eva Lu Ator and Louis Reasoner
+are each experimenting with the metacircular evaluator.  Eva types in the
+definition of @code{map}, and runs some test programs that use it.  They work
+fine.  Louis, in contrast, has installed the system version of @code{map} as a
+primitive for the metacircular evaluator.  When he tries it, things go terribly
+wrong.  Explain why Louis's @code{map} fails even though Eva's works.
+@end quotation
+
+@node	4.1.5, 4.1.6, 4.1.4, 4.1
+@subsection Data as Programs
+
+In thinking about a Lisp program that evaluates Lisp expressions, an analogy
+might be helpful.  One operational view of the meaning of a program is that a
+program is a description of an abstract (perhaps infinitely large) machine.
+For example, consider the familiar program to compute factorials:
+
+@lisp
+(define (factorial n)
+  (if (= n 1)
+      1
+      (* (factorial (- n 1)) n)))
+@end lisp
+
+@noindent
+We may regard this program as the description of a machine containing parts
+that decrement, multiply, and test for equality, together with a two-position
+switch and another factorial machine. (The factorial machine is infinite
+because it contains another factorial machine within it.)  @ref{Figure 4.2} is
+a flow diagram for the factorial machine, showing how the parts are wired
+together.
+
+@float
+@anchor{Figure 4.2}
+@ifinfo
+@strong{Figure 4.2:} The factorial program, viewed as an abstract machine.
+
+@example
+    +-----------------------------------+
+    | factorial                   |1    |
+    |              |1             V     |
+    |              |           +-----+  |
+    |              V           | #   |  |
+    |           +-----+        |     |  |
+6 --------*-----|  =  |------->|   #-+-----> 720
+    |     |     +-----+        |  /  |  |
+    |     |                    | #   |  |
+    |     |                    +-----+  |
+    |     |                       ^     |
+    |     |                       |     |
+    |     |                    +--+--+  |
+    |     *------------------->|  *  |  |
+    |     |                    +-----+  |
+    |     V                       ^     |
+    |  +-----+    +-----------+   |     |
+    |  |  -  +--->| factorial +---+     |
+    |  +-----+    +-----------+         |
+    |     ^                             |
+    |     |1                            |
+    +-----------------------------------+
+@end example
+@end ifinfo
+@iftex
+@image{fig/chap4/Fig4.2a,143mm,,,.std.svg}
+@caption{@strong{Figure 4.2:} The factorial program, viewed as an abstract machine.}
+@end iftex
+@end float
+
+In a similar way, we can regard the evaluator as a very special machine that
+takes as input a description of a machine.  Given this input, the evaluator
+configures itself to emulate the machine described.  For example, if we feed
+our evaluator the definition of @code{factorial}, as shown in @ref{Figure 4.3},
+the evaluator will be able to compute factorials.
+
+@float
+@anchor{Figure 4.3}
+@ifinfo
+@strong{Figure 4.3:} The evaluator emulating a factorial machine.
+
+@example
+                   +--------+
+            6 ---->|  eval  |----> 720
+                   +--------+
+                       /
+             . . .    /  . . .
+       . . .       ../. .      .
+     .                           ..
+    .   (define (factorial n)      . . .
+   .      (if (= n 1)                   . .
+    .         1                            .
+    .         (* (factorial (- n 1)) n)))   .
+      . .                       . .        .
+          . .  . .      . . . .     . . . .
+                   . ..
+@end example
+@end ifinfo
+@iftex
+@image{fig/chap4/Fig4.3,117mm,,,.std.svg}
+@caption{@strong{Figure 4.3:} The evaluator emulating a factorial machine.}
+@end iftex
+@end float
+
+From this perspective, our evaluator is seen to be a @newterm{universal machine}.  
+It mimics other machines when these are described as Lisp
+programs.@footnote{The fact that the machines are described in Lisp is
+inessential.  If we give our evaluator a Lisp program that behaves as an
+evaluator for some other language, say C, the Lisp evaluator will emulate the C
+evaluator, which in turn can emulate any machine described as a C program.
+Similarly, writing a Lisp evaluator in C produces a C program that can execute
+any Lisp program.  The deep idea here is that any evaluator can emulate any
+other.  Thus, the notion of ``what can in principle be computed'' (ignoring
+practicalities of time and memory required) is independent of the language or
+the computer, and instead reflects an underlying notion of
+@newterm{computability}.  This was first demonstrated in a clear way by Alan
+M. Turing (1912-1954), whose 1936 paper laid the foundations for theoretical
+computer science.  In the paper, Turing presented a simple computational
+model---now known as a @newterm{Turing machine}---and argued that any
+``effective process'' can be formulated as a program for such a machine.  (This
+argument is known as the @newterm{Church-Turing thesis}.)  Turing then
+implemented a universal machine, i.e., a Turing machine that behaves as an
+evaluator for Turing-machine programs.  He used this framework to demonstrate
+that there are well-posed problems that cannot be computed by Turing machines
+(see @ref{Exercise 4.15}), and so by implication cannot be formulated as
+``effective processes.''  Turing went on to make fundamental contributions to
+practical computer science as well.  For example, he invented the idea of
+structuring programs using general-purpose subroutines.  See @ref{Hodges 1983} for a
+biography of Turing.} This is striking. Try to imagine an analogous evaluator
+for electrical circuits.  This would be a circuit that takes as input a signal
+encoding the plans for some other circuit, such as a filter.  Given this input,
+the circuit evaluator would then behave like a filter with the same
+description.  Such a universal electrical circuit is almost unimaginably
+complex.  It is remarkable that the program evaluator is a rather simple
+program.@footnote{Some people find it counterintuitive that an evaluator, which
+is implemented by a relatively simple procedure, can emulate programs that are
+more complex than the evaluator itself.  The existence of a universal evaluator
+machine is a deep and wonderful property of computation.  @newterm{Recursion theory}, 
+a branch of mathematical logic, is concerned with logical limits of
+computation.  Douglas Hofstadter's beautiful book @cite{G@"odel, Escher, Bach}
+explores some of these ideas (@ref{Hofstadter 1979}).}
+
+@noindent
+Another striking aspect of the evaluator is that it acts as a bridge between
+the data objects that are manipulated by our programming language and the
+programming language itself.  Imagine that the evaluator program (implemented
+in Lisp) is running, and that a user is typing expressions to the evaluator and
+observing the results.  From the perspective of the user, an input expression
+such as @code{(* x x)} is an expression in the programming language, which the
+evaluator should execute.  From the perspective of the evaluator, however, the
+expression is simply a list (in this case, a list of three symbols: @code{*},
+@code{x}, and @code{x}) that is to be manipulated according to a well-defined
+set of rules.
+
+That the user's programs are the evaluator's data need not be a source of
+confusion.  In fact, it is sometimes convenient to ignore this distinction, and
+to give the user the ability to explicitly evaluate a data object as a Lisp
+expression, by making @code{eval} available for use in programs.  Many Lisp
+dialects provide a primitive @code{eval} procedure that takes as arguments an
+expression and an environment and evaluates the expression relative to the
+environment.@footnote{Warning: This @code{eval} primitive is not identical to
+the @code{eval} procedure we implemented in @ref{4.1.1}, because it
+uses @emph{actual} Scheme environments rather than the sample environment
+structures we built in @ref{4.1.3}.  These actual environments cannot
+be manipulated by the user as ordinary lists; they must be accessed via
+@code{eval} or other special operations.  Similarly, the @code{apply} primitive
+we saw earlier is not identical to the metacircular @code{apply}, because it
+uses actual Scheme procedures rather than the procedure objects we constructed
+in @ref{4.1.3} and @ref{4.1.4}.} Thus,
+
+@lisp
+(eval '(* 5 5) user-initial-environment)
+@end lisp
+
+@noindent
+and
+
+@lisp
+(eval (cons '* (list 5 5)) 
+      user-initial-environment)
+@end lisp
+
+@noindent
+will both return 25.@footnote{The @abbr{MIT} implementation of Scheme
+includes @code{eval}, as well as a symbol @code{user-initial-environment} that
+is bound to the initial environment in which the user's input expressions are
+evaluated.}
+
+@quotation
+@strong{@anchor{Exercise 4.15}Exercise 4.15:} Given a one-argument procedure
+@code{p} and an object @code{a}, @code{p} is said to ``halt'' on @code{a} if
+evaluating the expression @code{(p a)} returns a value (as opposed to
+terminating with an error message or running forever).  Show that it is
+impossible to write a procedure @code{halts?} that correctly determines whether
+@code{p} halts on @code{a} for any procedure @code{p} and object @code{a}.  Use
+the following reasoning: If you had such a procedure @code{halts?}, you could
+implement the following program:
+
+@lisp
+(define (run-forever)
+  (run-forever))
+
+(define (try p)
+  (if (halts? p p)
+      (run-forever)
+      'halted))
+@end lisp
+
+Now consider evaluating the expression @code{(try try)} and show that any
+possible outcome (either halting or running forever) violates the intended
+behavior of @code{halts?}.@footnote{Although we stipulated that @code{halts?}
+is given a procedure object, notice that this reasoning still applies even if
+@code{halts?} can gain access to the procedure's text and its environment.
+This is Turing's celebrated @newterm{Halting Theorem}, which gave the first
+clear example of a @newterm{non-computable} problem, i.e., a well-posed task
+that cannot be carried out as a computational procedure.}
+@end quotation
+
+@node	4.1.6, 4.1.7, 4.1.5, 4.1
+@subsection Internal Definitions
+
+Our environment model of evaluation and our metacircular evaluator execute
+definitions in sequence, extending the environment frame one definition at a
+time.  This is particularly convenient for interactive program development, in
+which the programmer needs to freely mix the application of procedures with the
+definition of new procedures.  However, if we think carefully about the
+internal definitions used to implement block structure (introduced in 
+@ref{1.1.8}), we will find that name-by-name extension of the environment may
+not be the best way to define local variables.
+
+Consider a procedure with internal definitions, such as
+
+@lisp
+(define (f x)
+  (define (even? n)
+    (if (= n 0)
+        true
+        (odd? (- n 1))))
+  (define (odd? n)
+    (if (= n 0)
+        false
+        (even? (- n 1))))
+  ⟨@var{rest of body of @code{f}}⟩)
+@end lisp
+
+@noindent
+Our intention here is that the name @code{odd?} in the body of the procedure
+@code{even?} should refer to the procedure @code{odd?} that is defined after
+@code{even?}.  The scope of the name @code{odd?} is the entire body of
+@code{f}, not just the portion of the body of @code{f} starting at the point
+where the @code{define} for @code{odd?} occurs.  Indeed, when we consider that
+@code{odd?} is itself defined in terms of @code{even?}---so that @code{even?}
+and @code{odd?} are mutually recursive procedures---we see that the only
+satisfactory interpretation of the two @code{define}s is to regard them as if
+the names @code{even?} and @code{odd?} were being added to the environment
+simultaneously.  More generally, in block structure, the scope of a local name
+is the entire procedure body in which the @code{define} is evaluated.
+
+As it happens, our interpreter will evaluate calls to @code{f} correctly, but
+for an ``accidental'' reason: Since the definitions of the internal procedures
+come first, no calls to these procedures will be evaluated until all of them
+have been defined.  Hence, @code{odd?}  will have been defined by the time
+@code{even?} is executed.  In fact, our sequential evaluation mechanism will
+give the same result as a mechanism that directly implements simultaneous
+definition for any procedure in which the internal definitions come first in a
+body and evaluation of the value expressions for the defined variables doesn't
+actually use any of the defined variables.  (For an example of a procedure that
+doesn't obey these restrictions, so that sequential definition isn't equivalent
+to simultaneous definition, see @ref{Exercise 4.19}.)@footnote{Wanting programs
+to not depend on this evaluation mechanism is the reason for the ``management
+is not responsible'' remark in @ref{Footnote 28} of @ref{Chapter 1}.  By
+insisting that internal definitions come first and do not use each other while
+the definitions are being evaluated, the @abbr{IEEE} standard for Scheme
+leaves implementors some choice in the mechanism used to evaluate these
+definitions.  The choice of one evaluation rule rather than another here may
+seem like a small issue, affecting only the interpretation of ``badly formed''
+programs.  However, we will see in @ref{5.5.6} that moving to a model
+of simultaneous scoping for internal definitions avoids some nasty difficulties
+that would otherwise arise in implementing a compiler.}
+
+There is, however, a simple way to treat definitions so that internally defined
+names have truly simultaneous scope---just create all local variables that will
+be in the current environment before evaluating any of the value expressions.
+One way to do this is by a syntax transformation on @code{lambda} expressions.
+Before evaluating the body of a @code{lambda} expression, we ``scan out'' and
+eliminate all the internal definitions in the body.  The internally defined
+variables will be created with a @code{let} and then set to their values by
+assignment.  For example, the procedure
+
+@lisp
+(lambda ⟨@var{vars}⟩
+  (define u ⟨@var{e1}⟩)
+  (define v ⟨@var{e2}⟩)
+  ⟨@var{e3}⟩)
+@end lisp
+
+@noindent
+would be transformed into
+
+@lisp
+(lambda ⟨@var{vars}⟩
+  (let ((u '*unassigned*)
+        (v '*unassigned*))
+    (set! u ⟨@var{e1}⟩)
+    (set! v ⟨@var{e2}⟩)
+    ⟨@var{e3}⟩))
+@end lisp
+
+@noindent
+where @code{*unassigned*} is a special symbol that causes looking up a variable
+to signal an error if an attempt is made to use the value of the
+not-yet-assigned variable.
+
+An alternative strategy for scanning out internal definitions is shown in
+@ref{Exercise 4.18}.  Unlike the transformation shown above, this enforces the
+restriction that the defined variables' values can be evaluated without using
+any of the variables' values.@footnote{The @abbr{IEEE} standard for Scheme
+allows for different implementation strategies by specifying that it is up to
+the programmer to obey this restriction, not up to the implementation to
+enforce it.  Some Scheme implementations, including @abbr{MIT} Scheme, use
+the transformation shown above.  Thus, some programs that don't obey this
+restriction will in fact run in such implementations.}
+
+@quotation
+@strong{@anchor{Exercise 4.16}Exercise 4.16:} In this exercise we implement the
+method just described for interpreting internal definitions.  We assume that
+the evaluator supports @code{let} (see @ref{Exercise 4.6}).
+
+@enumerate a
+
+@item
+Change @code{lookup-variable-value} (@ref{4.1.3}) to signal an error if
+the value it finds is the symbol @code{*unassigned*}.
+
+@item
+Write a procedure @code{scan-out-defines} that takes a procedure body and
+returns an equivalent one that has no internal definitions, by making the
+transformation described above.
+
+@item
+Install @code{scan-out-defines} in the interpreter, either in
+@code{make-procedure} or in @code{procedure-body} (see @ref{4.1.3}).
+Which place is better?  Why?
+
+@end enumerate
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.17}Exercise 4.17:} Draw diagrams of the environment
+in effect when evaluating the expression @code{⟨}@var{e3}@code{⟩} in the procedure in the
+text, comparing how this will be structured when definitions are interpreted
+sequentially with how it will be structured if definitions are scanned out as
+described.  Why is there an extra frame in the transformed program?  Explain
+why this difference in environment structure can never make a difference in the
+behavior of a correct program.  Design a way to make the interpreter implement
+the ``simultaneous'' scope rule for internal definitions without constructing
+the extra frame.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.18}Exercise 4.18:} Consider an alternative strategy
+for scanning out definitions that translates the example in the text to
+
+@lisp
+(lambda ⟨@var{vars}⟩
+  (let ((u '*unassigned*)
+        (v '*unassigned*))
+    (let ((a ⟨@var{e1}⟩)
+          (b ⟨@var{e2}⟩))
+      (set! u a)
+      (set! v b))
+    ⟨@var{e3}⟩))
+@end lisp
+
+Here @code{a} and @code{b} are meant to represent new variable names, created
+by the interpreter, that do not appear in the user's program.  Consider the
+@code{solve} procedure from @ref{3.5.4}:
+
+@lisp
+(define (solve f y0 dt)
+  (define y (integral (delay dy) y0 dt))
+  (define dy (stream-map f y))
+  y)
+@end lisp
+
+Will this procedure work if internal definitions are scanned out as shown in
+this exercise?  What if they are scanned out as shown in the text?  Explain.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.19}Exercise 4.19:} Ben Bitdiddle, Alyssa P. Hacker,
+and Eva Lu Ator are arguing about the desired result of evaluating the
+expression
+
+@lisp
+(let ((a 1))
+  (define (f x)
+    (define b (+ a x))
+    (define a 5)
+    (+ a b))
+  (f 10))
+@end lisp
+
+Ben asserts that the result should be obtained using the sequential rule for
+@code{define}: @code{b} is defined to be 11, then @code{a} is defined to be 5,
+so the result is 16.  Alyssa objects that mutual recursion requires the
+simultaneous scope rule for internal procedure definitions, and that it is
+unreasonable to treat procedure names differently from other names.  Thus, she
+argues for the mechanism implemented in @ref{Exercise 4.16}.  This would lead
+to @code{a} being unassigned at the time that the value for @code{b} is to be
+computed.  Hence, in Alyssa's view the procedure should produce an error.  Eva
+has a third opinion.  She says that if the definitions of @code{a} and @code{b}
+are truly meant to be simultaneous, then the value 5 for @code{a} should be
+used in evaluating @code{b}.  Hence, in Eva's view @code{a} should be 5,
+@code{b} should be 15, and the result should be 20.  Which (if any) of these
+viewpoints do you support?  Can you devise a way to implement internal
+definitions so that they behave as Eva prefers?@footnote{The @abbr{MIT}
+implementors of Scheme support Alyssa on the following grounds: Eva is in
+principle correct---the definitions should be regarded as simultaneous.  But
+it seems difficult to implement a general, efficient mechanism that does what
+Eva requires.  In the absence of such a mechanism, it is better to generate an
+error in the difficult cases of simultaneous definitions (Alyssa's notion) than
+to produce an incorrect answer (as Ben would have it).}
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.20}Exercise 4.20:} Because internal definitions look
+sequential but are actually simultaneous, some people prefer to avoid them
+entirely, and use the special form @code{letrec} instead.  @code{Letrec} looks
+like @code{let}, so it is not surprising that the variables it binds are bound
+simultaneously and have the same scope as each other.  The sample procedure
+@code{f} above can be written without internal definitions, but with exactly
+the same meaning, as
+
+@lisp
+(define (f x)
+  (letrec
+      ((even?
+        (lambda (n)
+          (if (= n 0)
+              true
+              (odd? (- n 1)))))
+       (odd?
+        (lambda (n)
+          (if (= n 0)
+              false
+              (even? (- n 1))))))
+    ⟨@var{rest of body of @code{f}}⟩))
+@end lisp
+
+@code{Letrec} expressions, which have the form
+
+@lisp
+(letrec ((⟨@var{var₁}⟩ ⟨@var{exp₁}⟩) @r{…} (⟨@var{varₙ}⟩ ⟨@var{expₙ}⟩))
+  ⟨@var{body}⟩)
+@end lisp
+
+@noindent
+are a variation on @code{let} in which the expressions
+@math{{⟨\kern0.1em exp_k⟩}} that provide the initial values for the
+variables @math{{⟨\kern0.06em var_k⟩}} are evaluated in an environment
+that includes all the @code{letrec} bindings.  This permits recursion in the
+bindings, such as the mutual recursion of @code{even?} and @code{odd?} in the
+example above, or the evaluation of 10 factorial with
+
+@lisp
+(letrec
+    ((fact
+      (lambda (n)
+        (if (= n 1)
+            1
+            (* n (fact (- n 1)))))))
+  (fact 10))
+@end lisp
+
+@enumerate a
+
+@item
+Implement @code{letrec} as a derived expression, by transforming a
+@code{letrec} expression into a @code{let} expression as shown in the text
+above or in @ref{Exercise 4.18}.  That is, the @code{letrec} variables should
+be created with a @code{let} and then be assigned their values with
+@code{set!}.
+
+@item
+Louis Reasoner is confused by all this fuss about internal definitions.  The
+way he sees it, if you don't like to use @code{define} inside a procedure, you
+can just use @code{let}.  Illustrate what is loose about his reasoning by
+drawing an environment diagram that shows the environment in which the
+@code{⟨}@var{rest of body of @code{f}}@code{⟩} is evaluated during evaluation of the
+expression @code{(f 5)}, with @code{f} defined as in this exercise.  Draw an
+environment diagram for the same evaluation, but with @code{let} in place of
+@code{letrec} in the definition of @code{f}.
+
+@end enumerate
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.21}Exercise 4.21:} Amazingly, Louis's intuition in
+@ref{Exercise 4.20} is correct.  It is indeed possible to specify recursive
+procedures without using @code{letrec} (or even @code{define}), although the
+method for accomplishing this is much more subtle than Louis imagined.  The
+following expression computes 10 factorial by applying a recursive factorial
+procedure:@footnote{This example illustrates a programming trick for
+formulating recursive procedures without using @code{define}.  The most general
+trick of this sort is the @math{Y} @newterm{operator}, which can be used to give a
+``pure λ-calculus'' implementation of recursion.  (See @ref{Stoy 1977} for
+details on the λ-calculus, and @ref{Gabriel 1988} for an exposition of the
+@math{Y} operator in Scheme.)}
+
+@lisp
+((lambda (n)
+   ((lambda (fact) (fact fact n))
+    (lambda (ft k)
+      (if (= k 1)
+          1
+          (* k (ft ft (- k 1)))))))
+ 10)
+@end lisp
+
+@enumerate a
+
+@item
+Check (by evaluating the expression) that this really does compute factorials.
+Devise an analogous expression for computing Fibonacci numbers.
+
+@item
+Consider the following procedure, which includes mutually recursive internal
+definitions:
+
+@lisp
+(define (f x)
+  (define (even? n)
+    (if (= n 0)
+        true
+        (odd? (- n 1))))
+  (define (odd? n)
+    (if (= n 0)
+        false
+        (even? (- n 1))))
+  (even? x))
+@end lisp
+
+Fill in the missing expressions to complete an alternative definition of
+@code{f}, which uses neither internal definitions nor @code{letrec}:
+
+@lisp
+(define (f x)
+  ((lambda (even? odd?)
+     (even? even? odd? x))
+   (lambda (ev? od? n)
+     (if (= n 0) 
+         true 
+         (od? ⟨??⟩ ⟨??⟩ ⟨??⟩)))
+   (lambda (ev? od? n)
+     (if (= n 0) 
+         false 
+         (ev? ⟨??⟩ ⟨??⟩ ⟨??⟩)))))
+@end lisp
+@end enumerate
+@end quotation
+
+@node	4.1.7, 4.2, Chapter 4, 4.1
+@subsection Separating Syntactic Analysis from Execution
+
+The evaluator implemented above is simple, but it is very inefficient, because
+the syntactic analysis of expressions is interleaved with their execution.
+Thus if a program is executed many times, its syntax is analyzed many times.
+Consider, for example, evaluating @code{(factorial 4)} using the following
+definition of @code{factorial}:
+
+@lisp
+(define (factorial n)
+  (if (= n 1)
+      1
+      (* (factorial (- n 1)) n)))
+@end lisp
+
+@noindent
+Each time @code{factorial} is called, the evaluator must determine that the
+body is an @code{if} expression and extract the predicate.  Only then can it
+evaluate the predicate and dispatch on its value.  Each time it evaluates the
+expression @code{(* (factorial (- n 1)) n)}, or the subexpressions
+@code{(factorial (- n 1))} and @code{(- n 1)}, the evaluator must perform the
+case analysis in @code{eval} to determine that the expression is an
+application, and must extract its operator and operands.  This analysis is
+expensive.  Performing it repeatedly is wasteful.
+
+We can transform the evaluator to be significantly more efficient by arranging
+things so that syntactic analysis is performed only once.@footnote{This
+technique is an integral part of the compilation process, which we shall
+discuss in @ref{Chapter 5}.  Jonathan Rees wrote a Scheme interpreter like this
+in about 1982 for the T project (@ref{Rees and Adams 1982}).  Marc @ref{Feeley (1986)} (see
+also @ref{Feeley and Lapalme 1987}) independently invented this technique in his
+master's thesis.} We split @code{eval}, which takes an expression and an
+environment, into two parts.  The procedure @code{analyze} takes only the
+expression.  It performs the syntactic analysis and returns a new procedure,
+the @newterm{execution procedure}, that encapsulates the work to be done in
+executing the analyzed expression.  The execution procedure takes an
+environment as its argument and completes the evaluation.  This saves work
+because @code{analyze} will be called only once on an expression, while the
+execution procedure may be called many times.
+
+With the separation into analysis and execution, @code{eval} now becomes
+
+@lisp
+(define (eval exp env) ((analyze exp) env))
+@end lisp
+
+@noindent
+The result of calling @code{analyze} is the execution procedure to be applied
+to the environment.  The @code{analyze} procedure is the same case analysis as
+performed by the original @code{eval} of @ref{4.1.1}, except that the
+procedures to which we dispatch perform only analysis, not full evaluation:
+
+@lisp
+(define (analyze exp)
+  (cond ((self-evaluating? exp)
+         (analyze-self-evaluating exp))
+        ((quoted? exp) 
+         (analyze-quoted exp))
+        ((variable? exp) 
+         (analyze-variable exp))
+        ((assignment? exp) 
+         (analyze-assignment exp))
+        ((definition? exp) 
+         (analyze-definition exp))
+        ((if? exp) 
+         (analyze-if exp))
+        ((lambda? exp) 
+         (analyze-lambda exp))
+        ((begin? exp) 
+         (analyze-sequence 
+          (begin-actions exp)))
+        ((cond? exp) 
+         (analyze (cond->if exp)))
+        ((application? exp) 
+         (analyze-application exp))
+        (else
+         (error "Unknown expression 
+                 type: ANALYZE" 
+                exp))))
+@end lisp
+
+@noindent
+Here is the simplest syntactic analysis procedure, which handles
+self-evaluating expressions.  It returns an execution procedure that ignores
+its environment argument and just returns the expression:
+
+@lisp
+(define (analyze-self-evaluating exp)
+  (lambda (env) exp))
+@end lisp
+
+@noindent
+For a quoted expression, we can gain a little efficiency by extracting the text
+of the quotation only once, in the analysis phase, rather than in the execution
+phase.
+
+@lisp
+(define (analyze-quoted exp)
+  (let ((qval (text-of-quotation exp)))
+    (lambda (env) qval)))
+@end lisp
+
+@noindent
+Looking up a variable value must still be done in the execution phase, since
+this depends upon knowing the environment.@footnote{There is, however, an
+important part of the variable search that @emph{can} be done as part of the
+syntactic analysis.  As we will show in @ref{5.5.6}, one can determine
+the position in the environment structure where the value of the variable will
+be found, thus obviating the need to scan the environment for the entry that
+matches the variable.}
+
+@lisp
+(define (analyze-variable exp)
+  (lambda (env) 
+    (lookup-variable-value exp env)))
+@end lisp
+
+@noindent
+@code{Analyze-assignment} also must defer actually setting the variable until
+the execution, when the environment has been supplied.  However, the fact that
+the @code{assignment-value} expression can be analyzed (recursively) during
+analysis is a major gain in efficiency, because the @code{assignment-value}
+expression will now be analyzed only once.  The same holds true for
+definitions.
+
+@lisp
+(define (analyze-assignment exp)
+  (let ((var (assignment-variable exp))
+        (vproc (analyze 
+                (assignment-value exp))))
+    (lambda (env)
+      (set-variable-value! 
+       var (vproc env) env)
+      'ok)))
+
+(define (analyze-definition exp)
+  (let ((var (definition-variable exp))
+        (vproc (analyze 
+                (definition-value exp))))
+    (lambda (env)
+      (define-variable! var (vproc env) env)
+      'ok)))
+@end lisp
+
+@noindent
+For @code{if} expressions, we extract and analyze the predicate, consequent,
+and alternative at analysis time.
+
+@lisp
+(define (analyze-if exp)
+  (let ((pproc (analyze (if-predicate exp)))
+        (cproc (analyze (if-consequent exp)))
+        (aproc (analyze (if-alternative exp))))
+    (lambda (env)
+      (if (true? (pproc env))
+          (cproc env)
+          (aproc env)))))
+@end lisp
+
+@noindent
+Analyzing a @code{lambda} expression also achieves a major gain in efficiency:
+We analyze the @code{lambda} body only once, even though procedures resulting
+from evaluation of the @code{lambda} may be applied many times.
+
+@lisp
+(define (analyze-lambda exp)
+  (let ((vars (lambda-parameters exp))
+        (bproc (analyze-sequence 
+                (lambda-body exp))))
+    (lambda (env) 
+      (make-procedure vars bproc env))))
+@end lisp
+
+@noindent
+Analysis of a sequence of expressions (as in a @code{begin} or the body of a
+@code{lambda} expression) is more involved.@footnote{See @ref{Exercise 4.23}
+for some insight into the processing of sequences.} Each expression in the
+sequence is analyzed, yielding an execution procedure.  These execution
+procedures are combined to produce an execution procedure that takes an
+environment as argument and sequentially calls each individual execution
+procedure with the environment as argument.
+
+@lisp
+(define (analyze-sequence exps)
+  (define (sequentially proc1 proc2)
+    (lambda (env) (proc1 env) (proc2 env)))
+  (define (loop first-proc rest-procs)
+    (if (null? rest-procs)
+        first-proc
+        (loop (sequentially first-proc 
+                            (car rest-procs))
+              (cdr rest-procs))))
+  (let ((procs (map analyze exps)))
+    (if (null? procs)
+        (error "Empty sequence: ANALYZE"))
+    (loop (car procs) (cdr procs))))
+@end lisp
+
+@noindent
+To analyze an application, we analyze the operator and operands and construct
+an execution procedure that calls the operator execution procedure (to obtain
+the actual procedure to be applied) and the operand execution procedures (to
+obtain the actual arguments).  We then pass these to
+@code{execute-application}, which is the analog of @code{apply} in 
+@ref{4.1.1}.  @code{Execute-application} differs from @code{apply} in that the
+procedure body for a compound procedure has already been analyzed, so there is
+no need to do further analysis.  Instead, we just call the execution procedure
+for the body on the extended environment.
+
+@lisp
+(define (analyze-application exp)
+  (let ((fproc (analyze (operator exp)))
+        (aprocs (map analyze (operands exp))))
+    (lambda (env)
+      (execute-application 
+       (fproc env)
+       (map (lambda (aproc) (aproc env))
+            aprocs)))))
+
+(define (execute-application proc args)
+  (cond ((primitive-procedure? proc)
+         (apply-primitive-procedure proc args))
+        ((compound-procedure? proc)
+         ((procedure-body proc)
+          (extend-environment 
+           (procedure-parameters proc)
+           args
+           (procedure-environment proc))))
+        (else (error "Unknown procedure type: 
+                      EXECUTE-APPLICATION"
+                     proc))))
+@end lisp
+
+@noindent
+Our new evaluator uses the same data structures, syntax procedures, and
+run-time support procedures as in @ref{4.1.2}, @ref{4.1.3}, and
+@ref{4.1.4}.
+
+@quotation
+@strong{@anchor{Exercise 4.22}Exercise 4.22:} Extend the evaluator in this
+section to support the special form @code{let}.  (See @ref{Exercise 4.6}.)
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.23}Exercise 4.23:} Alyssa P. Hacker doesn't
+understand why @code{analyze-sequence} needs to be so complicated.  All the
+other analysis procedures are straightforward transformations of the
+corresponding evaluation procedures (or @code{eval} clauses) in 
+@ref{4.1.1}.  She expected @code{analyze-sequence} to look like this:
+
+@lisp
+(define (analyze-sequence exps)
+  (define (execute-sequence procs env)
+    (cond ((null? (cdr procs)) 
+           ((car procs) env))
+          (else ((car procs) env)
+                (execute-sequence 
+                 (cdr procs) env))))
+  (let ((procs (map analyze exps)))
+    (if (null? procs)
+        (error "Empty sequence: 
+                ANALYZE"))
+    (lambda (env) 
+      (execute-sequence procs env))))
+@end lisp
+
+Eva Lu Ator explains to Alyssa that the version in the text does more of the
+work of evaluating a sequence at analysis time.  Alyssa's sequence-execution
+procedure, rather than having the calls to the individual execution procedures
+built in, loops through the procedures in order to call them: In effect,
+although the individual expressions in the sequence have been analyzed, the
+sequence itself has not been.
+
+Compare the two versions of @code{analyze-sequence}.  For example, consider the
+common case (typical of procedure bodies) where the sequence has just one
+expression.  What work will the execution procedure produced by Alyssa's
+program do?  What about the execution procedure produced by the program in the
+text above?  How do the two versions compare for a sequence with two
+expressions?
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.24}Exercise 4.24:} Design and carry out some
+experiments to compare the speed of the original metacircular evaluator with
+the version in this section.  Use your results to estimate the fraction of time
+that is spent in analysis versus execution for various procedures.
+@end quotation
+
+@node	4.2, 4.3, 4.1, Chapter 4
+@section Variations on a Scheme --- Lazy Evaluation
+
+Now that we have an evaluator expressed as a Lisp program, we can experiment
+with alternative choices in language design simply by modifying the evaluator.
+Indeed, new languages are often invented by first writing an evaluator that
+embeds the new language within an existing high-level language.  For example,
+if we wish to discuss some aspect of a proposed modification to Lisp with
+another member of the Lisp community, we can supply an evaluator that embodies
+the change.  The recipient can then experiment with the new evaluator and send
+back comments as further modifications.  Not only does the high-level
+implementation base make it easier to test and debug the evaluator; in
+addition, the embedding enables the designer to snarf@footnote{Snarf: ``To
+grab, especially a large document or file for the purpose of using it either
+with or without the owner's permission.''  Snarf down: ``To snarf, sometimes
+with the connotation of absorbing, processing, or understanding.''  (These
+definitions were snarfed from @ref{Steele et al. 1983}.  See also @ref{Raymond 1993}.)}
+features from the underlying language, just as our embedded Lisp evaluator uses
+primitives and control structure from the underlying Lisp.  Only later (if
+ever) need the designer go to the trouble of building a complete implementation
+in a low-level language or in hardware.  In this section and the next we
+explore some variations on Scheme that provide significant additional
+expressive power.
+
+@menu
+* 4.2.1::            Normal Order and Applicative Order
+* 4.2.2::            An Interpreter with Lazy Evaluation
+* 4.2.3::            Streams as Lazy Lists
+@end menu
+
+@node	4.2.1, 4.2.2, 4.2, 4.2
+@subsection Normal Order and Applicative Order
+
+In @ref{1.1}, where we began our discussion of models of evaluation, we
+noted that Scheme is an @newterm{applicative-order} language, namely, that all
+the arguments to Scheme procedures are evaluated when the procedure is applied.
+In contrast, @newterm{normal-order} languages delay evaluation of procedure
+arguments until the actual argument values are needed.  Delaying evaluation of
+procedure arguments until the last possible moment (e.g., until they are
+required by a primitive operation) is called @newterm{lazy evaluation}.@footnote{The difference 
+between the ``lazy'' terminology and the
+``normal-order'' terminology is somewhat fuzzy.  Generally, ``lazy'' refers to
+the mechanisms of particular evaluators, while ``normal-order'' refers to the
+semantics of languages, independent of any particular evaluation strategy.  But
+this is not a hard-and-fast distinction, and the two terminologies are often
+used interchangeably.}  Consider the procedure
+
+@lisp
+(define (try a b)
+  (if (= a 0) 1 b))
+@end lisp
+
+@noindent
+Evaluating @code{(try 0 (/ 1 0))} generates an error in Scheme.  With lazy
+evaluation, there would be no error.  Evaluating the expression would return 1,
+because the argument @code{(/ 1 0)} would never be evaluated.
+
+An example that exploits lazy evaluation is the definition of a procedure
+@code{unless}
+
+@lisp
+(define (unless condition 
+                usual-value 
+                exceptional-value)
+  (if condition 
+      exceptional-value 
+      usual-value))
+@end lisp
+
+@noindent
+that can be used in expressions such as
+
+@lisp
+(unless (= b 0)
+        (/ a b)
+        (begin 
+          (display "exception: returning 0")
+          0))
+@end lisp
+
+@noindent
+This won't work in an applicative-order language because both the usual value
+and the exceptional value will be evaluated before @code{unless} is called
+(compare @ref{Exercise 1.6}).  An advantage of lazy evaluation is that some
+procedures, such as @code{unless}, can do useful computation even if evaluation
+of some of their arguments would produce errors or would not terminate.
+
+If the body of a procedure is entered before an argument has been evaluated we
+say that the procedure is @newterm{non-strict} in that argument.  If the
+argument is evaluated before the body of the procedure is entered we say that
+the procedure is @newterm{strict} in that argument.@footnote{The ``strict''
+versus ``non-strict'' terminology means essentially the same thing as
+``applicative-order'' versus ``normal-order,'' except that it refers to
+individual procedures and arguments rather than to the language as a whole.  At
+a conference on programming languages you might hear someone say, ``The
+normal-order language Hassle has certain strict primitives.  Other procedures
+take their arguments by lazy evaluation.''}  In a purely applicative-order
+language, all procedures are strict in each argument.  In a purely normal-order
+language, all compound procedures are non-strict in each argument, and
+primitive procedures may be either strict or non-strict.  There are also
+languages (see @ref{Exercise 4.31}) that give programmers detailed control over
+the strictness of the procedures they define.
+
+A striking example of a procedure that can usefully be made non-strict is
+@code{cons} (or, in general, almost any constructor for data structures).  One
+can do useful computation, combining elements to form data structures and
+operating on the resulting data structures, even if the values of the elements
+are not known.  It makes perfect sense, for instance, to compute the length of
+a list without knowing the values of the individual elements in the list.  We
+will exploit this idea in @ref{4.2.3} to implement the streams of
+@ref{Chapter 3} as lists formed of non-strict @code{cons} pairs.
+
+@quotation
+@strong{@anchor{Exercise 4.25}Exercise 4.25:} Suppose that (in ordinary
+applicative-order Scheme) we define @code{unless} as shown above and then
+define @code{factorial} in terms of @code{unless} as
+
+@lisp
+(define (factorial n)
+  (unless (= n 1)
+          (* n (factorial (- n 1)))
+          1))
+@end lisp
+
+What happens if we attempt to evaluate @code{(factorial 5)}?  Will our
+definitions work in a normal-order language?
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.26}Exercise 4.26:} Ben Bitdiddle and Alyssa

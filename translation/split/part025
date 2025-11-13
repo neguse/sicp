@@ -1,0 +1,1000 @@
+P. Hacker disagree over the importance of lazy evaluation for implementing
+things such as @code{unless}.  Ben points out that it's possible to implement
+@code{unless} in applicative order as a special form.  Alyssa counters that, if
+one did that, @code{unless} would be merely syntax, not a procedure that could
+be used in conjunction with higher-order procedures.  Fill in the details on
+both sides of the argument.  Show how to implement @code{unless} as a derived
+expression (like @code{cond} or @code{let}), and give an example of a situation
+where it might be useful to have @code{unless} available as a procedure, rather
+than as a special form.
+@end quotation
+
+@node	4.2.2, 4.2.3, 4.2.1, 4.2
+@subsection An Interpreter with Lazy Evaluation
+
+In this section we will implement a normal-order language that is the same as
+Scheme except that compound procedures are non-strict in each argument.
+Primitive procedures will still be strict.  It is not difficult to modify the
+evaluator of @ref{4.1.1} so that the language it interprets behaves
+this way.  Almost all the required changes center around procedure application.
+
+The basic idea is that, when applying a procedure, the interpreter must
+determine which arguments are to be evaluated and which are to be delayed.  The
+delayed arguments are not evaluated; instead, they are transformed into objects
+called @newterm{thunks}.@footnote{The word @newterm{thunk} was invented by an
+informal working group that was discussing the implementation of call-by-name
+in Algol 60.  They observed that most of the analysis of (``thinking about'')
+the expression could be done at compile time; thus, at run time, the expression
+would already have been ``thunk'' about (@ref{Ingerman et al. 1960}).} The thunk must
+contain the information required to produce the value of the argument when it
+is needed, as if it had been evaluated at the time of the application.  Thus,
+the thunk must contain the argument expression and the environment in which the
+procedure application is being evaluated.
+
+The process of evaluating the expression in a thunk is called
+@newterm{forcing}.@footnote{This is analogous to the use of @code{force} on the
+delayed objects that were introduced in @ref{Chapter 3} to represent streams.
+The critical difference between what we are doing here and what we did in
+@ref{Chapter 3} is that we are building delaying and forcing into the
+evaluator, and thus making this uniform and automatic throughout the language.}
+In general, a thunk will be forced only when its value is needed: when it is
+passed to a primitive procedure that will use the value of the thunk; when it
+is the value of a predicate of a conditional; and when it is the value of an
+operator that is about to be applied as a procedure.  One design choice we have
+available is whether or not to @newterm{memoize} thunks, as we did with delayed
+objects in @ref{3.5.1}.  With memoization, the first time a thunk is
+forced, it stores the value that is computed.  Subsequent forcings simply
+return the stored value without repeating the computation.  We'll make our
+interpreter memoize, because this is more efficient for many applications.
+There are tricky considerations here, however.@footnote{Lazy evaluation
+combined with memoization is sometimes referred to as @newterm{call-by-need}
+argument passing, in contrast to @newterm{call-by-name} argument passing.
+(Call-by-name, introduced in Algol 60, is similar to non-memoized lazy
+evaluation.)  As language designers, we can build our evaluator to memoize, not
+to memoize, or leave this an option for programmers (@ref{Exercise 4.31}).  As
+you might expect from @ref{Chapter 3}, these choices raise issues that become
+both subtle and confusing in the presence of assignments.  (See @ref{Exercise 4.27} 
+and @ref{Exercise 4.29}.)  An excellent article by @ref{Clinger (1982)}
+attempts to clarify the multiple dimensions of confusion that arise here.}
+
+@subsubheading Modifying the evaluator
+
+The main difference between the lazy evaluator and the one in @ref{4.1}
+is in the handling of procedure applications in @code{eval} and @code{apply}.
+
+The @code{application?} clause of @code{eval} becomes
+
+@lisp
+((application? exp)
+ (apply (actual-value (operator exp) env)
+        (operands exp)
+        env))
+@end lisp
+
+@noindent
+This is almost the same as the @code{application?} clause of @code{eval} in
+@ref{4.1.1}.  For lazy evaluation, however, we call @code{apply} with
+the operand expressions, rather than the arguments produced by evaluating them.
+Since we will need the environment to construct thunks if the arguments are to
+be delayed, we must pass this as well.  We still evaluate the operator, because
+@code{apply} needs the actual procedure to be applied in order to dispatch on
+its type (primitive versus compound) and apply it.
+
+Whenever we need the actual value of an expression, we use
+
+@lisp
+(define (actual-value exp env)
+  (force-it (eval exp env)))
+@end lisp
+
+@noindent
+instead of just @code{eval}, so that if the expression's value is a thunk, it
+will be forced.
+
+Our new version of @code{apply} is also almost the same as the version in
+@ref{4.1.1}.  The difference is that @code{eval} has passed in
+unevaluated operand expressions: For primitive procedures (which are strict),
+we evaluate all the arguments before applying the primitive; for compound
+procedures (which are non-strict) we delay all the arguments before applying
+the procedure.
+
+@lisp
+(define (apply procedure arguments env)
+  (cond ((primitive-procedure? procedure)
+         (apply-primitive-procedure
+          procedure
+          (list-of-arg-values 
+           arguments 
+           env)))  @r{; changed}
+        ((compound-procedure? procedure)
+         (eval-sequence
+          (procedure-body procedure)
+          (extend-environment
+           (procedure-parameters procedure)
+           (list-of-delayed-args 
+            arguments 
+            env)   @r{; changed}
+           (procedure-environment procedure))))
+        (else (error "Unknown procedure 
+                      type: APPLY" 
+                     procedure))))
+@end lisp
+
+@noindent
+The procedures that process the arguments are just like @code{list-of-values}
+from @ref{4.1.1}, except that @code{list-of-delayed-args} delays the
+arguments instead of evaluating them, and @code{list-of-arg-values} uses
+@code{actual-value} instead of @code{eval}:
+
+@lisp
+(define (list-of-arg-values exps env)
+  (if (no-operands? exps)
+      '()
+      (cons (actual-value 
+             (first-operand exps) 
+             env)
+            (list-of-arg-values 
+             (rest-operands exps)
+             env))))
+
+(define (list-of-delayed-args exps env)
+  (if (no-operands? exps)
+      '()
+      (cons (delay-it 
+             (first-operand exps) 
+             env)
+            (list-of-delayed-args 
+             (rest-operands exps)
+             env))))
+@end lisp
+
+@noindent
+The other place we must change the evaluator is in the handling of @code{if},
+where we must use @code{actual-value} instead of @code{eval} to get the value
+of the predicate expression before testing whether it is true or false:
+
+@lisp
+(define (eval-if exp env)
+  (if (true? (actual-value (if-predicate exp) 
+                           env))
+      (eval (if-consequent exp) env)
+      (eval (if-alternative exp) env)))
+@end lisp
+
+@noindent
+Finally, we must change the @code{driver-loop} procedure (@ref{4.1.4})
+to use @code{actual-value} instead of @code{eval}, so that if a delayed value
+is propagated back to the read-eval-print loop, it will be forced before being
+printed.  We also change the prompts to indicate that this is the lazy
+evaluator:
+
+@lisp
+(define input-prompt  ";;; L-Eval input:")
+(define output-prompt ";;; L-Eval value:")
+
+(define (driver-loop)
+  (prompt-for-input input-prompt)
+  (let ((input (read)))
+    (let ((output (actual-value 
+                   input 
+                   the-global-environment)))
+      (announce-output output-prompt)
+      (user-print output)))
+  (driver-loop))
+@end lisp
+
+@noindent
+With these changes made, we can start the evaluator and test it.  The
+successful evaluation of the @code{try} expression discussed in 
+@ref{4.2.1} indicates that the interpreter is performing lazy evaluation:
+
+@lisp
+(define the-global-environment 
+  (setup-environment))
+
+(driver-loop)
+
+@i{;;; L-Eval input:}
+(define (try a b) (if (= a 0) 1 b))
+
+@i{;;; L-Eval value:}
+@i{ok}
+
+@i{;;; L-Eval input:}
+(try 0 (/ 1 0))
+
+@i{;;; L-Eval value:}
+@i{1}
+@end lisp
+
+@subsubheading Representing thunks
+
+Our evaluator must arrange to create thunks when procedures are applied to
+arguments and to force these thunks later.  A thunk must package an expression
+together with the environment, so that the argument can be produced later.  To
+force the thunk, we simply extract the expression and environment from the
+thunk and evaluate the expression in the environment.  We use
+@code{actual-value} rather than @code{eval} so that in case the value of the
+expression is itself a thunk, we will force that, and so on, until we reach
+something that is not a thunk:
+
+@lisp
+(define (force-it obj)
+  (if (thunk? obj)
+      (actual-value (thunk-exp obj) 
+                    (thunk-env obj))
+      obj))
+@end lisp
+
+@noindent
+One easy way to package an expression with an environment is to make a list
+containing the expression and the environment.  Thus, we create a thunk as
+follows:
+
+@lisp
+(define (delay-it exp env)
+  (list 'thunk exp env))
+(define (thunk? obj) (tagged-list? obj 'thunk))
+(define (thunk-exp thunk) (cadr thunk))
+(define (thunk-env thunk) (caddr thunk))
+@end lisp
+
+@noindent
+Actually, what we want for our interpreter is not quite this, but rather thunks
+that have been memoized.  When a thunk is forced, we will turn it into an
+evaluated thunk by replacing the stored expression with its value and changing
+the @code{thunk} tag so that it can be recognized as already
+evaluated.@footnote{Notice that we also erase the @code{env} from the thunk
+once the expression's value has been computed.  This makes no difference in the
+values returned by the interpreter.  It does help save space, however, because
+removing the reference from the thunk to the @code{env} once it is no longer
+needed allows this structure to be @newterm{garbage-collected} and its space
+recycled, as we will discuss in @ref{5.3}.
+
+Similarly, we could have allowed unneeded environments in the memoized delayed
+objects of @ref{3.5.1} to be garbage-collected, by having
+@code{memo-proc} do something like @code{(set! proc '())} to discard the
+procedure @code{proc} (which includes the environment in which the @code{delay}
+was evaluated) after storing its value.}
+
+@lisp
+(define (evaluated-thunk? obj)
+  (tagged-list? obj 'evaluated-thunk))
+
+(define (thunk-value evaluated-thunk) 
+  (cadr evaluated-thunk))
+
+(define (force-it obj)
+  (cond ((thunk? obj)
+         (let ((result
+                (actual-value 
+                 (thunk-exp obj)
+                 (thunk-env obj))))
+           (set-car! obj 'evaluated-thunk)
+           ;; @r{replace @code{exp} with its value:}
+           (set-car! (cdr obj) result) 
+           ;; @r{forget unneeded @code{env}:}
+           (set-cdr! (cdr obj) '()) 
+           result))
+        ((evaluated-thunk? obj)
+         (thunk-value obj))
+        (else obj)))
+@end lisp
+
+@noindent
+Notice that the same @code{delay-it} procedure works both with and without
+memoization.
+
+@quotation
+@strong{@anchor{Exercise 4.27}Exercise 4.27:} Suppose we type in the following
+definitions to the lazy evaluator:
+
+@lisp
+(define count 0)
+(define (id x) (set! count (+ count 1)) x)
+@end lisp
+
+Give the missing values in the following sequence of interactions, and explain
+your answers.@footnote{This exercise demonstrates that the interaction between
+lazy evaluation and side effects can be very confusing.  This is just what you
+might expect from the discussion in @ref{Chapter 3}.}
+
+@lisp
+(define w (id (id 10)))
+
+@i{;;; L-Eval input:}
+count
+
+@i{;;; L-Eval value:}
+⟨@var{response}⟩
+
+@i{;;; L-Eval input:}
+w
+
+@i{;;; L-Eval value:}
+⟨@var{response}⟩
+
+@i{;;; L-Eval input:}
+count
+
+@i{;;; L-Eval value:}
+⟨@var{response}⟩
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.28}Exercise 4.28:} @code{Eval} uses
+@code{actual-value} rather than @code{eval} to evaluate the operator before
+passing it to @code{apply}, in order to force the value of the operator.  Give
+an example that demonstrates the need for this forcing.
+
+@noindent
+@strong{@anchor{Exercise 4.29}Exercise 4.29:} Exhibit a program that you would
+expect to run much more slowly without memoization than with memoization.
+Also, consider the following interaction, where the @code{id} procedure is
+defined as in @ref{Exercise 4.27} and @code{count} starts at 0:
+
+@lisp
+(define (square x) (* x x))
+
+@i{;;; L-Eval input:}
+(square (id 10))
+
+@i{;;; L-Eval value:}
+⟨@var{response}⟩
+
+@i{;;; L-Eval input:}
+count
+
+@i{;;; L-Eval value:}
+⟨@var{response}⟩
+@end lisp
+
+Give the responses both when the evaluator memoizes and when it does not.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.30}Exercise 4.30:} Cy D. Fect, a reformed C
+programmer, is worried that some side effects may never take place, because the
+lazy evaluator doesn't force the expressions in a sequence.  Since the value of
+an expression in a sequence other than the last one is not used (the expression
+is there only for its effect, such as assigning to a variable or printing),
+there can be no subsequent use of this value (e.g., as an argument to a
+primitive procedure) that will cause it to be forced.  Cy thus thinks that when
+evaluating sequences, we must force all expressions in the sequence except the
+final one.  He proposes to modify @code{eval-sequence} from @ref{4.1.1}
+to use @code{actual-value} rather than @code{eval}:
+
+@lisp
+(define (eval-sequence exps env)
+  (cond ((last-exp? exps) 
+         (eval (first-exp exps) env))
+        (else 
+         (actual-value (first-exp exps) 
+                       env)
+         (eval-sequence (rest-exps exps) 
+                        env))))
+@end lisp
+
+@enumerate a
+
+@item
+Ben Bitdiddle thinks Cy is wrong.  He shows Cy the @code{for-each} procedure
+described in @ref{Exercise 2.23}, which gives an important example of a
+sequence with side effects:
+
+@lisp
+(define (for-each proc items)
+  (if (null? items)
+      'done
+      (begin (proc (car items))
+             (for-each proc 
+                       (cdr items)))))
+@end lisp
+
+He claims that the evaluator in the text (with the original
+@code{eval-sequence}) handles this correctly:
+
+@lisp
+@i{;;; L-Eval input:}
+(for-each
+ (lambda (x) (newline) (display x))
+ (list 57 321 88))
+@i{57}
+@i{321}
+@i{88}
+
+@i{;;; L-Eval value:}
+@i{done}
+@end lisp
+
+Explain why Ben is right about the behavior of @code{for-each}.
+
+@item
+Cy agrees that Ben is right about the @code{for-each} example, but says that
+that's not the kind of program he was thinking about when he proposed his
+change to @code{eval-sequence}.  He defines the following two procedures in the
+lazy evaluator:
+
+@lisp
+(define (p1 x)
+  (set! x (cons x '(2))) x)
+
+(define (p2 x)
+  (define (p e) e x)
+  (p (set! x (cons x '(2)))))
+@end lisp
+
+What are the values of @code{(p1 1)} and @code{(p2 1)} with the original
+@code{eval-sequence}?  What would the values be with Cy's proposed change to
+@code{eval-sequence}?
+
+@item
+Cy also points out that changing @code{eval-sequence} as he proposes does not
+affect the behavior of the example in part a.  Explain why this is true.
+
+@item
+How do you think sequences ought to be treated in the lazy evaluator?  Do you
+like Cy's approach, the approach in the text, or some other approach?
+
+@end enumerate
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.31}Exercise 4.31:} The approach taken in this
+section is somewhat unpleasant, because it makes an incompatible change to
+Scheme.  It might be nicer to implement lazy evaluation as an
+@newterm{upward-compatible extension}, that is, so that ordinary Scheme
+programs will work as before.  We can do this by extending the syntax of
+procedure declarations to let the user control whether or not arguments are to
+be delayed.  While we're at it, we may as well also give the user the choice
+between delaying with and without memoization.  For example, the definition
+
+@lisp
+(define (f a (b lazy) c (d lazy-memo))
+  @r{…})
+@end lisp
+
+@noindent
+would define @code{f} to be a procedure of four arguments, where the first and
+third arguments are evaluated when the procedure is called, the second argument
+is delayed, and the fourth argument is both delayed and memoized.  Thus,
+ordinary procedure definitions will produce the same behavior as ordinary
+Scheme, while adding the @code{lazy-memo} declaration to each parameter of
+every compound procedure will produce the behavior of the lazy evaluator
+defined in this section. Design and implement the changes required to produce
+such an extension to Scheme.  You will have to implement new syntax procedures
+to handle the new syntax for @code{define}.  You must also arrange for
+@code{eval} or @code{apply} to determine when arguments are to be delayed, and
+to force or delay arguments accordingly, and you must arrange for forcing to
+memoize or not, as appropriate.
+@end quotation
+
+@node	4.2.3, 4.3, 4.1, 4.2
+@subsection Streams as Lazy Lists
+
+In @ref{3.5.1}, we showed how to implement streams as delayed lists.
+We introduced special forms @code{delay} and @code{cons-stream}, which allowed
+us to construct a ``promise'' to compute the @code{cdr} of a stream, without
+actually fulfilling that promise until later.  We could use this general
+technique of introducing special forms whenever we need more control over the
+evaluation process, but this is awkward.  For one thing, a special form is not
+a first-class object like a procedure, so we cannot use it together with
+higher-order procedures.@footnote{This is precisely the issue with the
+@code{unless} procedure, as in @ref{Exercise 4.26}.}  Additionally, we were
+forced to create streams as a new kind of data object similar but not identical
+to lists, and this required us to reimplement many ordinary list operations
+(@code{map}, @code{append}, and so on) for use with streams.
+
+With lazy evaluation, streams and lists can be identical, so there is no need
+for special forms or for separate list and stream operations.  All we need to
+do is to arrange matters so that @code{cons} is non-strict.  One way to
+accomplish this is to extend the lazy evaluator to allow for non-strict
+primitives, and to implement @code{cons} as one of these.  An easier way is to
+recall (@ref{2.1.3}) that there is no fundamental need to implement
+@code{cons} as a primitive at all.  Instead, we can represent pairs as
+procedures:@footnote{This is the procedural representation described in
+@ref{Exercise 2.4}.  Essentially any procedural representation (e.g., a
+message-passing implementation) would do as well.  Notice that we can install
+these definitions in the lazy evaluator simply by typing them at the driver
+loop.  If we had originally included @code{cons}, @code{car}, and @code{cdr} as
+primitives in the global environment, they will be redefined.  (Also see
+@ref{Exercise 4.33} and @ref{Exercise 4.34}.)}
+
+@lisp
+(define (cons x y) (lambda (m) (m x y)))
+(define (car z) (z (lambda (p q) p)))
+(define (cdr z) (z (lambda (p q) q)))
+@end lisp
+
+@noindent
+In terms of these basic operations, the standard definitions of the list
+operations will work with infinite lists (streams) as well as finite ones, and
+the stream operations can be implemented as list operations.  Here are some
+examples:
+
+@lisp
+(define (list-ref items n)
+  (if (= n 0)
+      (car items)
+      (list-ref (cdr items) (- n 1))))
+
+(define (map proc items)
+  (if (null? items)
+      '()
+      (cons (proc (car items))
+            (map proc (cdr items)))))
+
+(define (scale-list items factor)
+  (map (lambda (x) (* x factor))
+       items))
+
+(define (add-lists list1 list2)
+  (cond ((null? list1) list2)
+        ((null? list2) list1)
+        (else (cons (+ (car list1) 
+                       (car list2))
+                    (add-lists
+                     (cdr list1) 
+                     (cdr list2))))))
+
+(define ones (cons 1 ones))
+
+(define integers 
+  (cons 1 (add-lists ones integers)))
+
+@i{;;; L-Eval input:}
+(list-ref integers 17)
+
+@i{;;; L-Eval value:}
+@i{18}
+@end lisp
+
+@noindent
+Note that these lazy lists are even lazier than the streams of @ref{Chapter 3}:
+The @code{car} of the list, as well as the @code{cdr}, is
+delayed.@footnote{This permits us to create delayed versions of more general
+kinds of list structures, not just sequences.  @ref{Hughes 1990} discusses some
+applications of ``lazy trees.''}  In fact, even accessing the @code{car} or
+@code{cdr} of a lazy pair need not force the value of a list element.  The
+value will be forced only when it is really needed---e.g., for use as the
+argument of a primitive, or to be printed as an answer.
+
+Lazy pairs also help with the problem that arose with streams in 
+@ref{3.5.4}, where we found that formulating stream models of systems with
+loops may require us to sprinkle our programs with explicit @code{delay}
+operations, beyond the ones supplied by @code{cons-stream}.  With lazy
+evaluation, all arguments to procedures are delayed uniformly.  For instance,
+we can implement procedures to integrate lists and solve differential equations
+as we originally intended in @ref{3.5.4}:
+
+@lisp
+(define (integral integrand initial-value dt)
+  (define int
+    (cons initial-value
+          (add-lists (scale-list integrand dt) 
+                     int)))
+  int)
+
+(define (solve f y0 dt)
+  (define y (integral dy y0 dt))
+  (define dy (map f y))
+  y)
+
+@i{;;; L-Eval input:}
+(list-ref (solve (lambda (x) x) 1 0.001) 1000)
+
+@i{;;; L-Eval value:}
+@i{2.716924}
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 4.32}Exercise 4.32:} Give some examples that
+illustrate the difference between the streams of @ref{Chapter 3} and the
+``lazier'' lazy lists described in this section.  How can you take advantage of
+this extra laziness?
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.33}Exercise 4.33:} Ben Bitdiddle tests the lazy list
+implementation given above by evaluating the expression
+
+@lisp
+(car '(a b c))
+@end lisp
+
+To his surprise, this produces an error.  After some thought, he realizes that
+the ``lists'' obtained by reading in quoted expressions are different from the
+lists manipulated by the new definitions of @code{cons}, @code{car}, and
+@code{cdr}.  Modify the evaluator's treatment of quoted expressions so that
+quoted lists typed at the driver loop will produce true lazy lists.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.34}Exercise 4.34:} Modify the driver loop for the
+evaluator so that lazy pairs and lists will print in some reasonable way.
+(What are you going to do about infinite lists?)  You may also need to modify
+the representation of lazy pairs so that the evaluator can identify them in
+order to print them.
+@end quotation
+
+@node	4.3, 4.4, 4.2, Chapter 4
+@section Variations on a Scheme --- Nondeterministic Computing
+
+In this section, we extend the Scheme evaluator to support a programming
+paradigm called @newterm{nondeterministic computing} by building into the
+evaluator a facility to support automatic search.  This is a much more profound
+change to the language than the introduction of lazy evaluation in 
+@ref{4.2}.
+
+Nondeterministic computing, like stream processing, is useful for ``generate
+and test'' applications.  Consider the task of starting with two lists of
+positive integers and finding a pair of integers---one from the first list and
+one from the second list---whose sum is prime.  We saw how to handle this with
+finite sequence operations in @ref{2.2.3} and with infinite streams in
+@ref{3.5.3}.  Our approach was to generate the sequence of all possible
+pairs and filter these to select the pairs whose sum is prime.  Whether we
+actually generate the entire sequence of pairs first as in @ref{Chapter 2}, or
+interleave the generating and filtering as in @ref{Chapter 3}, is immaterial to
+the essential image of how the computation is organized.
+
+The nondeterministic approach evokes a different image.  Imagine simply that we
+choose (in some way) a number from the first list and a number from the second
+list and require (using some mechanism) that their sum be prime.  This is
+expressed by following procedure:
+
+@lisp
+(define (prime-sum-pair list1 list2)
+  (let ((a (an-element-of list1))
+        (b (an-element-of list2)))
+    (require (prime? (+ a b)))
+    (list a b)))
+@end lisp
+
+@noindent
+It might seem as if this procedure merely restates the problem, rather than
+specifying a way to solve it.  Nevertheless, this is a legitimate
+nondeterministic program.@footnote{We assume that we have previously defined a
+procedure @code{prime?} that tests whether numbers are prime.  Even with
+@code{prime?} defined, the @code{prime-sum-pair} procedure may look
+suspiciously like the unhelpful ``pseudo-Lisp'' attempt to define the
+square-root function, which we described at the beginning of 
+@ref{1.1.7}.  In fact, a square-root procedure along those lines can actually
+be formulated as a nondeterministic program.  By incorporating a search
+mechanism into the evaluator, we are eroding the distinction between purely
+declarative descriptions and imperative specifications of how to compute
+answers.  We'll go even farther in this direction in @ref{4.4}.}
+
+The key idea here is that expressions in a nondeterministic language can have
+more than one possible value.  For instance, @code{an-element-of} might return
+any element of the given list.  Our nondeterministic program evaluator will
+work by automatically choosing a possible value and keeping track of the
+choice.  If a subsequent requirement is not met, the evaluator will try a
+different choice, and it will keep trying new choices until the evaluation
+succeeds, or until we run out of choices.  Just as the lazy evaluator freed the
+programmer from the details of how values are delayed and forced, the
+nondeterministic program evaluator will free the programmer from the details of
+how choices are made.
+
+It is instructive to contrast the different images of time evoked by
+nondeterministic evaluation and stream processing.  Stream processing uses lazy
+evaluation to decouple the time when the stream of possible answers is
+assembled from the time when the actual stream elements are produced.  The
+evaluator supports the illusion that all the possible answers are laid out
+before us in a timeless sequence.  With nondeterministic evaluation, an
+expression represents the exploration of a set of possible worlds, each
+determined by a set of choices.  Some of the possible worlds lead to dead ends,
+while others have useful values.  The nondeterministic program evaluator
+supports the illusion that time branches, and that our programs have different
+possible execution histories.  When we reach a dead end, we can revisit a
+previous choice point and proceed along a different branch.
+
+The nondeterministic program evaluator implemented below is called the
+@code{amb} evaluator because it is based on a new special form called
+@code{amb}.  We can type the above definition of @code{prime-sum-pair} at the
+@code{amb} evaluator driver loop (along with definitions of @code{prime?},
+@code{an-element-of}, and @code{require}) and run the procedure as follows:
+
+@lisp
+@i{;;; Amb-Eval input:}
+(prime-sum-pair '(1 3 5 8) '(20 35 110))
+
+@i{;;; Starting a new problem}
+@i{;;; Amb-Eval value:}
+@i{(3 20)}
+@end lisp
+
+@noindent
+The value returned was obtained after the evaluator repeatedly chose elements
+from each of the lists, until a successful choice was made.
+
+Section @ref{4.3.1} introduces @code{amb} and explains how it supports
+nondeterminism through the evaluator's automatic search mechanism.  
+@ref{4.3.2} presents examples of nondeterministic programs, and 
+@ref{4.3.3} gives the details of how to implement the @code{amb} evaluator by
+modifying the ordinary Scheme evaluator.
+
+@menu
+* 4.3.1::            Amb and Search
+* 4.3.2::            Examples of Nondeterministic Programs
+* 4.3.3::            Implementing the @code{Amb} Evaluator
+@end menu
+
+@node	4.3.1, 4.3.2, 4.3, 4.3
+@subsection Amb and Search
+
+To extend Scheme to support nondeterminism, we introduce a new special form
+called @code{amb}.@footnote{The idea of @code{amb} for nondeterministic
+programming was first described in 1961 by John McCarthy (see @ref{McCarthy 1963}).}
+The expression
+
+@lisp
+(amb ⟨@var{e₁}⟩ ⟨@var{e₂}⟩ @r{…} ⟨@var{eₙ}⟩)
+@end lisp
+
+@noindent
+returns the value of one of the @math{n} expressions @math{{⟨\kern0.03em e_i⟩}}
+``ambiguously.''  For example, the expression
+
+@lisp
+(list (amb 1 2 3) (amb 'a 'b))
+@end lisp
+
+@noindent
+can have six possible values:
+
+@example
+@code{(1 a)} @code{(1 b)} @code{(2 a)} @code{(2 b)} @code{(3 a)} @code{(3 b)}
+@end example
+
+@noindent
+@code{Amb} with a single choice produces an ordinary (single) value.
+
+@code{Amb} with no choices---the expression @code{(amb)}---is an expression
+with no acceptable values.  Operationally, we can think of @code{(amb)} as an
+expression that when evaluated causes the computation to ``fail'': The
+computation aborts and no value is produced.  Using this idea, we can express
+the requirement that a particular predicate expression @code{p} must be true as
+follows:
+
+@lisp
+(define (require p)
+  (if (not p) (amb)))
+@end lisp
+
+@noindent
+With @code{amb} and @code{require}, we can implement the @code{an-element-of}
+procedure used above:
+
+@lisp
+(define (an-element-of items)
+  (require (not (null? items)))
+  (amb (car items) 
+       (an-element-of (cdr items))))
+@end lisp
+
+@noindent
+@code{An-element-of} fails if the list is empty.  Otherwise it ambiguously
+returns either the first element of the list or an element chosen from the rest
+of the list.
+
+We can also express infinite ranges of choices.  The following procedure
+potentially returns any integer greater than or equal to some given @math{n}:
+
+@lisp
+(define (an-integer-starting-from n)
+  (amb n (an-integer-starting-from (+ n 1))))
+@end lisp
+
+@noindent
+This is like the stream procedure @code{integers-starting-from} described in
+@ref{3.5.2}, but with an important difference: The stream procedure
+returns an object that represents the sequence of all integers beginning with
+@math{n}, whereas the @code{amb} procedure returns a single integer.@footnote{In
+actuality, the distinction between nondeterministically returning a single
+choice and returning all choices depends somewhat on our point of view.  From
+the perspective of the code that uses the value, the nondeterministic choice
+returns a single value.  From the perspective of the programmer designing the
+code, the nondeterministic choice potentially returns all possible values, and
+the computation branches so that each value is investigated separately.}
+
+Abstractly, we can imagine that evaluating an @code{amb} expression causes time
+to split into branches, where the computation continues on each branch with one
+of the possible values of the expression.  We say that @code{amb} represents a
+@newterm{nondeterministic choice point}.  If we had a machine with a sufficient
+number of processors that could be dynamically allocated, we could implement
+the search in a straightforward way.  Execution would proceed as in a
+sequential machine, until an @code{amb} expression is encountered.  At this
+point, more processors would be allocated and initialized to continue all of
+the parallel executions implied by the choice.  Each processor would proceed
+sequentially as if it were the only choice, until it either terminates by
+encountering a failure, or it further subdivides, or it finishes.@footnote{One
+might object that this is a hopelessly inefficient mechanism.  It might require
+millions of processors to solve some easily stated problem this way, and most
+of the time most of those processors would be idle.  This objection should be
+taken in the context of history.  Memory used to be considered just such an
+expensive commodity.  In 1964 a megabyte of @abbr{RAM} cost about $400,000.  Now every
+personal computer has many megabytes of @abbr{RAM}, and most of the time most of that
+@abbr{RAM} is unused.  It is hard to underestimate the cost of mass-produced
+electronics.}
+
+On the other hand, if we have a machine that can execute only one process (or a
+few concurrent processes), we must consider the alternatives sequentially.  One
+could imagine modifying an evaluator to pick at random a branch to follow
+whenever it encounters a choice point.  Random choice, however, can easily lead
+to failing values.  We might try running the evaluator over and over, making
+random choices and hoping to find a non-failing value, but it is better to
+@newterm{systematically search} all possible execution paths.  The @code{amb}
+evaluator that we will develop and work with in this section implements a
+systematic search as follows: When the evaluator encounters an application of
+@code{amb}, it initially selects the first alternative.  This selection may
+itself lead to a further choice.  The evaluator will always initially choose
+the first alternative at each choice point.  If a choice results in a failure,
+then the evaluator automagically@footnote{@anchor{Footnote 250}Automagically: ``Automatically, but
+in a way which, for some reason (typically because it is too complicated, or
+too ugly, or perhaps even too trivial), the speaker doesn't feel like
+explaining.''  (@ref{Steele et al. 1983}, @ref{Raymond 1993})} 
+@newterm{backtracks} to the most
+recent choice point and tries the next alternative.  If it runs out of
+alternatives at any choice point, the evaluator will back up to the previous
+choice point and resume from there.  This process leads to a search strategy
+known as @newterm{depth-first search} or @newterm{chronological backtracking}.@footnote{The integration of 
+automatic search strategies into programming languages has had a long and
+checkered history.  The first suggestions that nondeterministic algorithms
+might be elegantly encoded in a programming language with search and automatic
+backtracking came from Robert @ref{Floyd (1967)}.  Carl @ref{Hewitt (1969)} invented a
+programming language called Planner that explicitly supported automatic
+chronological backtracking, providing for a built-in depth-first search
+strategy.  @ref{Sussman et al. (1971)} implemented a subset of this
+language, called MicroPlanner, which was used to support work in problem
+solving and robot planning.  Similar ideas, arising from logic and theorem
+proving, led to the genesis in Edinburgh and Marseille of the elegant language
+Prolog (which we will discuss in @ref{4.4}).  After sufficient
+frustration with automatic search, @ref{McDermott and Sussman (1972)} developed a
+language called Conniver, which included mechanisms for placing the search
+strategy under programmer control.  This proved unwieldy, however, and @ref{Sussman and Stallman 1975} 
+found a more tractable approach while investigating methods
+of symbolic analysis for electrical circuits.  They developed a
+non-chronological backtracking scheme that was based on tracing out the logical
+dependencies connecting facts, a technique that has come to be known as
+@newterm{dependency-directed backtracking}.  Although their method was complex,
+it produced reasonably efficient programs because it did little redundant
+search.  @ref{Doyle (1979)} and @ref{McAllester (1978; 1980)} generalized and clarified the
+methods of Stallman and Sussman, developing a new paradigm for formulating
+search that is now called @newterm{truth maintenance}.  Modern problem-solving
+systems all use some form of truth-maintenance system as a substrate.  See
+@ref{Forbus and deKleer 1993} for a discussion of elegant ways to build
+truth-maintenance systems and applications using truth maintenance.  
+@ref{Zabih et al. 1987} describes a nondeterministic extension to Scheme
+that is based on @code{amb}; it is similar to the interpreter described in this
+section, but more sophisticated, because it uses dependency-directed
+backtracking rather than chronological backtracking.  @ref{Winston 1992} gives an
+introduction to both kinds of backtracking.}
+
+@subsubheading Driver loop
+
+The driver loop for the @code{amb} evaluator has some unusual properties.  It
+reads an expression and prints the value of the first non-failing execution, as
+in the @code{prime-sum-pair} example shown above.  If we want to see the value
+of the next successful execution, we can ask the interpreter to backtrack and
+attempt to generate a second non-failing execution.  This is signaled by typing
+the symbol @code{try-again}.  If any expression except @code{try-again} is
+given, the interpreter will start a new problem, discarding the unexplored
+alternatives in the previous problem.  Here is a sample interaction:
+
+@lisp
+@i{;;; Amb-Eval input:}
+(prime-sum-pair '(1 3 5 8) '(20 35 110))
+
+@i{;;; Starting a new problem}
+@i{;;; Amb-Eval value:}
+@i{(3 20)}
+
+@i{;;; Amb-Eval input:}
+try-again
+
+@i{;;; Amb-Eval value:}
+@i{(3 110)}
+
+@i{;;; Amb-Eval input:}
+try-again
+
+@i{;;; Amb-Eval value:}
+@i{(8 35)}
+
+@i{;;; Amb-Eval input:}
+try-again
+
+@i{;;; There are no more values of}
+@i{(prime-sum-pair 
+ (quote (1 3 5 8)) 
+ (quote (20 35 110)))}
+
+@i{;;; Amb-Eval input:}
+(prime-sum-pair '(19 27 30) '(11 36 58))
+
+@i{;;; Starting a new problem}
+@i{;;; Amb-Eval value:}
+@i{(30 11)}
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 4.35}Exercise 4.35:} Write a procedure
+@code{an-integer-between} that returns an integer between two given bounds.
+This can be used to implement a procedure that finds Pythagorean triples, i.e.,
+triples of integers @math{{(i, j, k)}} between the given bounds such that
+@math{{i \le j}} and @math{{i^2 + j^2 = k^2}}, as follows:
+
+@lisp
+(define (a-pythagorean-triple-between low high)
+  (let ((i (an-integer-between low high)))
+    (let ((j (an-integer-between i high)))
+      (let ((k (an-integer-between j high)))
+        (require (= (+ (* i i) (* j j)) 
+                    (* k k)))
+        (list i j k)))))
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.36}Exercise 4.36:} @ref{Exercise 3.69} discussed how
+to generate the stream of @emph{all} Pythagorean triples, with no upper bound
+on the size of the integers to be searched.  Explain why simply replacing
+@code{an-integer-between} by @code{an-integer-starting-from} in the procedure
+in @ref{Exercise 4.35} is not an adequate way to generate arbit@-rary Py@-tha@-go@-rean
+triples.  Write a procedure that actually will accomplish this.  (That is,
+write a procedure for which repeatedly typing @code{try-again} would in
+principle eventually generate all Py@-tha@-go@-rean triples.)
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.37}Exercise 4.37:} Ben Bitdiddle claims that the
+following method for generating Pythagorean triples is more efficient than the
+one in @ref{Exercise 4.35}.  Is he correct?  (Hint: Consider the number of
+possibilities that must be explored.)
+
+@lisp
+(define (a-pythagorean-triple-between low high)
+  (let ((i (an-integer-between low high))
+        (hsq (* high high)))
+    (let ((j (an-integer-between i high)))
+      (let ((ksq (+ (* i i) (* j j))))
+        (require (>= hsq ksq))
+        (let ((k (sqrt ksq)))
+          (require (integer? k))
+          (list i j k))))))
+@end lisp
+@end quotation
+
+@node	4.3.2, 4.3.3, 4.3.1, 4.3
+@subsection Examples of Nondeterministic Programs
+
+Section @ref{4.3.3} describes the implementation of the @code{amb} evaluator.
+First, however, we give some examples of how it can be used.  The advantage of
+nondeterministic programming is that we can suppress the details of how search
+is carried out, thereby expressing our programs at a higher level of
+abstraction.
+
+@subsubheading Logic Puzzles
+
+The following puzzle (taken from @ref{Dinesman 1968}) is typical of a large class of
+simple logic puzzles:
+
+@quotation
+Baker, Cooper, Fletcher, Miller, and Smith live on different floors of an
+apartment house that contains only five floors.  Baker does not live on the top
+floor.  Cooper does not live on the bottom floor.  Fletcher does not live on
+either the top or the bottom floor.  Miller lives on a higher floor than does
+Cooper.  Smith does not live on a floor adjacent to Fletcher's.  Fletcher does
+not live on a floor adjacent to Cooper's.  Where does everyone live?
+@end quotation
+
+@noindent
+We can determine who lives on each floor in a straightforward way by
+enumerating all the possibilities and imposing the given
+restrictions:@footnote{Our program uses the following procedure to determine if
+the elements of a list are distinct:
+
+@lisp
+(define (distinct? items)
+  (cond ((null? items) true)

@@ -1,0 +1,1000 @@
+\text{(restore} \kern1ex ⟨\kern0.1em{reg_2}⟩\text{)} \\
+
+                                        &
+⟨\kern0.1em{seq_2}⟩                     &
+⟨\kern0.1em{seq_2}⟩                     &
+⟨\kern0.1em{seq_2}⟩
+\end{array}
+\]
+@end tex
+
+@noindent
+By using @code{preserving} to combine instruction sequences the compiler avoids
+unnecessary stack operations.  This also isolates the details of whether or not
+to generate @code{save} and @code{restore} instructions within the
+@code{preserving} procedure, separating them from the concerns that arise in
+writing each of the individual code generators.  In fact no @code{save} or
+@code{restore} instructions are explicitly produced by the code generators.
+
+In principle, we could represent an instruction sequence simply as a list of
+instructions.  @code{Append-instruction-sequences} could then combine
+instruction sequences by performing an ordinary list @code{append}.  However,
+@code{preserving} would then be a complex operation, because it would have to
+analyze each instruction sequence to determine how the sequence uses its
+registers.  @code{Preserving} would be inefficient as well as complex, because
+it would have to analyze each of its instruction sequence arguments, even
+though these sequences might themselves have been constructed by calls to
+@code{preserving}, in which case their parts would have already been analyzed.
+To avoid such repetitious analysis we will associate with each instruction
+sequence some information about its register use.  When we construct a basic
+instruction sequence we will provide this information explicitly, and the
+procedures that combine instruction sequences will derive register-use
+information for the combined sequence from the information associated with the
+component sequences.
+
+An instruction sequence will contain three pieces of information:
+
+@itemize @bullet
+
+@item
+the set of registers that must be initialized before the instructions in the
+sequence are executed (these registers are said to be @newterm{needed} by the
+sequence),
+
+@item
+the set of registers whose values are modified by the instructions in the
+sequence, and
+
+@item
+the actual instructions (also called @newterm{statements}) in the sequence.
+
+@end itemize
+
+@noindent
+We will represent an instruction sequence as a list of its three parts.  The
+constructor for instruction sequences is thus
+
+@lisp
+(define (make-instruction-sequence 
+         needs modifies statements)
+  (list needs modifies statements))
+@end lisp
+
+@noindent
+For example, the two-instruction sequence that looks up the value of the
+variable @code{x} in the current environment, assigns the result to @code{val},
+and then returns, requires registers @code{env} and @code{continue} to have
+been initialized, and modifies register @code{val}.  This sequence would
+therefore be constructed as
+
+@lisp
+(make-instruction-sequence
+ '(env continue)
+ '(val)
+ '((assign val
+           (op lookup-variable-value)
+           (const x)
+           (reg env))
+   (goto (reg continue))))
+@end lisp
+
+@noindent
+We sometimes need to construct an instruction sequence with no statements:
+
+@lisp
+(define (empty-instruction-sequence)
+  (make-instruction-sequence '() '() '()))
+@end lisp
+
+@noindent
+The procedures for combining instruction sequences are shown in 
+@ref{5.5.4}.
+
+@quotation
+@strong{@anchor{Exercise 5.31}Exercise 5.31:} In evaluating a procedure
+application, the explicit-control evaluator always saves and restores the
+@code{env} register around the evaluation of the operator, saves and restores
+@code{env} around the evaluation of each operand (except the final one), saves
+and restores @code{argl} around the evaluation of each operand, and saves and
+restores @code{proc} around the evaluation of the operand sequence.  For each
+of the following combinations, say which of these @code{save} and
+@code{restore} operations are superfluous and thus could be eliminated by the
+compiler's @code{preserving} mechanism:
+
+@lisp
+(f 'x 'y)
+((f) 'x 'y)
+(f (g 'x) y)
+(f (g 'x) 'y)
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.32}Exercise 5.32:} Using the @code{preserving}
+mechanism, the compiler will avoid saving and restoring @code{env} around the
+evaluation of the operator of a combination in the case where the operator is a
+symbol.  We could also build such optimizations into the evaluator.  Indeed,
+the explicit-control evaluator of @ref{5.4} already performs a similar
+optimization, by treating combinations with no operands as a special case.
+
+@enumerate a
+
+@item
+Extend the explicit-control evaluator to recognize as a separate class of
+expressions combinations whose operator is a symbol, and to take advantage of
+this fact in evaluating such expressions.
+
+@item
+Alyssa P. Hacker suggests that by extending the evaluator to recognize more and
+more special cases we could incorporate all the compiler's optimizations, and
+that this would eliminate the advantage of compilation altogether.  What do you
+think of this idea?
+
+@end enumerate
+@end quotation
+
+@node	5.5.2, 5.5.3, 5.5.1, 5.5
+@subsection Compiling Expressions
+
+In this section and the next we implement the code generators to which the
+@code{compile} procedure dispatches.
+
+@subsubheading Compiling linkage code
+
+In general, the output of each code generator will end with
+instructions---generated by the procedure @code{compile-linkage}---that
+implement the required linkage.  If the linkage is @code{return} then we must
+generate the instruction @code{(goto (reg continue))}.  This needs the
+@code{continue} register and does not modify any registers.  If the linkage is
+@code{next}, then we needn't include any additional instructions.  Otherwise,
+the linkage is a label, and we generate a @code{goto} to that label, an
+instruction that does not need or modify any registers.@footnote{This procedure
+uses a feature of Lisp called @newterm{backquote} (or @newterm{quasiquote})
+that is handy for constructing lists.  Preceding a list with a backquote symbol
+is much like quoting it, except that anything in the list that is flagged with
+a comma is evaluated.
+
+For example, if the value of @code{linkage} is the symbol @code{branch25},
+then the expression 
+
+@lisp
+`((goto (label ,linkage)))
+@end lisp
+
+evaluates to the list 
+	
+@lisp
+((goto (label branch25))) 
+@end lisp
+
+Similarly, if the value of @code{x} is the list @code{(a b c)}, then 
+
+@lisp
+`(1 2 ,(car x)) 
+@end lisp
+
+evaluates to the list 
+
+@lisp
+(1 2 a)
+@end lisp
+}
+
+@lisp
+(define (compile-linkage linkage)
+  (cond ((eq? linkage 'return)
+         (make-instruction-sequence 
+          '(continue)
+          '()
+          '((goto (reg continue)))))
+        ((eq? linkage 'next)
+         (empty-instruction-sequence))
+        (else
+         (make-instruction-sequence '() '()
+          `((goto (label ,linkage)))))))
+@end lisp
+
+@noindent
+The linkage code is appended to an instruction sequence by @code{preserving}
+the @code{continue} register, since a @code{return} linkage will require the
+@code{continue} register: If the given instruction sequence modifies
+@code{continue} and the linkage code needs it, @code{continue} will be saved
+and restored.
+
+@lisp
+(define (end-with-linkage 
+         linkage instruction-sequence)
+  (preserving '(continue)
+   instruction-sequence
+   (compile-linkage linkage)))
+@end lisp
+
+@subsubheading Compiling simple expressions
+
+The code generators for self-evaluating expressions, quotations, and variables
+construct instruction sequences that assign the required value to the target
+register and then proceed as specified by the linkage descriptor.
+
+@lisp
+(define (compile-self-evaluating 
+         exp target linkage)
+  (end-with-linkage
+   linkage (make-instruction-sequence 
+            '()
+            (list target)
+            `((assign ,target (const ,exp))))))
+
+(define (compile-quoted exp target linkage)
+  (end-with-linkage
+   linkage
+   (make-instruction-sequence
+    '()
+    (list target)
+    `((assign 
+       ,target
+       (const ,(text-of-quotation exp)))))))
+
+(define (compile-variable
+         exp target linkage)
+  (end-with-linkage 
+   linkage
+   (make-instruction-sequence 
+    '(env)
+    (list target)
+    `((assign ,target
+              (op lookup-variable-value)
+              (const ,exp)
+              (reg env))))))
+@end lisp
+
+@noindent
+All these assignment instructions modify the target register, and the one that
+looks up a variable needs the @code{env} register.
+
+Assignments and definitions are handled much as they are in the interpreter.
+We recursively generate code that computes the value to be assigned to the
+variable, and append to it a two-instruction sequence that actually sets or
+defines the variable and assigns the value of the whole expression (the symbol
+@code{ok}) to the target register.  The recursive compilation has target
+@code{val} and linkage @code{next} so that the code will put its result into
+@code{val} and continue with the code that is appended after it.  The appending
+is done preserving @code{env}, since the environment is needed for setting or
+defining the variable and the code for the variable value could be the
+compilation of a complex expression that might modify the registers in
+arbitrary ways.
+
+@lisp
+(define (compile-assignment 
+         exp target linkage)
+  (let ((var (assignment-variable exp))
+        (get-value-code
+         (compile (assignment-value exp) 
+                  'val
+                  'next)))
+    (end-with-linkage 
+     linkage
+     (preserving 
+      '(env)
+      get-value-code
+      (make-instruction-sequence
+       '(env val)
+       (list target)
+       `((perform (op set-variable-value!)
+                  (const ,var)
+                  (reg val)
+                  (reg env))
+         (assign ,target (const ok))))))))
+
+(define (compile-definition 
+         exp target linkage)
+  (let ((var (definition-variable exp))
+        (get-value-code
+         (compile (definition-value exp)
+                  'val
+                  'next)))
+    (end-with-linkage
+     linkage
+     (preserving 
+      '(env)
+      get-value-code
+      (make-instruction-sequence
+       '(env val)
+       (list target)
+       `((perform (op define-variable!)
+                  (const ,var)
+                  (reg val)
+                  (reg env))
+         (assign ,target (const ok))))))))
+@end lisp
+
+@noindent
+The appended two-instruction sequence requires @code{env} and @code{val} and
+modifies the target.  Note that although we preserve @code{env} for this
+sequence, we do not preserve @code{val}, because the @code{get-value-code} is
+designed to explicitly place its result in @code{val} for use by this sequence.
+(In fact, if we did preserve @code{val}, we would have a bug, because this
+would cause the previous contents of @code{val} to be restored right after the
+@code{get-value-code} is run.)
+
+@subsubheading Compiling conditional expressions
+
+The code for an @code{if} expression compiled with a given target and linkage
+has the form
+
+@lisp
+⟨@emph{compilation of predicate, 
+ target @code{val}, linkage @code{next}}⟩
+ (test (op false?) (reg val))
+ (branch (label false-branch))
+true-branch
+ ⟨@emph{compilation of consequent with given 
+  target and given linkage or @code{after-if}}⟩
+false-branch
+ ⟨@emph{compilation of alternative 
+  with given target and linkage}⟩
+after-if
+@end lisp
+
+@noindent
+To generate this code, we compile the predicate, consequent, and alternative,
+and combine the resulting code with instructions to test the predicate result
+and with newly generated labels to mark the true and false branches and the end
+of the conditional.@footnote{We can't just use the labels @code{true-branch},
+@code{false-branch}, and @code{after-if} as shown above, because there might be
+more than one @code{if} in the program.  The compiler uses the procedure
+@code{make-label} to generate labels.  @code{Make-label} takes a symbol as
+argument and returns a new symbol that begins with the given symbol.  For
+example, successive calls to @code{(make-label 'a)} would return @code{a1},
+@code{a2}, and so on.  @code{Make-label} can be implemented similarly to the
+generation of unique variable names in the query language, as follows:
+
+@lisp
+(define label-counter 0)
+
+(define (new-label-number)
+  (set! label-counter (+ 1 label-counter))
+  label-counter)
+
+(define (make-label name)
+  (string->symbol
+   (string-append 
+    (symbol->string name)
+    (number->string (new-label-number)))))
+@end lisp
+} In this arrangement of code, we must branch around the true branch if the
+test is false.  The only slight complication is in how the linkage for the true
+branch should be handled.  If the linkage for the conditional is @code{return}
+or a label, then the true and false branches will both use this same linkage.
+If the linkage is @code{next}, the true branch ends with a jump around the code
+for the false branch to the label at the end of the conditional.
+
+@lisp
+(define (compile-if exp target linkage)
+  (let ((t-branch (make-label 'true-branch))
+        (f-branch (make-label 'false-branch))
+        (after-if (make-label 'after-if)))
+    (let ((consequent-linkage
+           (if (eq? linkage 'next) 
+               after-if
+               linkage)))
+      (let ((p-code 
+             (compile (if-predicate exp)
+                      'val
+                      'next))
+            (c-code
+             (compile (if-consequent exp) 
+                      target 
+                      consequent-linkage))
+            (a-code
+             (compile (if-alternative exp)
+                      target
+                      linkage)))
+        (preserving 
+         '(env continue)
+         p-code
+         (append-instruction-sequences
+          (make-instruction-sequence 
+           '(val) 
+           '()
+           `((test (op false?) (reg val))
+             (branch (label ,f-branch))))
+          (parallel-instruction-sequences
+           (append-instruction-sequences 
+            t-branch c-code)
+           (append-instruction-sequences
+            f-branch a-code))
+          after-if))))))
+@end lisp
+
+@noindent
+@code{Env} is preserved around the predicate code because it could be needed by
+the true and false branches, and @code{continue} is preserved because it could
+be needed by the linkage code in those branches.  The code for the true and
+false branches (which are not executed sequentially) is appended using a
+special combiner @code{parallel-instruction-sequences} described in 
+@ref{5.5.4}.
+
+Note that @code{cond} is a derived expression, so all that the compiler needs
+to do handle it is to apply the @code{cond->if} transformer (from 
+@ref{4.1.2}) and compile the resulting @code{if} expression.
+
+@subsubheading Compiling sequences
+
+The compilation of sequences (from procedure bodies or explicit @code{begin}
+expressions) parallels their evaluation.  Each expression of the sequence is
+compiled---the last expression with the linkage specified for the sequence, and
+the other expressions with linkage @code{next} (to execute the rest of the
+sequence).  The instruction sequences for the individual expressions are
+appended to form a single instruction sequence, such that @code{env} (needed
+for the rest of the sequence) and @code{continue} (possibly needed for the
+linkage at the end of the sequence) are preserved.
+
+@lisp
+(define (compile-sequence seq target linkage)
+  (if (last-exp? seq)
+      (compile (first-exp seq) target linkage)
+      (preserving '(env continue)
+       (compile (first-exp seq) target 'next)
+       (compile-sequence (rest-exps seq)
+                         target
+                         linkage))))
+@end lisp
+
+@subsubheading Compiling @code{lambda} expressions
+
+@code{Lambda} expressions construct procedures.  The object code for a
+@code{lambda} expression must have the form
+
+@lisp
+⟨@emph{construct procedure object 
+ and assign it to target register}⟩
+⟨@var{linkage}⟩
+@end lisp
+
+@noindent
+When we compile the @code{lambda} expression, we also generate the code for the
+procedure body.  Although the body won't be executed at the time of procedure
+construction, it is convenient to insert it into the object code right after
+the code for the @code{lambda}.  If the linkage for the @code{lambda}
+expression is a label or @code{return}, this is fine.  But if the linkage is
+@code{next}, we will need to skip around the code for the procedure body by
+using a linkage that jumps to a label that is inserted after the body.  The
+object code thus has the form
+
+@lisp
+⟨@emph{construct procedure object 
+ and assign it to target register}⟩
+ ⟨@emph{code for given linkage}⟩ @emph{or} 
+  @code{(goto (label after-lambda))}
+ ⟨@emph{compilation of procedure body}⟩
+after-lambda
+@end lisp
+
+@noindent
+@code{Compile-lambda} generates the code for constructing the procedure object
+followed by the code for the procedure body.  The procedure object will be
+constructed at run time by combining the current environment (the environment
+at the point of definition) with the entry point to the compiled procedure body
+(a newly generated label).@footnote{@anchor{Footnote 323} We need
+machine operations to implement a data structure for representing compiled
+procedures, analogous to the structure for compound procedures described in
+@ref{4.1.3}:
+
+@lisp
+(define (make-compiled-procedure entry env)
+  (list 'compiled-procedure entry env))
+(define (compiled-procedure? proc)
+  (tagged-list? proc 'compiled-procedure))
+(define (compiled-procedure-entry c-proc) 
+  (cadr c-proc))
+(define (compiled-procedure-env c-proc)
+  (caddr c-proc))
+@end lisp
+}
+
+@lisp
+(define (compile-lambda exp target linkage)
+  (let ((proc-entry 
+         (make-label 'entry))
+        (after-lambda 
+         (make-label 'after-lambda)))
+    (let ((lambda-linkage
+           (if (eq? linkage 'next)
+               after-lambda
+               linkage)))
+      (append-instruction-sequences
+       (tack-on-instruction-sequence
+        (end-with-linkage 
+         lambda-linkage
+         (make-instruction-sequence 
+          '(env)
+          (list target)
+          `((assign 
+             ,target
+             (op make-compiled-procedure)
+             (label ,proc-entry)
+             (reg env)))))
+        (compile-lambda-body exp proc-entry))
+       after-lambda))))
+@end lisp
+
+@noindent
+@code{Compile-lambda} uses the special combiner
+@code{tack-on-instruction-sequence} rather than
+@code{append-instruction-sequences} (@ref{5.5.4}) to append the procedure body to the
+@code{lambda} expression code, because the body is not part of the sequence of
+instructions that will be executed when the combined sequence is entered;
+rather, it is in the sequence only because that was a convenient place to put
+it.
+
+@code{Compile-lambda-body} constructs the code for the body of the procedure.
+This code begins with a label for the entry point.  Next come instructions that
+will cause the run-time evaluation environment to switch to the correct
+environment for evaluating the procedure body---namely, the definition
+environment of the procedure, extended to include the bindings of the formal
+parameters to the arguments with which the procedure is called.  After this
+comes the code for the sequence of expressions that makes up the procedure
+body.  The sequence is compiled with linkage @code{return} and target
+@code{val} so that it will end by returning from the procedure with the
+procedure result in @code{val}.
+
+@lisp
+(define (compile-lambda-body exp proc-entry)
+  (let ((formals (lambda-parameters exp)))
+    (append-instruction-sequences
+     (make-instruction-sequence 
+      '(env proc argl)
+      '(env)
+      `(,proc-entry
+        (assign env 
+                (op compiled-procedure-env)
+                (reg proc))
+        (assign env
+                (op extend-environment)
+                (const ,formals)
+                (reg argl)
+                (reg env))))
+     (compile-sequence (lambda-body exp)
+                       'val
+                       'return))))
+@end lisp
+
+@node	5.5.3, 5.5.4, 5.5.2, 5.5
+@subsection Compiling Combinations
+
+The essence of the compilation process is the compilation of procedure
+applications.  The code for a combination compiled with a given target and
+linkage has the form
+
+@lisp
+⟨@emph{compilation of operator, 
+ target @code{proc}, linkage @code{next}}⟩
+⟨@emph{evaluate operands and construct 
+ argument list in @code{argl}}⟩
+⟨@emph{compilation of procedure call 
+ with given target and linkage}⟩
+@end lisp
+
+@noindent
+The registers @code{env}, @code{proc}, and @code{argl} may have to be saved and
+restored during evaluation of the operator and operands.  Note that this is the
+only place in the compiler where a target other than @code{val} is specified.
+
+The required code is generated by @code{compile-application}.  This recursively
+compiles the operator, to produce code that puts the procedure to be applied
+into @code{proc}, and compiles the operands, to produce code that evaluates the
+individual operands of the application.  The instruction sequences for the
+operands are combined (by @code{construct-arglist}) with code that constructs
+the list of arguments in @code{argl}, and the resulting argument-list code is
+combined with the procedure code and the code that performs the procedure call
+(produced by @code{compile-procedure-call}).  In appending the code sequences,
+the @code{env} register must be preserved around the evaluation of the operator
+(since evaluating the operator might modify @code{env}, which will be needed to
+evaluate the operands), and the @code{proc} register must be preserved around
+the construction of the argument list (since evaluating the operands might
+modify @code{proc}, which will be needed for the actual procedure application).
+@code{Continue} must also be preserved throughout, since it is needed for the
+linkage in the procedure call.
+
+@lisp
+(define (compile-application 
+         exp target linkage)
+  (let ((proc-code 
+         (compile (operator exp) 'proc 'next))
+        (operand-codes
+         (map (lambda (operand)
+                (compile operand 'val 'next))
+              (operands exp))))
+    (preserving 
+     '(env continue)
+     proc-code
+     (preserving 
+      '(proc continue)
+      (construct-arglist operand-codes)
+      (compile-procedure-call 
+       target
+       linkage)))))
+@end lisp
+
+@noindent
+The code to construct the argument list will evaluate each operand into
+@code{val} and then @code{cons} that value onto the argument list being
+accumulated in @code{argl}.  Since we @code{cons} the arguments onto
+@code{argl} in sequence, we must start with the last argument and end with the
+first, so that the arguments will appear in order from first to last in the
+resulting list.  Rather than waste an instruction by initializing @code{argl}
+to the empty list to set up for this sequence of evaluations, we make the first
+code sequence construct the initial @code{argl}.  The general form of the
+argument-list construction is thus as follows:
+
+@lisp
+⟨@emph{compilation of last operand, targeted to @code{val}}⟩
+(assign argl (op list) (reg val))
+⟨@emph{compilation of next operand, targeted to @code{val}}⟩
+(assign argl (op cons) (reg val) (reg argl))
+@r{…}
+⟨@emph{compilation of first operand, targeted to @code{val}}⟩
+(assign argl (op cons) (reg val) (reg argl))
+@end lisp
+
+@noindent
+@code{Argl} must be preserved around each operand evaluation except the first
+(so that arguments accumulated so far won't be lost), and @code{env} must be
+preserved around each operand evaluation except the last (for use by subsequent
+operand evaluations).
+
+Compiling this argument code is a bit tricky, because of the special treatment
+of the first operand to be evaluated and the need to preserve @code{argl} and
+@code{env} in different places.  The @code{construct-arglist} procedure takes
+as arguments the code that evaluates the individual operands.  If there are no
+operands at all, it simply emits the instruction
+
+@lisp
+(assign argl (const ()))
+@end lisp
+
+@noindent
+Otherwise, @code{construct-arglist} creates code that initializes @code{argl}
+with the last argument, and appends code that evaluates the rest of the
+arguments and adjoins them to @code{argl} in succession.  In order to process
+the arguments from last to first, we must reverse the list of operand code
+sequences from the order supplied by @code{compile-application}.
+
+@lisp
+(define (construct-arglist operand-codes)
+  (let ((operand-codes 
+         (reverse operand-codes)))
+    (if (null? operand-codes)
+        (make-instruction-sequence 
+         '() 
+         '(argl)
+         '((assign argl (const ()))))
+        (let ((code-to-get-last-arg
+               (append-instruction-sequences
+                (car operand-codes)
+                (make-instruction-sequence 
+                 '(val)
+                 '(argl)
+                 '((assign argl
+                           (op list)
+                           (reg val)))))))
+          (if (null? (cdr operand-codes))
+              code-to-get-last-arg
+              (preserving 
+               '(env)
+               code-to-get-last-arg
+               (code-to-get-rest-args
+                (cdr operand-codes))))))))
+
+(define (code-to-get-rest-args operand-codes)
+  (let ((code-for-next-arg
+         (preserving 
+          '(argl)
+          (car operand-codes)
+          (make-instruction-sequence 
+           '(val argl)
+           '(argl)
+           '((assign argl
+                     (op cons)
+                     (reg val)
+                     (reg argl)))))))
+    (if (null? (cdr operand-codes))
+        code-for-next-arg
+        (preserving 
+         '(env)
+         code-for-next-arg
+         (code-to-get-rest-args 
+          (cdr operand-codes))))))
+@end lisp
+
+@subsubheading Applying procedures
+
+After evaluating the elements of a combination, the compiled code must apply
+the procedure in @code{proc} to the arguments in @code{argl}.  The code
+performs essentially the same dispatch as the @code{apply} procedure in the
+metacircular evaluator of @ref{4.1.1} or the @code{apply-dispatch}
+entry point in the explicit-control evaluator of @ref{5.4.1}.  It
+checks whether the procedure to be applied is a primitive procedure or a
+compiled procedure.  For a primitive procedure, it uses
+@code{apply-primitive-procedure}; we will see shortly how it handles compiled
+procedures.  The procedure-application code has the following form:
+
+@lisp
+(test (op primitive-procedure?) (reg proc))
+ (branch (label primitive-branch))
+compiled-branch
+ ⟨@emph{code to apply compiled procedure 
+  with given target and appropriate linkage}⟩
+primitive-branch
+ (assign ⟨@var{target}⟩
+         (op apply-primitive-procedure)
+         (reg proc)
+         (reg argl))
+ ⟨@var{linkage}⟩
+after-call
+@end lisp
+
+@noindent
+Observe that the compiled branch must skip around the primitive branch.
+Therefore, if the linkage for the original procedure call was @code{next}, the
+compound branch must use a linkage that jumps to a label that is inserted after
+the primitive branch.  (This is similar to the linkage used for the true branch
+in @code{compile-if}.)
+
+@lisp
+(define (compile-procedure-call
+         target linkage)
+  (let ((primitive-branch 
+         (make-label 'primitive-branch))
+        (compiled-branch 
+         (make-label 'compiled-branch))
+        (after-call
+         (make-label 'after-call)))
+    (let ((compiled-linkage
+           (if (eq? linkage 'next)
+               after-call
+               linkage)))
+      (append-instruction-sequences
+       (make-instruction-sequence 
+        '(proc)
+        '()
+        `((test 
+           (op primitive-procedure?)
+           (reg proc))
+          (branch 
+           (label ,primitive-branch))))
+       (parallel-instruction-sequences
+        (append-instruction-sequences
+         compiled-branch
+         (compile-proc-appl 
+          target
+          compiled-linkage))
+        (append-instruction-sequences
+         primitive-branch
+         (end-with-linkage
+          linkage
+          (make-instruction-sequence
+           '(proc argl)
+           (list target)
+           `((assign 
+              ,target
+              (op apply-primitive-procedure)
+              (reg proc)
+              (reg argl)))))))
+       after-call))))
+@end lisp
+
+@noindent
+The primitive and compound branches, like the true and false branches in
+@code{compile-if}, are appended using @code{parallel-instruction-sequences}
+rather than the ordinary @code{append-instruction-sequences}, because they will
+not be executed sequentially.
+
+@subsubheading Applying compiled procedures
+
+The code that handles procedure application is the most subtle part of the
+compiler, even though the instruction sequences it generates are very short.  A
+compiled procedure (as constructed by @code{compile-lambda}) has an entry
+point, which is a label that designates where the code for the procedure
+starts.  The code at this entry point computes a result in @code{val} and
+returns by executing the instruction @code{(goto (reg continue))}.  Thus, we
+might expect the code for a compiled-procedure application (to be generated by
+@code{compile-proc-appl}) with a given target and linkage to look like this if
+the linkage is a label
+
+@lisp
+(assign continue 
+        (label proc-return))
+ (assign val
+         (op compiled-procedure-entry)
+         (reg proc))
+ (goto (reg val))
+proc-return
+ (assign ⟨@var{target}⟩ 
+         (reg val))   @r{; included if target is not @code{val}}
+ (goto (label ⟨@var{linkage}⟩))   @r{; linkage code}
+@end lisp
+
+@noindent
+or like this if the linkage is @code{return}.
+
+@lisp
+(save continue)
+ (assign continue 
+         (label proc-return))
+ (assign val 
+         (op compiled-procedure-entry)
+         (reg proc))
+ (goto (reg val))
+proc-return
+ (assign ⟨@var{target}⟩
+         (reg val))   @r{; included if target is not @code{val}}
+ (restore continue)
+ (goto (reg continue))   @r{; linkage code}
+@end lisp
+
+@noindent
+This code sets up @code{continue} so that the procedure will return to a label
+@code{proc-return} and jumps to the procedure's entry point.  The code at
+@code{proc-return} transfers the procedure's result from @code{val} to the
+target register (if necessary) and then jumps to the location specified by the
+linkage.  (The linkage is always @code{return} or a label, because
+@code{compile-procedure-call} replaces a @code{next} linkage for the
+compound-procedure branch by an @code{after-call} label.)
+
+In fact, if the target is not @code{val}, that is exactly the code our compiler
+will generate.@footnote{Actually, we signal an error when the target is not
+@code{val} and the linkage is @code{return}, since the only place we request
+@code{return} linkages is in compiling procedures, and our convention is that
+procedures return their values in @code{val}.}  Usually, however, the target is
+@code{val} (the only time the compiler specifies a different register is when
+targeting the evaluation of an operator to @code{proc}), so the procedure
+result is put directly into the target register and there is no need to return
+to a special location that copies it.  Instead, we simplify the code by setting
+up @code{continue} so that the procedure will ``return'' directly to the place
+specified by the caller's linkage:
+
+@lisp
+⟨@emph{set up @code{continue} for linkage}⟩
+(assign val 
+        (op compiled-procedure-entry)
+        (reg proc))
+(goto (reg val))
+@end lisp
+
+@noindent
+If the linkage is a label, we set up @code{continue} so that the procedure will
+return to that label.  (That is, the @code{(goto (reg continue))} the procedure
+ends with becomes equivalent to the @code{(goto (label ⟨@var{linkage}⟩))} at
+@code{proc-return} above.)
+
+@lisp
+(assign continue 
+        (label ⟨@var{linkage}⟩))
+(assign val
+        (op compiled-procedure-entry)
+        (reg proc))
+(goto (reg val))
+@end lisp
+
+@noindent
+If the linkage is @code{return}, we don't need to set up @code{continue} at
+all: It already holds the desired location.  (That is, the @code{(goto (reg
+continue))} the procedure ends with goes directly to the place where the
+@code{(goto (reg continue))} at @code{proc-return} would have gone.)
+
+@lisp
+(assign val
+        (op compiled-procedure-entry)
+        (reg proc))
+(goto (reg val))
+@end lisp
+
+@noindent
+With this implementation of the @code{return} linkage, the compiler generates
+tail-recursive code.  Calling a procedure as the final step in a procedure body
+does a direct transfer, without saving any information on the stack.
+
+Suppose instead that we had handled the case of a procedure call with a linkage
+of @code{return} and a target of @code{val} as shown above for a non-@code{val}
+target.  This would destroy tail recursion.  Our system would still give the
+same value for any expression.  But each time we called a procedure, we would
+save @code{continue} and return after the call to undo the (useless) save.
+These extra saves would accumulate during a nest of procedure
+calls.@footnote{Making a compiler generate tail-recursive code might seem like
+a straightforward idea.  But most compilers for common languages, including C
+and Pascal, do not do this, and therefore these languages cannot represent
+iterative processes in terms of procedure call alone.  The difficulty with tail
+recursion in these languages is that their implementations use the stack to
+store procedure arguments and local variables as well as return addresses.  The
+Scheme implementations described in this book store arguments and variables in
+memory to be garbage-collected.  The reason for using the stack for variables
+and arguments is that it avoids the need for garbage collection in languages
+that would not otherwise require it, and is generally believed to be more
+efficient.  Sophisticated Lisp compilers can, in fact, use the stack for
+arguments without destroying tail recursion.  (See @ref{Hanson 1990} for a
+description.)  There is also some debate about whether stack allocation is
+actually more efficient than garbage collection in the first place, but the
+details seem to hinge on fine points of computer architecture.  (See @ref{Appel 1987}
+and @ref{Miller and Rozas 1994} for opposing views on this issue.)}
+
+@code{Compile-proc-appl} generates the above procedure-application code by
+considering four cases, depending on whether the target for the call is
+@code{val} and whether the linkage is @code{return}.  Observe that the
+instruction sequences are declared to modify all the registers, since executing
+the procedure body can change the registers in arbitrary ways.@footnote{The
+variable @code{all-regs} is bound to the list of names of all the registers:
+
+@lisp
+(define all-regs '(env proc val argl continue))
+@end lisp
+}
+Also note that the code sequence for the case with target @code{val} and
+linkage @code{return} is declared to need @code{continue}: Even though
+@code{continue} is not explicitly used in the two-instruction sequence, we must
+be sure that @code{continue} will have the correct value when we enter the
+compiled procedure.
+
+@lisp
+(define (compile-proc-appl target linkage)
+  (cond ((and (eq? target 'val)
+              (not (eq? linkage 'return)))
+         (make-instruction-sequence 
+          '(proc)
+          all-regs
+          `((assign continue (label ,linkage))
+            (assign 
+             val 
+             (op compiled-procedure-entry)
+             (reg proc))
+            (goto (reg val)))))
+        ((and (not (eq? target 'val))
+              (not (eq? linkage 'return)))
+         (let ((proc-return 
+                (make-label 'proc-return)))
+           (make-instruction-sequence 
+            '(proc)
+            all-regs
+            `((assign continue 
+                      (label ,proc-return))
+              (assign 
+               val 
+               (op compiled-procedure-entry)
+               (reg proc))
+              (goto (reg val))
+              ,proc-return
+              (assign ,target (reg val))
+              (goto (label ,linkage))))))
+        ((and (eq? target 'val)
+              (eq? linkage 'return))
+         (make-instruction-sequence 
+          '(proc continue) 
+          all-regs
+          '((assign 
+             val 
+             (op compiled-procedure-entry)
+             (reg proc))
+            (goto (reg val)))))
+        ((and (not (eq? target 'val))
+              (eq? linkage 'return))
+         (error "return linkage, 
+                 target not val: COMPILE"
+                target))))
+@end lisp
+
+@node	5.5.4, 5.5.5, 5.5.3, 5.5
+@subsection Combining Instruction Sequences
+
+This section describes the details on how instruction sequences are represented
+and combined.  Recall from @ref{5.5.1} that an instruction sequence is
+represented as a list of the registers needed, the registers modified, and the
+actual instructions.  We will also consider a label (symbol) to be a degenerate
+case of an instruction sequence, which doesn't need or modify any registers.
+So to determine the registers needed and modified by instruction sequences we
+use the selectors
+
+@lisp
+(define (registers-needed s)
+  (if (symbol? s) '() (car s)))
+(define (registers-modified s)
+  (if (symbol? s) '() (cadr s)))

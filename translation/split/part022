@@ -1,0 +1,1000 @@
+|                           |                |
+|            +----------+   |                |
+|     __/|<--+ scale: a |<--+                |
+|   _/   |   +----------+                    |
++--<_add |                                   |
+     \__ |   +----------+                    |
+        \|<--+ scale: b |<-------------------+
+             +----------+
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.35b,116mm,,,.std.svg}
+@caption{@strong{Figure 3.35:} Signal-flow diagram for the solution to a second-order linear differential equation.}
+@end iftex
+@end float
+
+@quotation
+@strong{@anchor{Exercise 3.79}Exercise 3.79:} Generalize the @code{solve-2nd}
+procedure of @ref{Exercise 3.78} so that it can be used to solve general
+second-order differential equations @math{{d^2 y / dt^2} =
+{f(dy / dt, y)}}.
+@end quotation
+
+@float
+@anchor{Figure 3.36}
+@ifinfo
+@quotation
+@strong{Figure 3.36:} A series RLC circuit.
+
+@example
+              + v_R -
+        i_R
+     +--->----'\/\/\,--------+
+     |                       |  i_L
+    \|/          R          \|/
+  +  |  i_C                  |_   +
+    -+-                       _)
+v_C -+- C                     _)  v_L
+     |                        _)
+  -  |                       |    -
+     +-----------------------+
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.36,102mm,,,.std.svg}
+@caption{@strong{Figure 3.36:} A series RLC circuit.}
+@end iftex
+@end float
+
+@quotation
+@strong{@anchor{Exercise 3.80}Exercise 3.80:} A @newterm{series RLC circuit}
+consists of a resistor, a capacitor, and an inductor connected in series, as
+shown in @ref{Figure 3.36}.  If @math{R}, @math{L}, and @math{C} are the resistance,
+inductance, and capacitance, then the relations between voltage @math{{(v)}} and
+current @math{{(i)}} for the three components are described by the equations
+@ifinfo
+
+@example
+v_R = i_R R
+
+         d i_L
+v_L = L -------
+          d t
+
+         d v_C
+i_C = C -------
+          d t
+@end example
+
+@end ifinfo
+@tex
+\[ % :75:
+\begin{eqnarray}
+  v_R 	&=&   i_R R, \\
+  v_L 	&=&   L\,{di_L \over dt}, \\
+  i_C 	&=&   C\,{dv_C \over dt},
+\end{eqnarray}
+\]
+@end tex
+and the circuit connections dictate the relations
+@ifinfo
+
+@example
+i_R = i_L = -i_C
+
+v_C = v_L + v_R
+@end example
+
+@end ifinfo
+@tex
+\[ % :76:
+\begin{eqnarray}
+  i_R 	&=&   i_L = -i_C, \\
+  v_C 	&=&   v_L + v_R.
+\end{eqnarray}
+\]
+@end tex
+@noindent
+Combining these equations shows that the state of the circuit (summarized by
+@math{v_C}, the voltage across the capacitor, and @math{i_L}, the current in
+the inductor) is described by the pair of differential equations
+@ifinfo
+
+@example
+d v_C        i_L
+-----  =  -  ---
+ d t          C
+
+d i_L      1           R
+-----  =  --- v_C  -  --- i_L
+ d t       L           L
+@end example
+
+@end ifinfo
+@tex
+\[ % :77:
+\begin{eqnarray}
+  {dv_C \over dt}   &=&   -{i_L \over C}\,, \\
+  {di_L \over dt}   &=&    {1 \over L}\, v_C - {R \over L}\, i_L.
+\end{eqnarray}
+\]
+@end tex
+@noindent
+The signal-flow diagram representing this system of differential equations is
+shown in @ref{Figure 3.37}.
+@end quotation
+
+@float
+@anchor{Figure 3.37}
+@ifinfo
+@quotation
+@strong{Figure 3.37:} A signal-flow diagram for the solution to a series RLC circuit.
+
+@example
+                 +-------------+
++----------------+  scale: l/L |<--+
+|                +-------------+   |
+|                                  |
+|                +-------------+   |  v_C
+|       dv_C +-->|   integral  +---*------>
+|            |   +-------------+
+|            |        ^
+|            |        | v_(C_0)
+|            |
+|            |   +-------------+
+|            +---+ scale: -l/C |<--+
+|                +-------------+   |
+|  |\__                            |
++->|   \_  di_L  +-------------+   |  i_L
+   | add_>------>|   integral  +---*------>
++->| __/         +-------------+   |
+|  |/                 ^            |
+|                     | i_(L_0)    |
+|                                  |
+|                +-------------+   |
++----------------+ scale: -R/L |<--+
+                 +-------------+
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.37,110mm,,,.std.svg}
+@caption{@strong{Figure 3.37:} A signal-flow diagram for the solution to a series RLC circuit.}
+@end iftex
+@end float
+
+@quotation
+Write a procedure @code{RLC} that takes as arguments the parameters @math{R},
+@math{L}, and @math{C} of the circuit and the time increment @math{{dt}}.  In a manner
+similar to that of the @code{RC} procedure of @ref{Exercise 3.73}, @code{RLC}
+should produce a procedure that takes the initial values of the state
+variables, @math{v_{C_0}} and @math{i_{L_0}}, and produces a pair (using
+@code{cons}) of the streams of states @math{v_C} and @math{i_L}.  Using
+@code{RLC}, generate the pair of streams that models the behavior of a series
+RLC circuit with @math{R} = 1 ohm, @math{C} = 0.2 farad, @math{L} = 1 henry, @math{{dt}}
+= 0.1 second, and initial values @math{i_{L_0}} = 0 amps and @math{v_{C_0}} =
+10 volts.
+@end quotation
+
+@subsubheading Normal-order evaluation
+
+The examples in this section illustrate how the explicit use of @code{delay}
+and @code{force} provides great programming flexibility, but the same examples
+also show how this can make our programs more complex.  Our new @code{integral}
+procedure, for instance, gives us the power to model systems with loops, but we
+must now remember that @code{integral} should be called with a delayed
+integrand, and every procedure that uses @code{integral} must be aware of this.
+In effect, we have created two classes of procedures: ordinary procedures and
+procedures that take delayed arguments.  In general, creating separate classes
+of procedures forces us to create separate classes of higher-order procedures
+as well.@footnote{This is a small reflection, in Lisp, of the difficulties that
+conventional strongly typed languages such as Pascal have in coping with
+higher-order procedures.  In such languages, the programmer must specify the
+data types of the arguments and the result of each procedure: number, logical
+value, sequence, and so on.  Consequently, we could not express an abstraction
+such as ``map a given procedure @code{proc} over all the elements in a
+sequence'' by a single higher-order procedure such as @code{stream-map}.
+Rather, we would need a different mapping procedure for each different
+combination of argument and result data types that might be specified for a
+@code{proc}.  Maintaining a practical notion of ``data type'' in the presence
+of higher-order procedures raises many difficult issues.  One way of dealing
+with this problem is illustrated by the language ML (@ref{Gordon et al. 1979}), 
+whose ``polymorphic data types'' include templates for
+higher-order transformations between data types.  Moreover, data types for most
+procedures in ML are never explicitly declared by the programmer.  Instead, ML
+includes a @newterm{type-inferencing} mechanism that uses information in the
+environment to deduce the data types for newly defined procedures.}
+
+One way to avoid the need for two different classes of procedures is to make
+all procedures take delayed arguments.  We could adopt a model of evaluation in
+which all arguments to procedures are automatically delayed and arguments are
+forced only when they are actually needed (for example, when they are required
+by a primitive operation).  This would transform our language to use
+normal-order evaluation, which we first described when we introduced the
+substitution model for evaluation in @ref{1.1.5}.  Converting to
+normal-order evaluation provides a uniform and elegant way to simplify the use
+of delayed evaluation, and this would be a natural strategy to adopt if we were
+concerned only with stream processing.  In @ref{4.2}, after we have
+studied the evaluator, we will see how to transform our language in just this
+way.  Unfortunately, including delays in procedure calls wreaks havoc with our
+ability to design programs that depend on the order of events, such as programs
+that use assignment, mutate data, or perform input or output.  Even the single
+@code{delay} in @code{cons-stream} can cause great confusion, as illustrated by
+@ref{Exercise 3.51} and @ref{Exercise 3.52}.  As far as anyone knows,
+mutability and delayed evaluation do not mix well in programming languages, and
+devising ways to deal with both of these at once is an active area of research.
+
+@node 3.5.5, Chapter 4, 3.4, 3.5
+@subsection Modularity of Functional Programs and Modularity of Objects
+
+As we saw in @ref{3.1.2}, one of the major benefits of introducing
+assignment is that we can increase the modularity of our systems by
+encapsulating, or ``hiding,'' parts of the state of a large system within local
+variables.  Stream models can provide an equivalent modularity without the use
+of assignment.  As an illustration, we can reimplement the Monte Carlo
+estimation of @math{\pi}, which we examined in @ref{3.1.2}, from a
+stream-processing point of view.
+
+The key modularity issue was that we wished to hide the internal state of a
+random-number generator from programs that used random numbers.  We began with
+a procedure @code{rand-update}, whose successive values furnished our supply of
+random numbers, and used this to produce a random-number generator:
+
+@lisp
+(define rand
+  (let ((x random-init))
+    (lambda ()
+      (set! x (rand-update x))
+      x)))
+@end lisp
+
+@noindent
+In the stream formulation there is no random-number generator @emph{per se},
+just a stream of random numbers produced by successive calls to
+@code{rand-update}:
+
+@lisp
+(define random-numbers
+  (cons-stream random-init
+               (stream-map rand-update 
+                           random-numbers)))
+@end lisp
+
+@noindent
+We use this to construct the stream of outcomes of the Ces@`aro experiment
+performed on consecutive pairs in the @code{random-numbers} stream:
+
+@lisp
+(define cesaro-stream
+  (map-successive-pairs
+   (lambda (r1 r2) (= (gcd r1 r2) 1))
+   random-numbers))
+
+(define (map-successive-pairs f s)
+  (cons-stream
+   (f (stream-car s) 
+      (stream-car (stream-cdr s)))
+   (map-successive-pairs 
+    f (stream-cdr (stream-cdr s)))))
+@end lisp
+
+@noindent
+The @code{cesaro-stream} is now fed to a @code{monte-carlo} procedure, which
+produces a stream of estimates of probabilities.  The results are then
+converted into a stream of estimates of @math{\pi}.  This version of the program
+doesn't need a parameter telling how many trials to perform.  Better estimates
+of @math{\pi} (from performing more experiments) are obtained by looking farther
+into the @code{pi} stream:
+
+@lisp
+(define (monte-carlo experiment-stream 
+                     passed 
+                     failed)
+  (define (next passed failed)
+    (cons-stream
+     (/ passed (+ passed failed))
+     (monte-carlo
+      (stream-cdr experiment-stream) 
+      passed 
+      failed)))
+  (if (stream-car experiment-stream)
+      (next (+ passed 1) failed)
+      (next passed (+ failed 1))))
+
+(define pi
+  (stream-map
+   (lambda (p) (sqrt (/ 6 p)))
+   (monte-carlo cesaro-stream 0 0)))
+@end lisp
+
+@noindent
+There is considerable modularity in this approach, because we still can
+formulate a general @code{monte-carlo} procedure that can deal with arbitrary
+experiments.  Yet there is no assignment or local state.
+
+@quotation
+@strong{@anchor{Exercise 3.81}Exercise 3.81:} @ref{Exercise 3.6} discussed
+generalizing the random-number generator to allow one to reset the
+random-number sequence so as to produce repeatable sequences of ``random''
+numbers.  Produce a stream formulation of this same generator that operates on
+an input stream of requests to @code{generate} a new random number or to
+@code{reset} the sequence to a specified value and that produces the desired
+stream of random numbers.  Don't use assignment in your solution.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.82}Exercise 3.82:} Redo @ref{Exercise 3.5} on Monte
+Carlo integration in terms of streams.  The stream version of
+@code{estimate-integral} will not have an argument telling how many trials to
+perform.  Instead, it will produce a stream of estimates based on successively
+more trials.
+@end quotation
+
+@subsubheading A functional-programming view of time
+
+Let us now return to the issues of objects and state that were raised at the
+beginning of this chapter and examine them in a new light.  We introduced
+assignment and mutable objects to provide a mechanism for modular construction
+of programs that model systems with state.  We constructed computational
+objects with local state variables and used assignment to modify these
+variables.  We modeled the temporal behavior of the objects in the world by the
+temporal behavior of the corresponding computational objects.
+
+Now we have seen that streams provide an alternative way to model objects with
+local state.  We can model a changing quantity, such as the local state of some
+object, using a stream that represents the time history of successive states.
+In essence, we represent time explicitly, using streams, so that we decouple
+time in our simulated world from the sequence of events that take place during
+evaluation.  Indeed, because of the presence of @code{delay} there may be
+little relation between simulated time in the model and the order of events
+during the evaluation.
+
+In order to contrast these two approaches to modeling, let us reconsider the
+implementation of a ``withdrawal processor'' that monitors the balance in a
+bank account.  In @ref{3.1.3} we implemented a simplified version of
+such a processor:
+
+@lisp
+(define (make-simplified-withdraw balance)
+  (lambda (amount)
+    (set! balance (- balance amount))
+    balance))
+@end lisp
+
+@noindent
+Calls to @code{make-simplified-withdraw} produce computational objects, each
+with a local state variable @code{balance} that is decremented by successive
+calls to the object.  The object takes an @code{amount} as an argument and
+returns the new balance.  We can imagine the user of a bank account typing a
+sequence of inputs to such an object and observing the sequence of returned
+values shown on a display screen.
+
+Alternatively, we can model a withdrawal processor as a procedure that takes as
+input a balance and a stream of amounts to withdraw and produces the stream of
+successive balances in the account:
+
+@lisp
+(define (stream-withdraw balance amount-stream)
+  (cons-stream
+   balance
+   (stream-withdraw 
+    (- balance (stream-car amount-stream))
+    (stream-cdr amount-stream))))
+@end lisp
+
+@noindent
+@code{Stream-withdraw} implements a well-defined mathematical function whose
+output is fully determined by its input.  Suppose, however, that the input
+@code{amount-stream} is the stream of successive values typed by the user and
+that the resulting stream of balances is displayed.  Then, from the perspective
+of the user who is typing values and watching results, the stream process has
+the same behavior as the object created by @code{make-simplified-withdraw}.
+However, with the stream version, there is no assignment, no local state
+variable, and consequently none of the theoretical difficulties that we
+encountered in @ref{3.1.3}.  Yet the system has state!
+
+This is really remarkable.  Even though @code{stream-withdraw} implements a
+well-defined mathematical function whose behavior does not change, the user's
+perception here is one of interacting with a system that has a changing state.
+One way to resolve this paradox is to realize that it is the user's temporal
+existence that imposes state on the system.  If the user could step back from
+the interaction and think in terms of streams of balances rather than
+individual transactions, the system would appear stateless.@footnote{Similarly
+in physics, when we observe a moving particle, we say that the position (state)
+of the particle is changing.  However, from the perspective of the particle's
+world line in space-time there is no change involved.}
+
+From the point of view of one part of a complex process, the other parts appear
+to change with time.  They have hidden time-varying local state.  If we wish to
+write programs that model this kind of natural decomposition in our world (as
+we see it from our viewpoint as a part of that world) with structures in our
+computer, we make computational objects that are not functional---they must
+change with time.  We model state with local state variables, and we model the
+changes of state with assignments to those variables.  By doing this we make
+the time of execution of a computation model time in the world that we are part
+of, and thus we get ``objects'' in our computer.
+
+Modeling with objects is powerful and intuitive, largely because this matches
+the perception of interacting with a world of which we are part.  However, as
+we've seen repeatedly throughout this chapter, these models raise thorny
+problems of constraining the order of events and of synchronizing multiple
+processes.  The possibility of avoiding these problems has stimulated the
+development of @newterm{functional programming languages}, which do not include
+any provision for assignment or mutable data.  In such a language, all
+procedures implement well-defined mathematical functions of their arguments,
+whose behavior does not change.  The functional approach is extremely
+attractive for dealing with concurrent systems.@footnote{John Backus, the
+inventor of Fortran, gave high visibility to functional programming when he was
+awarded the @abbr{ACM} Turing award in 1978.  His acceptance speech 
+(@ref{Backus 1978}) strongly advocated the functional approach.  A good overview of
+functional programming is given in @ref{Henderson 1980} and in 
+@ref{Darlington et al. 1982}.}
+
+On the other hand, if we look closely, we can see time-related problems
+creeping into functional models as well.  One particularly troublesome area
+arises when we wish to design interactive systems, especially ones that model
+interactions between independent entities.  For instance, consider once more
+the implementation of a banking system that permits joint bank accounts.  In a
+conventional system using assignment and objects, we would model the fact that
+Peter and Paul share an account by having both Peter and Paul send their
+transaction requests to the same bank-account object, as we saw in 
+@ref{3.1.3}.  From the stream point of view, where there are no ``objects''
+@emph{per se}, we have already indicated that a bank account can be modeled as
+a process that operates on a stream of transaction requests to produce a stream
+of responses.  Accordingly, we could model the fact that Peter and Paul have a
+joint bank account by merging Peter's stream of transaction requests with
+Paul's stream of requests and feeding the result to the bank-account stream
+process, as shown in @ref{Figure 3.38}.
+
+@float
+@anchor{Figure 3.38}
+@ifinfo
+@strong{Figure 3.38:} A joint bank account, modeled by merging two streams of transaction requests.
+
+@example
+Peter's requests   +---------+     +---------+
+------------------>|         |     |         |
+Paul's requests    |  merge  |---->| bank    |---->
+------------------>|         |     | account |
+                   +---------+     +---------+
+@end example
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.38a,143mm,,,.std.svg}
+@caption{@strong{Figure 3.38:} A joint bank account, modeled by merging two streams of transaction requests.}
+@end iftex
+@end float
+
+@noindent
+The trouble with this formulation is in the notion of @newterm{merge}.  It will
+not do to merge the two streams by simply taking alternately one request from
+Peter and one request from Paul. Suppose Paul accesses the account only very
+rarely.  We could hardly force Peter to wait for Paul to access the account
+before he could issue a second transaction.  However such a merge is
+implemented, it must interleave the two transaction streams in some way that is
+constrained by ``real time'' as perceived by Peter and Paul, in the sense that,
+if Peter and Paul meet, they can agree that certain transactions were processed
+before the meeting, and other transactions were processed after the
+meeting.@footnote{Observe that, for any two streams, there is in general more
+than one acceptable order of interleaving.  Thus, technically, ``merge'' is a
+relation rather than a function---the answer is not a deterministic function of
+the inputs.  We already mentioned (@ref{Footnote 167}) that nondeterminism is
+essential when dealing with concurrency.  The merge relation illustrates the
+same essential nondeterminism, from the functional perspective.  In 
+@ref{4.3}, we will look at nondeterminism from yet another point of view.} This
+is precisely the same constraint that we had to deal with in 
+@ref{3.4.1}, where we found the need to introduce explicit synchronization to
+ensure a ``correct'' order of events in concurrent processing of objects with
+state.  Thus, in an attempt to support the functional style, the need to merge
+inputs from different agents reintroduces the same problems that the functional
+style was meant to eliminate.
+
+We began this chapter with the goal of building computational models whose
+structure matches our perception of the real world we are trying to model.  We
+can model the world as a collection of separate, time-bound, interacting
+objects with state, or we can model the world as a single, timeless, stateless
+unity.  Each view has powerful advantages, but neither view alone is completely
+satisfactory.  A grand unification has yet to emerge.@footnote{The object model
+approximates the world by dividing it into separate pieces.  The functional
+model does not modularize along object boundaries.  The object model is useful
+when the unshared state of the ``objects'' is much larger than the state that
+they share.  An example of a place where the object viewpoint fails is quantum
+mechanics, where thinking of things as individual particles leads to paradoxes
+and confusions.  Unifying the object view with the functional view may have
+little to do with programming, but rather with fundamental epistemological
+issues.}
+
+@node    Chapter 4, 4.1, 3.5, Top
+@chapter Metalinguistic Abstraction
+
+@quotation
+@dots{} It's in words that the magic is---Abracadabra, Open Sesame, and the
+rest---but the magic words in one story aren't magical in the next.  The real
+magic is to understand which words work, and when, and for what; the trick is
+to learn the trick.
+
+@dots{} And those words are made from the letters of our alphabet: a
+couple-dozen squiggles we can draw with the pen.  This is the key!  And the
+treasure, too, if we can only get our hands on it!  It's as if---as if the key
+to the treasure @emph{is} the treasure!
+
+---John Barth, @cite{Chimera}
+@end quotation
+
+
+@noindent
+In our study of program design, we have seen that expert programmers control
+the complexity of their designs with the same general techniques used by
+designers of all complex systems.  They combine primitive elements to form
+compound objects, they abstract compound objects to form higher-level building
+blocks, and they preserve modularity by adopting appropriate large-scale views
+of system structure.  In illustrating these techniques, we have used Lisp as a
+language for describing processes and for constructing computational data
+objects and processes to model complex phenomena in the real world.  However,
+as we confront increasingly complex problems, we will find that Lisp, or indeed
+any fixed programming language, is not sufficient for our needs.  We must
+constantly turn to new languages in order to express our ideas more
+effectively.  Establishing new languages is a powerful strategy for controlling
+complexity in engineering design; we can often enhance our ability to deal with
+a complex problem by adopting a new language that enables us to describe (and
+hence to think about) the problem in a different way, using primitives, means
+of combination, and means of abstraction that are particularly well suited to
+the problem at hand.@footnote{The same idea is pervasive throughout all of
+engineering.  For example, electrical engineers use many different languages
+for describing circuits.  Two of these are the language of electrical
+@newterm{networks} and the language of electrical @newterm{systems}.  The
+network language emphasizes the physical modeling of devices in terms of
+discrete electrical elements.  The primitive objects of the network language
+are primitive electrical components such as resistors, capacitors, inductors,
+and transistors, which are characterized in terms of physical variables called
+voltage and current.  When describing circuits in the network language, the
+engineer is concerned with the physical characteristics of a design.  In
+contrast, the primitive objects of the system language are signal-processing
+modules such as filters and amplifiers.  Only the functional behavior of the
+modules is relevant, and signals are manipulated without concern for their
+physical realization as voltages and currents.  The system language is erected
+on the network language, in the sense that the elements of signal-processing
+systems are constructed from electrical networks.  Here, however, the concerns
+are with the large-scale organization of electrical devices to solve a given
+application problem; the physical feasibility of the parts is assumed.  This
+layered collection of languages is another example of the stratified design
+technique illustrated by the picture language of @ref{2.2.4}.}
+
+Programming is endowed with a multitude of languages.  There are physical
+languages, such as the machine languages for particular computers.  These
+languages are concerned with the representation of data and control in terms of
+individual bits of storage and primitive machine instructions.  The
+machine-language programmer is concerned with using the given hardware to erect
+systems and utilities for the efficient implementation of resource-limited
+computations.  High-level languages, erected on a machine-language substrate,
+hide concerns about the representation of data as collections of bits and the
+representation of programs as sequences of primitive instructions.  These
+languages have means of combination and abstraction, such as procedure
+definition, that are appropriate to the larger-scale organization of systems.
+
+@newterm{Metalinguistic abstraction}---establishing new languages---plays an
+important role in all branches of engineering design.  It is particularly
+important to computer programming, because in programming not only can we
+formulate new languages but we can also implement these languages by
+constructing evaluators.  An @newterm{evaluator} (or @newterm{interpreter}) for
+a programming language is a procedure that, when applied to an expression of
+the language, performs the actions required to evaluate that expression.
+
+It is no exaggeration to regard this as the most fundamental idea in
+programming:
+
+@quotation
+The evaluator, which determines the meaning of expressions in a programming
+language, is just another program.
+@end quotation
+
+@noindent
+To appreciate this point is to change our images of ourselves as programmers.
+We come to see ourselves as designers of languages, rather than only users of
+languages designed by others.
+
+In fact, we can regard almost any program as the evaluator for some language.
+For instance, the polynomial manipulation system of @ref{2.5.3}
+embodies the rules of polynomial arithmetic and implements them in terms of
+operations on list-structured data.  If we augment this system with procedures
+to read and print polynomial expressions, we have the core of a special-purpose
+language for dealing with problems in symbolic mathematics.  The digital-logic
+simulator of @ref{3.3.4} and the constraint propagator of 
+@ref{3.3.5} are legitimate languages in their own right, each with its own
+primitives, means of combination, and means of abstraction.  Seen from this
+perspective, the technology for coping with large-scale computer systems merges
+with the technology for building new computer languages, and computer science
+itself becomes no more (and no less) than the discipline of constructing
+appropriate descriptive languages.
+
+We now embark on a tour of the technology by which languages are established in
+terms of other languages.  In this chapter we shall use Lisp as a base,
+implementing evaluators as Lisp procedures.  Lisp is particularly well suited
+to this task, because of its ability to represent and manipulate symbolic
+expressions.  We will take the first step in understanding how languages are
+implemented by building an evaluator for Lisp itself.  The language implemented
+by our evaluator will be a subset of the Scheme dialect of Lisp that we use in
+this book.  Although the evaluator described in this chapter is written for a
+particular dialect of Lisp, it contains the essential structure of an evaluator
+for any expression-oriented language designed for writing programs for a
+sequential machine.  (In fact, most language processors contain, deep within
+them, a little ``Lisp'' evaluator.)  The evaluator has been simplified for the
+purposes of illustration and discussion, and some features have been left out
+that would be important to include in a production-quality Lisp system.
+Nevertheless, this simple evaluator is adequate to execute most of the programs
+in this book.@footnote{The most important features that our evaluator leaves
+out are mechanisms for handling errors and supporting debugging.  For a more
+extensive discussion of evaluators, see @ref{Friedman et al. 1992}, which
+gives an exposition of programming languages that proceeds via a sequence of
+evaluators written in Scheme.}
+
+An important advantage of making the evaluator accessible as a Lisp program is
+that we can implement alternative evaluation rules by describing these as
+modifications to the evaluator program.  One place where we can use this power
+to good effect is to gain extra control over the ways in which computational
+models embody the notion of time, which was so central to the discussion in
+@ref{Chapter 3}.  There, we mitigated some of the complexities of state and
+assignment by using streams to decouple the representation of time in the world
+from time in the computer.  Our stream programs, however, were sometimes
+cumbersome, because they were constrained by the applicative-order evaluation
+of Scheme.  In @ref{4.2}, we'll change the underlying language to
+provide for a more elegant approach, by modifying the evaluator to provide for
+@newterm{normal-order evaluation}.
+
+Section @ref{4.3} implements a more ambitious linguistic change, whereby
+expressions have many values, rather than just a single value.  In this
+language of @newterm{nondeterministic computing}, it is natural to express
+processes that generate all possible values for expressions and then search for
+those values that satisfy certain constraints.  In terms of models of
+computation and time, this is like having time branch into a set of ``possible
+futures'' and then searching for appropriate time lines.  With our
+nondeterministic evaluator, keeping track of multiple values and performing
+searches are handled automatically by the underlying mechanism of the language.
+
+In @ref{4.4} we implement a @newterm{logic-programming} language in
+which knowledge is expressed in terms of relations, rather than in terms of
+computations with inputs and outputs.  Even though this makes the language
+drastically different from Lisp, or indeed from any conventional language, we
+will see that the logic-programming evaluator shares the essential structure of
+the Lisp evaluator.
+
+@menu
+* 4.1::              The Metacircular Evaluator
+* 4.2::              Variations on a Scheme -- Lazy Evaluation
+* 4.3::              Variations on a Scheme -- Nondeterministic Computing
+* 4.4::              Logic Programming
+@end menu
+
+@node	4.1, 4.2, Chapter 4, Chapter 4
+@section The Metacircular Evaluator
+
+Our evaluator for Lisp will be implemented as a Lisp program.  It may seem
+circular to think about evaluating Lisp programs using an evaluator that is
+itself implemented in Lisp.  However, evaluation is a process, so it is
+appropriate to describe the evaluation process using Lisp, which, after all, is
+our tool for describing processes.@footnote{Even so, there will remain
+important aspects of the evaluation process that are not elucidated by our
+evaluator.  The most important of these are the detailed mechanisms by which
+procedures call other procedures and return values to their callers.  We will
+address these issues in @ref{Chapter 5}, where we take a closer look at the
+evaluation process by implementing the evaluator as a simple register machine.}
+An evaluator that is written in the same language that it evaluates is said to
+be @newterm{metacircular}.
+
+The metacircular evaluator is essentially a Scheme formulation of the
+environment model of evaluation described in @ref{3.2}.  Recall that
+the model has two basic parts:
+
+@enumerate 1
+
+@item
+To evaluate a combination (a compound expression other than a special form),
+evaluate the subexpressions and then apply the value of the operator
+subexpression to the values of the operand subexpressions.
+
+@item
+To apply a compound procedure to a set of arguments, evaluate the body of the
+procedure in a new environment.  To construct this environment, extend the
+environment part of the procedure object by a frame in which the formal
+parameters of the procedure are bound to the arguments to which the procedure
+is applied.
+
+@end enumerate
+
+@noindent
+These two rules describe the essence of the evaluation process, a basic cycle
+in which expressions to be evaluated in environments are reduced to procedures
+to be applied to arguments, which in turn are reduced to new expressions to be
+evaluated in new environments, and so on, until we get down to symbols, whose
+values are looked up in the environment, and to primitive procedures, which are
+applied directly (see @ref{Figure 4.1}).@footnote{If we grant ourselves the
+ability to apply primitives, then what remains for us to implement in the
+evaluator?  The job of the evaluator is not to specify the primitives of the
+language, but rather to provide the connective tissue---the means of
+combination and the means of abstraction---that binds a collection of
+primitives to form a language. Specifically:
+
+@itemize @bullet
+
+@item
+The evaluator enables us to deal with nested expressions.  For example,
+although simply applying primitives would suffice for evaluating the expression
+@code{(+ 1 6)}, it is not adequate for handling @code{(+ 1 (* 2 3))}.  As far
+as the primitive procedure @code{+} is concerned, its arguments must be
+numbers, and it would choke if we passed it the expression @code{(* 2 3)} as an
+argument.  One important role of the evaluator is to choreograph procedure
+composition so that @code{(* 2 3)} is reduced to 6 before being passed as an
+argument to @code{+}.
+
+@item
+The evaluator allows us to use variables.  For example, the primitive procedure
+for addition has no way to deal with expressions such as @code{(+ x 1)}.  We
+need an evaluator to keep track of variables and obtain their values before
+invoking the primitive procedures.
+
+@item
+The evaluator allows us to define compound procedures.  This involves keeping
+track of procedure definitions, knowing how to use these definitions in
+evaluating expressions, and providing a mechanism that enables procedures to
+accept arguments.
+
+@item
+The evaluator provides the special forms, which must be evaluated differently
+from procedure calls.
+
+@end itemize
+} 
+This evaluation cycle will be embodied by the interplay between the two
+critical procedures in the evaluator, @code{eval} and @code{apply}, which are
+described in @ref{4.1.1} (see @ref{Figure 4.1}).
+
+@float
+@anchor{Figure 4.1}
+@ifinfo
+@strong{Figure 4.1:} The @code{eval}-@code{apply} cycle exposes the essence of a computer language.
+
+@example
+                           .,ad88888888baa,
+                  _    ,d8P"""        ""9888ba.      _
+                 /  .a8"          ,ad88888888888a   |\
+               /   aP'          ,88888888888888888a   \
+              /  ,8"           ,88888888888888888888,  \
+             |  ,8'            (888888888888888888888, |
+            /  ,8'             `8888888888888888888888  \
+            |  8)               `888888888888888888888, |
+Procedure,  |  8                  "88888 Apply 8888888) | Expression
+Arguments   |  8     Eval          `888888888888888888) | Environment
+            |  8)                    "8888888888888888  |
+            \  (b                     "88888888888888'  /
+             | `8,                     8888888888888)  |
+             \  "8a                   ,888888888888)  /
+              \   V8,                 d88888888888"  /
+              _\| `8b,             ,d8888888888P' _/
+                     `V8a,       ,ad8888888888P'
+                        ""88888888888888888P"
+                             """"""""""""
+
+                               [graphic by Normand Veillux, modified]
+@end example
+@end ifinfo
+@iftex
+@image{fig/chap4/Fig4.1a,147mm,,,.std.svg}
+@caption{@strong{Figure 4.1:} The @code{eval}-@code{apply} cycle exposes the essence of a computer language.}
+@end iftex
+@end float
+
+The implementation of the evaluator will depend upon procedures that define the
+@newterm{syntax} of the expressions to be evaluated.  We will use data
+abstraction to make the evaluator independent of the representation of the
+language.  For example, rather than committing to a choice that an assignment
+is to be represented by a list beginning with the symbol @code{set!} we use an
+abstract predicate @code{assignment?} to test for an assignment, and we use
+abstract selectors @code{assignment-variable} and @code{assignment-value} to
+access the parts of an assignment.  Implementation of expressions will be
+described in detail in @ref{4.1.2}.  There are also operations,
+described in @ref{4.1.3}, that specify the representation of procedures
+and environments.  For example, @code{make-procedure} constructs compound
+procedures, @code{lookup-variable-value} accesses the values of variables, and
+@code{apply-primitive-procedure} applies a primitive procedure to a given list
+of arguments.
+
+@menu
+* 4.1.1::            The Core of the Evaluator
+* 4.1.2::            Representing Expressions
+* 4.1.3::            Evaluator Data Structures
+* 4.1.4::            Running the Evaluator as a Program
+* 4.1.5::            Data as Programs
+* 4.1.6::            Internal Definitions
+* 4.1.7::            Separating Syntactic Analysis from Execution
+@end menu
+
+@node	4.1.1, 4.1.2, 4.1, 4.1
+@subsection The Core of the Evaluator
+
+The evaluation process can be described as the interplay between two
+procedures: @code{eval} and @code{apply}.
+
+@subsubheading Eval
+
+@code{Eval} takes as arguments an expression and an environment.  It classifies
+the expression and directs its evaluation.  @code{Eval} is structured as a case
+analysis of the syntactic type of the expression to be evaluated.  In order to
+keep the procedure general, we express the determination of the type of an
+expression abstractly, making no commitment to any particular representation
+for the various types of expressions.  Each type of expression has a predicate
+that tests for it and an abstract means for selecting its parts.  This
+@newterm{abstract syntax} makes it easy to see how we can change the syntax of
+the language by using the same evaluator, but with a different collection of
+syntax procedures.
+
+@noindent
+@b{Primitive expressions}
+
+@itemize @bullet
+
+@item
+For self-evaluating expressions, such as numbers, @code{eval} returns the
+expression itself.
+
+@item
+@code{Eval} must look up variables in the environment to find their values.
+
+@end itemize
+
+@noindent
+@b{Special forms}
+
+@itemize @bullet
+
+@item
+For quoted expressions, @code{eval} returns the expression that was quoted.
+
+@item
+An assignment to (or a definition of) a variable must recursively call
+@code{eval} to compute the new value to be associated with the variable.  The
+environment must be modified to change (or create) the binding of the variable.
+
+@item
+An @code{if} expression requires special processing of its parts, so as to
+evaluate the consequent if the predicate is true, and otherwise to evaluate the
+alternative.
+
+@item
+A @code{lambda} expression must be transformed into an applicable procedure by
+packaging together the parameters and body specified by the @code{lambda}
+expression with the environment of the evaluation.
+
+@item
+A @code{begin} expression requires evaluating its sequence of expressions in
+the order in which they appear.
+
+@item
+A case analysis (@code{cond}) is transformed into a nest of @code{if}
+expressions and then evaluated.
+
+@end itemize
+
+@noindent
+@b{Combinations}
+
+@itemize @bullet
+
+@item
+For a procedure application, @code{eval} must recursively evaluate the operator
+part and the operands of the combination.  The resulting procedure and
+arguments are passed to @code{apply}, which handles the actual procedure
+application.
+
+@end itemize
+
+@noindent
+Here is the definition of @code{eval}:
+
+@lisp
+(define (eval exp env)
+  (cond ((self-evaluating? exp) 
+         exp)
+        ((variable? exp) 
+         (lookup-variable-value exp env))
+        ((quoted? exp) 
+         (text-of-quotation exp))
+        ((assignment? exp) 
+         (eval-assignment exp env))
+        ((definition? exp) 
+         (eval-definition exp env))
+        ((if? exp) 
+         (eval-if exp env))
+        ((lambda? exp)
+         (make-procedure 
+          (lambda-parameters exp)
+          (lambda-body exp)
+          env))
+        ((begin? exp)
+         (eval-sequence 
+          (begin-actions exp) 
+          env))
+        ((cond? exp) 
+         (eval (cond->if exp) env))
+        ((application? exp)
+         (apply (eval (operator exp) env)
+                (list-of-values 
+                 (operands exp) 
+                 env)))
+        (else
+         (error "Unknown expression 
+                 type: EVAL" exp))))
+@end lisp
+
+@noindent
+For clarity, @code{eval} has been implemented as a case analysis using
+@code{cond}.  The disadvantage of this is that our procedure handles only a few
+distinguishable types of expressions, and no new ones can be defined without
+editing the definition of @code{eval}.  In most Lisp implementations,
+dispatching on the type of an expression is done in a data-directed style.
+This allows a user to add new types of expressions that @code{eval} can
+distinguish, without modifying the definition of @code{eval} itself.  (See
+@ref{Exercise 4.3}.)
+
+@subsubheading Apply
+
+@code{Apply} takes two arguments, a procedure and a list of arguments to which
+the procedure should be applied.  @code{Apply} classifies procedures into two
+kinds: It calls @code{apply-primitive-procedure} to apply primitives; it
+applies compound procedures by sequentially evaluating the expressions that
+make up the body of the procedure.  The environment for the evaluation of the
+body of a compound procedure is constructed by extending the base environment
+carried by the procedure to include a frame that binds the parameters of the
+procedure to the arguments to which the procedure is to be applied.  Here is
+the definition of @code{apply}:
+
+@lisp
+(define (apply procedure arguments)
+  (cond ((primitive-procedure? procedure)
+         (apply-primitive-procedure 
+          procedure 
+          arguments))
+        ((compound-procedure? procedure)
+         (eval-sequence
+           (procedure-body procedure)
+           (extend-environment
+             (procedure-parameters 
+              procedure)
+             arguments
+             (procedure-environment 
+              procedure))))
+        (else
+         (error "Unknown procedure 
+                 type: APPLY" 
+                procedure))))
+@end lisp
+
+@subsubheading Procedure arguments
+
+When @code{eval} processes a procedure application, it uses
+@code{list-of-values} to produce the list of arguments to which the procedure
+is to be applied. @code{List-of-values} takes as an argument the operands of
+the combination.  It evaluates each operand and returns a list of the
+corresponding values:@footnote{We could have simplified the @code{application?}
+clause in @code{eval} by using @code{map} (and stipulating that @code{operands}
+returns a list) rather than writing an explicit @code{list-of-values}
+procedure.  We chose not to use @code{map} here to emphasize the fact that the
+evaluator can be implemented without any use of higher-order procedures (and
+thus could be written in a language that doesn't have higher-order procedures),
+even though the language that it supports will include higher-order
+procedures.}
+
+@lisp
+(define (list-of-values exps env)
+  (if (no-operands? exps)
+      '()
+      (cons (eval (first-operand exps) env)
+            (list-of-values 
+             (rest-operands exps) 
+             env))))
+@end lisp
+
+@subsubheading Conditionals
+

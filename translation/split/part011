@@ -1,0 +1,1000 @@
+        (append (symbols left) 
+                (symbols right))
+        (+ (weight left) (weight right))))
+@end lisp
+
+@noindent
+If we make a tree in this way, we have the following selectors:
+
+@lisp
+(define (left-branch tree) (car tree))
+(define (right-branch tree) (cadr tree))
+
+(define (symbols tree)
+  (if (leaf? tree)
+      (list (symbol-leaf tree))
+      (caddr tree)))
+
+(define (weight tree)
+  (if (leaf? tree)
+      (weight-leaf tree)
+      (cadddr tree)))
+@end lisp
+
+@noindent
+The procedures @code{symbols} and @code{weight} must do something slightly
+different depending on whether they are called with a leaf or a general tree.
+These are simple examples of @newterm{generic procedures} (procedures that can
+handle more than one kind of data), which we will have much more to say about
+in @ref{2.4} and @ref{2.5}.
+
+@subsubheading The decoding procedure
+
+The following procedure implements the decoding algorithm.  It takes as
+arguments a list of zeros and ones, together with a Huffman tree.
+
+@lisp
+(define (decode bits tree)
+  (define (decode-1 bits current-branch)
+    (if (null? bits)
+        '()
+        (let ((next-branch
+               (choose-branch 
+                (car bits) 
+                current-branch)))
+          (if (leaf? next-branch)
+              (cons 
+               (symbol-leaf next-branch)
+               (decode-1 (cdr bits) tree))
+              (decode-1 (cdr bits) 
+                        next-branch)))))
+  (decode-1 bits tree))
+
+(define (choose-branch bit branch)
+  (cond ((= bit 0) (left-branch branch))
+        ((= bit 1) (right-branch branch))
+        (else (error "bad bit: 
+               CHOOSE-BRANCH" bit))))
+@end lisp
+
+@noindent
+The procedure @code{decode-1} takes two arguments: the list of remaining bits
+and the current position in the tree.  It keeps moving ``down'' the tree,
+choosing a left or a right branch according to whether the next bit in the list
+is a zero or a one.  (This is done with the procedure @code{choose-branch}.)
+When it reaches a leaf, it returns the symbol at that leaf as the next symbol
+in the message by @code{cons}ing it onto the result of decoding the rest of the
+message, starting at the root of the tree.  Note the error check in the final
+clause of @code{choose-branch}, which complains if the procedure finds
+something other than a zero or a one in the input data.
+
+@subsubheading Sets of weighted elements
+
+In our representation of trees, each non-leaf node contains a set of symbols,
+which we have represented as a simple list.  However, the tree-generating
+algorithm discussed above requires that we also work with sets of leaves and
+trees, successively merging the two smallest items.  Since we will be required
+to repeatedly find the smallest item in a set, it is convenient to use an
+ordered representation for this kind of set.
+
+We will represent a set of leaves and trees as a list of elements, arranged in
+increasing order of weight.  The following @code{adjoin-set} procedure for
+constructing sets is similar to the one described in @ref{Exercise 2.61};
+however, items are compared by their weights, and the element being added to
+the set is never already in it.
+
+@lisp
+(define (adjoin-set x set)
+  (cond ((null? set) (list x))
+        ((< (weight x) (weight (car set))) 
+         (cons x set))
+        (else 
+         (cons (car set)
+               (adjoin-set x (cdr set))))))
+@end lisp
+
+@noindent
+The following procedure takes a list of symbol-frequency pairs such as
+@code{((A 4) (B 2) (C 1) (D 1))} and constructs an initial ordered set of
+leaves, ready to be merged according to the Huffman algorithm:
+
+@lisp
+(define (make-leaf-set pairs)
+  (if (null? pairs)
+      '()
+      (let ((pair (car pairs)))
+        (adjoin-set 
+         (make-leaf (car pair)    @r{; symbol}
+                    (cadr pair))  @r{; frequency}
+         (make-leaf-set (cdr pairs))))))
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 2.67}Exercise 2.67:} Define an encoding tree and a
+sample message:
+
+@lisp
+(define sample-tree
+  (make-code-tree 
+   (make-leaf 'A 4)
+   (make-code-tree
+    (make-leaf 'B 2)
+    (make-code-tree 
+     (make-leaf 'D 1)
+     (make-leaf 'C 1)))))
+
+(define sample-message 
+  '(0 1 1 0 0 1 0 1 0 1 1 1 0))
+@end lisp
+
+Use the @code{decode} procedure to decode the message, and give the result.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.68}Exercise 2.68:} The @code{encode} procedure takes
+as arguments a message and a tree and produces the list of bits that gives the
+encoded message.
+
+@lisp
+(define (encode message tree)
+  (if (null? message)
+      '()
+      (append 
+       (encode-symbol (car message) 
+                      tree)
+       (encode (cdr message) tree))))
+@end lisp
+
+@code{Encode-symbol} is a procedure, which you must write, that returns the
+list of bits that encodes a given symbol according to a given tree.  You should
+design @code{encode-symbol} so that it signals an error if the symbol is not in
+the tree at all.  Test your procedure by encoding the result you obtained in
+@ref{Exercise 2.67} with the sample tree and seeing whether it is the same as
+the original sample message.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.69}Exercise 2.69:} The following procedure takes as
+its argument a list of symbol-frequency pairs (where no symbol appears in more
+than one pair) and generates a Huffman encoding tree according to the Huffman
+algorithm.
+
+@lisp
+(define (generate-huffman-tree pairs)
+  (successive-merge 
+   (make-leaf-set pairs)))
+@end lisp
+
+@code{Make-leaf-set} is the procedure given above that transforms the list of
+pairs into an ordered set of leaves.  @code{Successive-merge} is the procedure
+you must write, using @code{make-code-tree} to successively merge the
+smallest-weight elements of the set until there is only one element left, which
+is the desired Huffman tree.  (This procedure is slightly tricky, but not
+really complicated.  If you find yourself designing a complex procedure, then
+you are almost certainly doing something wrong.  You can take significant
+advantage of the fact that we are using an ordered set representation.)
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.70}Exercise 2.70:} The following eight-symbol
+alphabet with as@-so@-ci@-ated relative frequencies was designed to efficiently
+encode the lyr@-ics of 1950s rock songs.  (Note that the ``symbols'' of an
+``alphabet'' need not be individual letters.)
+
+@example
+
+A    2    NA  16
+BOOM 1    SHA  3
+GET  2    YIP  9
+JOB  2    WAH  1
+@end example
+
+Use @code{generate-huffman-tree} (@ref{Exercise 2.69}) to generate a
+corresponding Huffman tree, and use @code{encode} (@ref{Exercise 2.68}) to
+encode the following message:
+
+@example
+Get a job
+Sha na na na na na na na na
+
+Get a job
+Sha na na na na na na na na
+
+Wah yip yip yip yip 
+yip yip yip yip yip
+Sha boom
+@end example
+
+How many bits are required for the encoding?  What is the smallest number of
+bits that would be needed to encode this song if we used a fixed-length code
+for the eight-symbol alphabet?
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.71}Exercise 2.71:} Suppose we have a Huffman tree
+for an alphabet of @math{n} symbols, and that the relative frequencies of the
+symbols are @math{{1, 2, 4, \dots, 2^{n-1}}}.  Sketch the tree for @math{{n=5}}; for
+@math{{n=10}}.  In such a tree (for general @math{n}) how many bits are required to
+encode the most frequent symbol?  The least frequent symbol?
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.72}Exercise 2.72:} Consider the encoding procedure
+that you designed in @ref{Exercise 2.68}.  What is the order of growth in the
+number of steps needed to encode a symbol?  Be sure to include the number of
+steps needed to search the symbol list at each node encountered.  To answer
+this question in general is difficult.  Consider the special case where the
+relative frequencies of the @math{n} symbols are as described in @ref{Exercise 2.71}, 
+and give the order of growth (as a function of @math{n}) of the number of
+steps needed to encode the most frequent and least frequent symbols in the
+alphabet.
+@end quotation
+
+@node	2.4, 2.5, 2.3, Chapter 2
+@section Multiple Representations for Abstract Data
+
+We have introduced data abstraction, a methodology for structuring systems in
+such a way that much of a program can be specified independent of the choices
+involved in implementing the data objects that the program manipulates.  For
+example, we saw in @ref{2.1.1} how to separate the task of designing a
+program that uses rational numbers from the task of implementing rational
+numbers in terms of the computer language's primitive mechanisms for
+constructing compound data.  The key idea was to erect an abstraction barrier
+-- in this case, the selectors and constructors for rational numbers
+(@code{make-rat}, @code{numer}, @code{denom})---that isolates the way rational
+numbers are used from their underlying representation in terms of list
+structure.  A similar abstraction barrier isolates the details of the
+procedures that perform rational arithmetic (@code{add-rat}, @code{sub-rat},
+@code{mul-rat}, and @code{div-rat}) from the ``higher-level'' procedures that
+use rational numbers.  The resulting program has the structure shown in
+@ref{Figure 2.1}.
+
+These data-abstraction barriers are powerful tools for controlling complexity.
+By isolating the underlying representations of data objects, we can divide the
+task of designing a large program into smaller tasks that can be performed
+separately.  But this kind of data abstraction is not yet powerful enough,
+because it may not always make sense to speak of ``the underlying
+representation'' for a data object.
+
+For one thing, there might be more than one useful representation for a data
+object, and we might like to design systems that can deal with multiple
+representations.  To take a simple example, complex numbers may be represented
+in two almost equivalent ways: in rectangular form (real and imaginary parts)
+and in polar form (magnitude and angle).  Sometimes rectangular form is more
+appropriate and sometimes polar form is more appropriate.  Indeed, it is
+perfectly plausible to imagine a system in which complex numbers are
+represented in both ways, and in which the procedures for manipulating complex
+numbers work with either representation.
+
+More importantly, programming systems are often designed by many people working
+over extended periods of time, subject to requirements that change over time.
+In such an environment, it is simply not possible for everyone to agree in
+advance on choices of data representation.  So in addition to the
+data-abstraction barriers that isolate representation from use, we need
+abstraction barriers that isolate different design choices from each other and
+permit different choices to coexist in a single program.  Furthermore, since
+large programs are often created by combining pre-existing modules that were
+designed in isolation, we need conventions that permit programmers to
+incorporate modules into larger systems @newterm{additively}, that is, without
+having to redesign or reimplement these modules.
+
+In this section, we will learn how to cope with data that may be represented in
+different ways by different parts of a program.  This requires constructing
+@newterm{generic procedures}---procedures that can operate on data that may be
+represented in more than one way.  Our main technique for building generic
+procedures will be to work in terms of data objects that have @newterm{type tags}, 
+that is, data objects that include explicit information about how they
+are to be processed.  We will also discuss @newterm{data-directed} programming,
+a powerful and convenient implementation strategy for additively assembling
+systems with generic operations.
+
+We begin with the simple complex-number example. We will see how type tags and
+data-directed style enable us to design separate rectangular and polar
+representations for complex numbers while maintaining the notion of an abstract
+``complex-number'' data object.  We will accomplish this by defining arithmetic
+procedures for complex numbers (@code{add-complex}, @code{sub-complex},
+@code{mul-complex}, and @code{div-complex}) in terms of generic selectors that
+access parts of a complex number independent of how the number is represented.
+The resulting complex-number system, as shown in @ref{Figure 2.19}, contains
+two different kinds of abstraction barriers.  The ``horizontal'' abstraction
+barriers play the same role as the ones in @ref{Figure 2.1}.  They isolate
+``higher-level'' operations from ``lower-level'' rep@-re@-sen@-ta@-tions.  In addition,
+there is a ``vertical'' barrier that gives us the ability to separately design
+and install alternative representations.
+
+@float
+@anchor{Figure 2.19}
+@ifinfo
+@quotation
+@strong{Figure 2.19:} Data-abstraction barriers in the complex-number system.
+
+@example
+           Programs that use complex numbers
+  +-------------------------------------------------+
+--| add-complex sub-complex mul-complex div-complex |--
+  +-------------------------------------------------+
+              Complex arithmetic package
+---------------------------+---------------------------
+          Rectangular      |         Polar
+        representation     |     representation
+---------------------------+---------------------------
+    List structure and primitive machine arithmetic
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap2/Fig2.19a,147mm,,,.std.svg}
+@caption{@strong{Figure 2.19:} Data-abstraction barriers in the complex-number system.}
+@end iftex
+@end float
+
+@noindent
+In @ref{2.5} we will show how to use type tags and data-directed style
+to develop a generic arithmetic package.  This provides procedures (@code{add},
+@code{mul}, and so on) that can be used to manipulate all sorts of ``numbers''
+and can be easily extended when a new kind of number is needed.  In 
+@ref{2.5.3}, we'll show how to use generic arithmetic in a system that performs
+symbolic algebra.
+
+@menu
+* 2.4.1::            Representations for Complex Numbers
+* 2.4.2::            Tagged data
+* 2.4.3::            Data-Directed Programming and Additivity
+@end menu
+
+@node	2.4.1, 2.4.2, 2.4, 2.4
+@subsection Representations for Complex Numbers
+
+We will develop a system that performs arithmetic operations on complex numbers
+as a simple but unrealistic example of a program that uses generic operations.
+We begin by discussing two plausible representations for complex numbers as
+ordered pairs: rectangular form (real part and imaginary part) and polar form
+(magnitude and angle).@footnote{In actual computational systems, rectangular
+form is preferable to polar form most of the time because of roundoff errors in
+conversion between rectangular and polar form.  This is why the complex-number
+example is unrealistic.  Nevertheless, it provides a clear illustration of the
+design of a system using generic operations and a good introduction to the more
+substantial systems to be developed later in this chapter.}  
+Section @ref{2.4.2} will show how both representations can be made to coexist in a
+single system through the use of type tags and generic operations.
+
+Like rational numbers, complex numbers are naturally represented as ordered
+pairs.  The set of complex numbers can be thought of as a two-dimensional space
+with two orthogonal axes, the ``real'' axis and the ``imaginary'' axis. (See
+@ref{Figure 2.20}.)  From this point of view, the complex number 
+@math{{z = x + iy}} (where @math{{i^{\kern0.1em 2} = \text{−1}}}) can be thought of as the point in the plane
+whose real coordinate is @math{x} and whose imaginary coordinate is @math{y}.
+Addition of complex numbers reduces in this representation to addition of
+coordinates:
+@ifinfo
+
+@example
+Real-part(z_1 + z_2) = Real-part(z_1) + Real-part(z_2)
+
+Imaginary-part(z_1 + z_2) = Imaginary-part(z_1) + Imaginary-part(z_2)
+@end example
+
+@end ifinfo
+@tex
+\[ % :46:
+\begin{eqnarray}
+\text{Real-part} (z_1 + z_2) 	    &=& \text{Real-part} (z_1) + \\
+                                    & & \text{Real-part} (z_2),  \\
+\text{Imaginary-part} (z_1 + z_2)   &=& \text{Imaginary-part} (z_1) + \\
+                                    & & \text{Imaginary-part} (z_2).
+\end{eqnarray}
+\]
+@end tex
+
+@float
+@anchor{Figure 2.20}
+@ifinfo
+@strong{Figure 2.20:} Complex numbers as points in the plane.
+
+@example
+ Imaginary
+    ^
+    |
+  y |.........................* z = x + ?y = r e^(?A)
+    |                    __-- .
+    |                __--     .
+    |          r __--         .
+    |        __--             .
+    |    __-- \               .
+    |__--    A |              .
+----+----------+-------------------> Real
+                              x
+@end example
+@end ifinfo
+@iftex
+@image{fig/chap2/Fig2.20,147mm,,,.std.svg}
+@caption{@strong{Figure 2.20:} Complex numbers as points in the plane.}
+@end iftex
+@end float
+
+@noindent
+When multiplying complex numbers, it is more natural to think in terms of
+representing a complex number in polar form, as a magnitude and an angle (@math{r}
+and @math{A} in @ref{Figure 2.20}).  The product of two complex numbers is the
+vector obtained by stretching one complex number by the length of the other and
+then rotating it through the angle of the other:
+@ifinfo
+
+@example
+Magnitude(z_1 * z_2) = Magnitude(z_1) * Magnitude(z_2)
+
+Angle(z_1 * z_2) = Angle(z_1) + Angle(z_2)
+@end example
+
+@end ifinfo
+@tex
+\[ % :47:
+\begin{eqnarray}
+  \text{Magnitude} (z_1 \cdot z_2)  &=& 
+    \text{Magnitude} (z_1) \cdot \text{Magnitude} (z_2), \\
+  \text{Angle} (z_1 \cdot z_2)      &=& 
+    \text{Angle} (z_1) + \text{Angle} (z_2).
+\end{eqnarray}
+\]
+@end tex
+
+@noindent
+Thus, there are two different representations for complex numbers, which are
+appropriate for different operations.  Yet, from the viewpoint of someone
+writing a program that uses complex numbers, the principle of data abstraction
+suggests that all the operations for manipulating complex numbers should be
+available regardless of which representation is used by the computer.  For
+example, it is often useful to be able to find the magnitude of a complex
+number that is specified by rectangular coordinates.  Similarly, it is often
+useful to be able to determine the real part of a complex number that is
+specified by polar coordinates.
+
+To design such a system, we can follow the same data-abstraction strategy we
+followed in designing the rational-number package in @ref{2.1.1}.
+Assume that the operations on complex numbers are implemented in terms of four
+selectors: @code{real-part}, @code{imag-part}, @code{magnitude}, and
+@code{angle}.  Also assume that we have two procedures for constructing complex
+numbers: @code{make-from-real-imag} returns a complex number with specified
+real and imaginary parts, and @code{make-from-mag-ang} returns a complex number
+with specified magnitude and angle.  These procedures have the property that,
+for any complex number @code{z}, both
+
+@lisp
+(make-from-real-imag (real-part z) 
+                     (imag-part z))
+@end lisp
+
+@noindent
+and
+
+@lisp
+(make-from-mag-ang (magnitude z) 
+                   (angle z))
+@end lisp
+
+@noindent
+produce complex numbers that are equal to @code{z}.
+
+Using these constructors and selectors, we can implement arithmetic on complex
+numbers using the ``abstract data'' specified by the constructors and
+selectors, just as we did for rational numbers in @ref{2.1.1}.  As
+shown in the formulas above, we can add and subtract complex numbers in terms
+of real and imaginary parts while multiplying and dividing complex numbers in
+terms of magnitudes and angles:
+
+@lisp
+(define (add-complex z1 z2)
+  (make-from-real-imag 
+   (+ (real-part z1) (real-part z2))
+   (+ (imag-part z1) (imag-part z2))))
+
+(define (sub-complex z1 z2)
+  (make-from-real-imag 
+   (- (real-part z1) (real-part z2))
+   (- (imag-part z1) (imag-part z2))))
+
+(define (mul-complex z1 z2)
+  (make-from-mag-ang 
+   (* (magnitude z1) (magnitude z2))
+   (+ (angle z1) (angle z2))))
+
+(define (div-complex z1 z2)
+  (make-from-mag-ang 
+   (/ (magnitude z1) (magnitude z2))
+   (- (angle z1) (angle z2))))
+@end lisp
+
+@noindent
+To complete the complex-number package, we must choose a representation and we
+must implement the constructors and selectors in terms of primitive numbers and
+primitive list structure.  There are two obvious ways to do this: We can
+represent a complex number in ``rectangular form'' as a pair (real part,
+imaginary part) or in ``polar form'' as a pair (magnitude, angle).  Which shall
+we choose?
+
+In order to make the different choices concrete, imagine that there are two
+programmers, Ben Bitdiddle and Alyssa P. Hacker, who are independently
+designing representations for the complex-number system.  Ben chooses to
+represent complex numbers in rectangular form.  With this choice, selecting the
+real and imaginary parts of a complex number is straightforward, as is
+constructing a complex number with given real and imaginary parts.  To find the
+magnitude and the angle, or to construct a complex number with a given
+magnitude and angle, he uses the trigonometric relations
+
+@ifinfo
+
+@example
+                      __________
+x = r cos A     r = ./ x^2 + y^2
+
+y = r sin A     A = arctan(y,x)
+@end example
+
+@end ifinfo
+@tex
+\[ % :48:
+\begin{eqnarray}
+  x &=& r \cos A, \\
+  y &=& r \sin A, \\
+  r &=& \sqrt{x^2 + y^2,} \\
+  A &=& \arctan(y, x),
+\end{eqnarray}
+\]
+@end tex
+
+@noindent
+which relate the real and imaginary parts @math{{(x, y)}} to the magnitude and
+the angle @math{{(r, A)}}.@footnote{The arctangent function referred to here,
+computed by Scheme's @code{atan} procedure, is defined so as to take two
+arguments @math{y} and @math{x} and to return the angle whose tangent is @math{{y / x}}.
+The signs of the arguments determine the quadrant of the angle.}  Ben's
+representation is therefore given by the following selectors and constructors:
+
+@lisp
+(define (real-part z) (car z))
+(define (imag-part z) (cdr z))
+
+(define (magnitude z)
+  (sqrt (+ (square (real-part z)) 
+           (square (imag-part z)))))
+
+(define (angle z)
+  (atan (imag-part z) (real-part z)))
+
+(define (make-from-real-imag x y) 
+  (cons x y))
+
+(define (make-from-mag-ang r a)
+  (cons (* r (cos a)) (* r (sin a))))
+@end lisp
+
+@noindent
+Alyssa, in contrast, chooses to represent complex numbers in polar form.  For
+her, selecting the magnitude and angle is straightforward, but she has to use
+the trigonometric relations to obtain the real and imaginary parts.  Alyssa's
+representation is:
+
+@lisp
+(define (real-part z)
+  (* (magnitude z) (cos (angle z))))
+
+(define (imag-part z)
+  (* (magnitude z) (sin (angle z))))
+
+(define (magnitude z) (car z))
+(define (angle z) (cdr z))
+
+(define (make-from-real-imag x y)
+  (cons (sqrt (+ (square x) (square y)))
+        (atan y x)))
+
+(define (make-from-mag-ang r a) 
+  (cons r a))
+@end lisp
+
+@noindent
+The discipline of data abstraction ensures that the same implementation of
+@code{add-complex}, @code{sub-complex}, @code{mul-complex}, and
+@code{div-complex} will work with either Ben's representation or Alyssa's
+representation.
+
+@node	2.4.2, 2.4.3, 2.4.1, 2.4
+@subsection Tagged data
+
+One way to view data abstraction is as an application of the ``principle of
+least commitment.''  In implementing the complex-number system in 
+@ref{2.4.1}, we can use either Ben's rectangular representation or Alyssa's
+polar representation.  The abstraction barrier formed by the selectors and
+constructors permits us to defer to the last possible moment the choice of a
+concrete representation for our data objects and thus retain maximum
+flexibility in our system design.
+
+The principle of least commitment can be carried to even further extremes.  If
+we desire, we can maintain the ambiguity of representation even @emph{after} we
+have designed the selectors and constructors, and elect to use both Ben's
+representation @emph{and} Alyssa's representation.  If both representations are
+included in a single system, however, we will need some way to distinguish data
+in polar form from data in rectangular form.  Otherwise, if we were asked, for
+instance, to find the @code{magnitude} of the pair (3, 4), we wouldn't know
+whether to answer 5 (interpreting the number in rectangular form) or 3
+(interpreting the number in polar form).  A straightforward way to accomplish
+this distinction is to include a @newterm{type tag}---the symbol
+@code{rectangular} or @code{polar}---as part of each complex number.  Then
+when we need to manipulate a complex number we can use the tag to decide which
+selector to apply.
+
+In order to manipulate tagged data, we will assume that we have procedures
+@code{type-tag} and @code{contents} that extract from a data object the tag and
+the actual contents (the polar or rectangular coordinates, in the case of a
+complex number).  We will also postulate a procedure @code{attach-tag} that
+takes a tag and contents and produces a tagged data object.  A straightforward
+way to implement this is to use ordinary list structure:
+
+@lisp
+(define (attach-tag type-tag contents)
+  (cons type-tag contents))
+
+(define (type-tag datum)
+  (if (pair? datum)
+      (car datum)
+      (error "Bad tagged datum: 
+              TYPE-TAG" datum)))
+
+(define (contents datum)
+  (if (pair? datum)
+      (cdr datum)
+      (error "Bad tagged datum: 
+              CONTENTS" datum)))
+@end lisp
+
+@noindent
+Using these procedures, we can define predicates @code{rectangular?}  and
+@code{polar?}, which recognize rectangular and polar numbers, respectively:
+
+@lisp
+(define (rectangular? z)
+  (eq? (type-tag z) 'rectangular))
+
+(define (polar? z)
+  (eq? (type-tag z) 'polar))
+@end lisp
+
+@noindent
+With type tags, Ben and Alyssa can now modify their code so that their two
+different representations can coexist in the same system.  Whenever Ben
+constructs a complex number, he tags it as rectangular.  Whenever Alyssa
+constructs a complex number, she tags it as polar.  In addition, Ben and Alyssa
+must make sure that the names of their procedures do not conflict.  One way to
+do this is for Ben to append the suffix @code{rectangular} to the name of each
+of his representation procedures and for Alyssa to append @code{polar} to the
+names of hers.  Here is Ben's revised rectangular representation from 
+@ref{2.4.1}:
+
+@lisp
+(define (real-part-rectangular z) (car z))
+(define (imag-part-rectangular z) (cdr z))
+
+(define (magnitude-rectangular z)
+  (sqrt (+ (square (real-part-rectangular z))
+           (square (imag-part-rectangular z)))))
+
+(define (angle-rectangular z)
+  (atan (imag-part-rectangular z)
+        (real-part-rectangular z)))
+
+(define (make-from-real-imag-rectangular x y)
+  (attach-tag 'rectangular (cons x y)))
+
+(define (make-from-mag-ang-rectangular r a)
+  (attach-tag 
+   'rectangular
+   (cons (* r (cos a)) (* r (sin a)))))
+@end lisp
+
+@noindent
+and here is Alyssa's revised polar representation:
+
+@lisp
+(define (real-part-polar z)
+  (* (magnitude-polar z) 
+     (cos (angle-polar z))))
+
+(define (imag-part-polar z)
+  (* (magnitude-polar z) 
+     (sin (angle-polar z))))
+
+(define (magnitude-polar z) (car z))
+(define (angle-polar z) (cdr z))
+
+(define (make-from-real-imag-polar x y)
+  (attach-tag 
+   'polar
+   (cons (sqrt (+ (square x) (square y)))
+         (atan y x))))
+
+(define (make-from-mag-ang-polar r a)
+  (attach-tag 'polar (cons r a)))
+@end lisp
+
+@noindent
+Each generic selector is implemented as a procedure that checks the tag of its
+argument and calls the appropriate procedure for handling data of that type.
+For example, to obtain the real part of a complex number, @code{real-part}
+examines the tag to determine whether to use Ben's @code{real-part-rectangular}
+or Alyssa's @code{real-part-polar}.  In either case, we use @code{contents} to
+extract the bare, untagged datum and send this to the rectangular or polar
+procedure as required:
+
+@lisp
+(define (real-part z)
+  (cond ((rectangular? z)
+         (real-part-rectangular (contents z)))
+        ((polar? z)
+         (real-part-polar (contents z)))
+        (else (error "Unknown type: 
+               REAL-PART" z))))
+
+(define (imag-part z)
+  (cond ((rectangular? z)
+         (imag-part-rectangular (contents z)))
+        ((polar? z)
+         (imag-part-polar (contents z)))
+        (else (error "Unknown type: 
+               IMAG-PART" z))))
+
+(define (magnitude z)
+  (cond ((rectangular? z)
+         (magnitude-rectangular (contents z)))
+        ((polar? z)
+         (magnitude-polar (contents z)))
+        (else (error "Unknown type: 
+               MAGNITUDE" z))))
+
+(define (angle z)
+  (cond ((rectangular? z)
+         (angle-rectangular (contents z)))
+        ((polar? z)
+         (angle-polar (contents z)))
+        (else (error "Unknown type: 
+               ANGLE" z))))
+@end lisp
+
+@noindent
+To implement the complex-number arithmetic operations, we can use the same
+procedures @code{add-complex}, @code{sub-complex}, @code{mul-complex}, and
+@code{div-complex} from @ref{2.4.1}, because the selectors they call
+are generic, and so will work with either representation.  For example, the
+procedure @code{add-complex} is still
+
+@lisp
+(define (add-complex z1 z2)
+  (make-from-real-imag 
+   (+ (real-part z1) (real-part z2))
+   (+ (imag-part z1) (imag-part z2))))
+@end lisp
+
+@noindent
+Finally, we must choose whether to construct complex numbers using Ben's
+representation or Alyssa's representation.  One reasonable choice is to
+construct rectangular numbers whenever we have real and imaginary parts and to
+construct polar numbers whenever we have magnitudes and angles:
+
+@lisp
+(define (make-from-real-imag x y)
+  (make-from-real-imag-rectangular x y))
+
+(define (make-from-mag-ang r a)
+  (make-from-mag-ang-polar r a))
+@end lisp
+
+@noindent
+The resulting complex-number system has the structure shown in @ref{Figure 2.21}.  
+The system has been decomposed into three relatively independent parts:
+the complex-number-arithmetic operations, Alyssa's polar implementation, and
+Ben's rectangular implementation.  The polar and rectangular implementations
+could have been written by Ben and Alyssa working separately, and both of these
+can be used as underlying representations by a third programmer implementing
+the complex-arithmetic procedures in terms of the abstract constructor/selector
+interface.
+
+@float
+@anchor{Figure 2.21}
+@ifinfo
+@quotation
+@strong{Figure 2.21:} Structure of the generic complex-arithmetic system.
+
+@example
+    +-------------------------------------------------+
+----| add-complex sub-complex mul-complex div-complex |----
+    +-------------------------------------------------+
+                Complex arithmetic package
+                 +-----------------------+
+                 | real-part   imag-part |
+-----------------|                       |------------------
+                 | magnitude   angle     |
+                 +-----------+-----------+
+           Rectangular       |          Polar
+          representation     |     representation
+-----------------------------+------------------------------
+       List structure and primitive machine arithmetic
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap2/Fig2.21a,147mm,,,.std.svg}
+@caption{@strong{Figure 2.21:} Structure of the generic complex-arithmetic system.}
+@end iftex
+@end float
+
+Since each data object is tagged with its type, the selectors operate on the
+data in a generic manner.  That is, each selector is defined to have a behavior
+that depends upon the particular type of data it is applied to.  Notice the
+general mechanism for interfacing the separate representations: Within a given
+representation implementation (say, Alyssa's polar package) a complex number is
+an untyped pair (magnitude, angle).  When a generic selector operates on a
+number of @code{polar} type, it strips off the tag and passes the contents on
+to Alyssa's code.  Conversely, when Alyssa constructs a number for general use,
+she tags it with a type so that it can be appropriately recognized by the
+higher-level procedures.  This discipline of stripping off and attaching tags
+as data objects are passed from level to level can be an important
+organizational strategy, as we shall see in @ref{2.5}.
+
+@node	2.4.3, 2.5, 2.3, 2.4
+@subsection Data-Directed Programming and Additivity
+
+The general strategy of checking the type of a datum and calling an appropriate
+procedure is called @newterm{dispatching on type}.  This is a powerful strategy
+for obtaining modularity in system design.  On the other hand, implementing the
+dispatch as in @ref{2.4.2} has two significant weaknesses.  One
+weakness is that the generic interface procedures (@code{real-part},
+@code{imag-part}, @code{magnitude}, and @code{angle}) must know about all the
+different representations.  For instance, suppose we wanted to incorporate a
+new representation for complex numbers into our complex-number system.  We
+would need to identify this new representation with a type, and then add a
+clause to each of the generic interface procedures to check for the new type
+and apply the appropriate selector for that representation.
+
+Another weakness of the technique is that even though the individual
+representations can be designed separately, we must guarantee that no two
+procedures in the entire system have the same name.  This is why Ben and Alyssa
+had to change the names of their original procedures from @ref{2.4.1}.
+
+The issue underlying both of these weaknesses is that the technique for
+implementing generic interfaces is not @newterm{additive}.  The person
+implementing the generic selector procedures must modify those procedures each
+time a new representation is installed, and the people interfacing the
+individual representations must modify their code to avoid name conflicts.  In
+each of these cases, the changes that must be made to the code are
+straightforward, but they must be made nonetheless, and this is a source of
+inconvenience and error.  This is not much of a problem for the complex-number
+system as it stands, but suppose there were not two but hundreds of different
+representations for complex numbers.  And suppose that there were many generic
+selectors to be maintained in the abstract-data interface.  Suppose, in fact,
+that no one programmer knew all the interface procedures or all the
+representations.  The problem is real and must be addressed in such programs as
+large-scale data-base-management systems.
+
+What we need is a means for modularizing the system design even further.  This
+is provided by the programming technique known as @newterm{data-directed programming}.  
+To understand how data-directed programming works, begin with
+the observation that whenever we deal with a set of generic operations that are
+common to a set of different types we are, in effect, dealing with a
+two-dimensional table that contains the possible operations on one axis and the
+possible types on the other axis.  The entries in the table are the procedures
+that implement each operation for each type of argument presented.  In the
+complex-number system developed in the previous section, the correspondence
+between operation name, data type, and actual procedure was spread out among
+the various conditional clauses in the generic interface procedures.  But the
+same information could have been organized in a table, as shown in @ref{Figure 2.22}.
+
+@float
+@anchor{Figure 2.22}
+@ifinfo
+@quotation
+@strong{Figure 2.22:} Table of operations for the complex-number system.
+
+@example
+           |               Types
+Operations | Polar           | Rectangular
+===========+=================+======================
+real-part  | real-part-polar | real-part-rectangular
+imag-part  | imag-part-polar | imag-part-rectangular
+magnitude  | magnitude-polar | magnitude-rectangular
+angle      | angle-polar     | angle-rectangular
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap2/Fig2.22,147mm,,,.std.svg}
+@caption{@strong{Figure 2.22:} Table of operations for the complex-number system.}
+@end iftex
+@end float
+
+@noindent
+Data-directed programming is the technique of designing programs to work with
+such a table directly.  Previously, we implemented the mechanism that
+interfaces the complex-arithmetic code with the two representation packages as
+a set of procedures that each perform an explicit dispatch on type.  Here we
+will implement the interface as a single procedure that looks up the
+combination of the operation name and argument type in the table to find the
+correct procedure to apply, and then applies it to the contents of the
+argument.  If we do this, then to add a new representation package to the
+system we need not change any existing procedures; we need only add new entries
+to the table.
+
+To implement this plan, assume that we have two procedures, @code{put} and
+@code{get}, for manipulating the operation-and-type table:
+
+@itemize @bullet
+
+@item
+@code{(put ⟨@var{op}⟩ ⟨@var{type}⟩ ⟨@var{item}⟩)} installs the 
+@code{⟨}@var{item}@code{⟩} in the table, indexed by the 
+@code{⟨}@var{op}@code{⟩} and the @code{⟨}@var{type}@code{⟩}.
+
+@item
+@code{(get ⟨@var{op}⟩ ⟨@var{type}⟩)} looks up the @code{⟨}@var{op}@code{⟩}, 
+@code{⟨}@var{type}@code{⟩} entry in the table and returns the item found there.  
+If no item is found, @code{get} returns false.
+
+@end itemize
+
+@noindent
+For now, we can assume that @code{put} and @code{get} are included in our
+language.  In @ref{Chapter 3} (@ref{3.3.3}) we
+will see how to implement these and other operations for manipulating tables.
+
+Here is how data-directed programming can be used in the complex-number system.
+Ben, who developed the rectangular representation, implements his code just as
+he did originally.  He defines a collection of procedures, or a
+@newterm{package}, and interfaces these to the rest of the system by adding
+entries to the table that tell the system how to operate on rectangular
+numbers.  This is accomplished by calling the following procedure:
+
+@lisp
+(define (install-rectangular-package)
+  @r{;; internal procedures}
+  (define (real-part z) (car z))
+  (define (imag-part z) (cdr z))
+  (define (make-from-real-imag x y) 
+    (cons x y))
+  (define (magnitude z)
+    (sqrt (+ (square (real-part z))
+             (square (imag-part z)))))
+  (define (angle z)
+    (atan (imag-part z) (real-part z)))
+  (define (make-from-mag-ang r a)
+    (cons (* r (cos a)) (* r (sin a))))
+  @r{;; interface to the rest of the system}
+  (define (tag x) 
+    (attach-tag 'rectangular x))
+  (put 'real-part '(rectangular) real-part)
+  (put 'imag-part '(rectangular) imag-part)
+  (put 'magnitude '(rectangular) magnitude)
+  (put 'angle '(rectangular) angle)
+  (put 'make-from-real-imag 'rectangular
+       (lambda (x y) 
+         (tag (make-from-real-imag x y))))
+  (put 'make-from-mag-ang 'rectangular
+       (lambda (r a) 
+         (tag (make-from-mag-ang r a))))
+  'done)
+@end lisp
+
+@noindent
+Notice that the internal procedures here are the same procedures from 
+@ref{2.4.1} that Ben wrote when he was working in isolation.  No changes are
+necessary in order to interface them to the rest of the system.  Moreover,
+since these procedure definitions are internal to the installation procedure,
+Ben needn't worry about name conflicts with other procedures outside the
+rectangular package.  To interface these to the rest of the system, Ben
+installs his @code{real-part} procedure under the operation name
+@code{real-part} and the type @code{(rectangular)}, and similarly for the other
+selectors.@footnote{We use the list @code{(rectangular)} rather than the symbol
+@code{rectangular} to allow for the possibility of operations with multiple
+arguments, not all of the same type.}  The interface also defines the
+constructors to be used by the external system.@footnote{The type the
+constructors are installed under needn't be a list because a constructor is
+always used to make an object of one particular type.}  These are identical to
+Ben's internally defined constructors, except that they attach the tag.
+

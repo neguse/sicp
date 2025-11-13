@@ -1,0 +1,100 @@
+identifying the type of an expression.
+
+@enumerate a
+
+@item
+What is wrong with Louis's plan?  (Hint: What will Louis's evaluator do with
+the expression @code{(define x 3)}?)
+
+@item
+Louis is upset that his plan didn't work.  He is willing to go to any lengths
+to make his evaluator recognize procedure applications before it checks for
+most other kinds of expressions.  Help him by changing the syntax of the
+evaluated language so that procedure applications start with @code{call}.  For
+example, instead of @code{(factorial 3)} we will now have to write @code{(call
+factorial 3)} and instead of @code{(+ 1 2)} we will have to write @code{(call +
+1 2)}.
+
+@end enumerate
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.3}Exercise 4.3:} Rewrite @code{eval} so that the
+dispatch is done in data-directed style.  Compare this with the data-directed
+differentiation procedure of @ref{Exercise 2.73}.  (You may use the @code{car}
+of a compound expression as the type of the expression, as is appropriate for
+the syntax implemented in this section.)
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.4}Exercise 4.4:} Recall the definitions of the
+special forms @code{and} and @code{or} from @ref{Chapter 1}:
+
+@itemize @bullet
+
+@item
+@code{and}: The expressions are evaluated from left to right.  If any
+expression evaluates to false, false is returned; any remaining expressions are
+not evaluated.  If all the expressions evaluate to true values, the value of
+the last expression is returned.  If there are no expressions then true is
+returned.
+
+@item
+@code{or}: The expressions are evaluated from left to right.  If any expression
+evaluates to a true value, that value is returned; any remaining expressions
+are not evaluated.  If all expressions evaluate to false, or if there are no
+expressions, then false is returned.
+
+@end itemize
+
+Install @code{and} and @code{or} as new special forms for the evaluator by
+defining appropriate syntax procedures and evaluation procedures
+@code{eval-and} and @code{eval-or}.  Alternatively, show how to implement
+@code{and} and @code{or} as derived expressions.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.5}Exercise 4.5:} Scheme allows an additional syntax
+for @code{cond} clauses, @code{(⟨@var{test}⟩ => ⟨@var{recipient}⟩)}.  If
+@code{⟨}@var{test}@code{⟩} evaluates to a true value, then @code{⟨}@var{recipient}@code{⟩} is evaluated.
+Its value must be a procedure of one argument; this procedure is then invoked
+on the value of the @code{⟨}@var{test}@code{⟩}, and the result is returned as the value of
+the @code{cond} expression.  For example
+
+@lisp
+(cond ((assoc 'b '((a 1) (b 2))) => cadr)
+      (else false))
+@end lisp
+
+@noindent
+returns 2.  Modify the handling of @code{cond} so that it supports this
+extended syntax.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.6}Exercise 4.6:} @code{Let} expressions are derived
+expressions, because
+
+@lisp
+(let ((⟨@var{var₁}⟩ ⟨@var{exp₁}⟩) @r{…} (⟨@var{varₙ}⟩ ⟨@var{expₙ}⟩))
+  ⟨@var{body}⟩)
+@end lisp
+
+@noindent
+is equivalent to
+
+@lisp
+((lambda (⟨@var{var₁}⟩ @r{…} ⟨@var{varₙ}⟩)
+   ⟨@var{body}⟩)
+ ⟨@var{exp₁}⟩
+ @r{…}
+ ⟨@var{expₙ}⟩)
+@end lisp
+
+Implement a syntactic transformation @code{let->combination} that reduces
+evaluating @code{let} expressions to evaluating combinations of the type shown
+above, and add the appropriate clause to @code{eval} to handle @code{let}
+expressions.
+@end quotation
+
+@quotation

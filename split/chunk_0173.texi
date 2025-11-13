@@ -1,0 +1,100 @@
+table implementation where the (key, value) records are organized using a
+binary tree, assuming that keys can be ordered in some way (e.g., numerically
+or alphabetically).  (Compare @ref{Exercise 2.66} of @ref{Chapter 2}.)
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.27}Exercise 3.27:} @newterm{Memoization} (also
+called @newterm{tabulation}) is a technique that enables a procedure to record,
+in a local table, values that have previously been computed.  This technique
+can make a vast difference in the performance of a program.  A memoized
+procedure maintains a table in which values of previous calls are stored using
+as keys the arguments that produced the values.  When the memoized procedure is
+asked to compute a value, it first checks the table to see if the value is
+already there and, if so, just returns that value.  Otherwise, it computes the
+new value in the ordinary way and stores this in the table.  As an example of
+memoization, recall from @ref{1.2.2} the exponential process for
+computing Fibonacci numbers:
+
+@lisp
+(define (fib n)
+  (cond ((= n 0) 0)
+        ((= n 1) 1)
+        (else (+ (fib (- n 1))
+                 (fib (- n 2))))))
+@end lisp
+
+The memoized version of the same procedure is
+
+@lisp
+(define memo-fib
+  (memoize 
+   (lambda (n)
+     (cond ((= n 0) 0)
+           ((= n 1) 1)
+           (else 
+            (+ (memo-fib (- n 1))
+               (memo-fib (- n 2))))))))
+@end lisp
+
+@noindent
+where the memoizer is defined as
+
+@lisp
+(define (memoize f)
+  (let ((table (make-table)))
+    (lambda (x)
+      (let ((previously-computed-result 
+             (lookup x table)))
+        (or previously-computed-result
+            (let ((result (f x)))
+              (insert! x result table)
+              result))))))
+@end lisp
+
+Draw an environment diagram to analyze the computation of @code{(memo-fib 3)}.
+Explain why @code{memo-fib} computes the @math{n^{\text{th}}} Fibonacci number in a number
+of steps proportional to @math{n}.  Would the scheme still work if we had simply
+defined @code{memo-fib} to be @code{(memoize fib)}?
+@end quotation
+
+@node	3.3.4, 3.3.5, 3.3.3, 3.3
+@subsection A Simulator for Digital Circuits
+
+Designing complex digital systems, such as computers, is an important
+engineering activity.  Digital systems are constructed by interconnecting
+simple elements.  Although the behavior of these individual elements is simple,
+networks of them can have very complex behavior.  Computer simulation of
+proposed circuit designs is an important tool used by digital systems
+engineers.  In this section we design a system for performing digital logic
+simulations.  This system typifies a kind of program called an
+@newterm{event-driven simulation}, in which actions (``events'') trigger
+further events that happen at a later time, which in turn trigger more events,
+and so on.
+
+Our computational model of a circuit will be composed of objects that
+correspond to the elementary components from which the circuit is constructed.
+There are @newterm{wires}, which carry @newterm{digital signals}.  A digital
+signal may at any moment have only one of two possible values, 0 and 1.  There
+are also various types of digital @newterm{function boxes}, which connect wires
+carrying input signals to other output wires.  Such boxes produce output
+signals computed from their input signals.  The output signal is delayed by a
+time that depends on the type of the function box.  For example, an
+@newterm{inverter} is a primitive function box that inverts its input.  If the
+input signal to an inverter changes to 0, then one inverter-delay later the
+inverter will change its output signal to 1.  If the input signal to an
+inverter changes to 1, then one inverter-delay later the inverter will change
+its output signal to 0.  We draw an inverter symbolically as in @ref{Figure 3.24}.  
+An @newterm{and-gate}, also shown in figure 3.24, is a primitive
+function box with two inputs and one output.  It drives its output signal to a
+value that is the @newterm{logical and} of the inputs.  That is, if both of its
+input signals become 1, then one and-gate-delay time later the and-gate will
+force its output signal to be 1; otherwise the output will be 0.  An
+@newterm{or-gate} is a similar two-input primitive function box that drives its
+output signal to a value that is the @newterm{logical or} of the inputs.  That
+is, the output will become 1 if at least one of the input signals is 1;
+otherwise the output will become 0.
+
+@float
+@anchor{Figure 3.24}
+@ifinfo

@@ -1,0 +1,100 @@
+imag-part  | imag-part-polar | imag-part-rectangular
+magnitude  | magnitude-polar | magnitude-rectangular
+angle      | angle-polar     | angle-rectangular
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap2/Fig2.22,147mm,,,.std.svg}
+@caption{@strong{Figure 2.22:} Table of operations for the complex-number system.}
+@end iftex
+@end float
+
+@noindent
+Data-directed programming is the technique of designing programs to work with
+such a table directly.  Previously, we implemented the mechanism that
+interfaces the complex-arithmetic code with the two representation packages as
+a set of procedures that each perform an explicit dispatch on type.  Here we
+will implement the interface as a single procedure that looks up the
+combination of the operation name and argument type in the table to find the
+correct procedure to apply, and then applies it to the contents of the
+argument.  If we do this, then to add a new representation package to the
+system we need not change any existing procedures; we need only add new entries
+to the table.
+
+To implement this plan, assume that we have two procedures, @code{put} and
+@code{get}, for manipulating the operation-and-type table:
+
+@itemize @bullet
+
+@item
+@code{(put ⟨@var{op}⟩ ⟨@var{type}⟩ ⟨@var{item}⟩)} installs the 
+@code{⟨}@var{item}@code{⟩} in the table, indexed by the 
+@code{⟨}@var{op}@code{⟩} and the @code{⟨}@var{type}@code{⟩}.
+
+@item
+@code{(get ⟨@var{op}⟩ ⟨@var{type}⟩)} looks up the @code{⟨}@var{op}@code{⟩}, 
+@code{⟨}@var{type}@code{⟩} entry in the table and returns the item found there.  
+If no item is found, @code{get} returns false.
+
+@end itemize
+
+@noindent
+For now, we can assume that @code{put} and @code{get} are included in our
+language.  In @ref{Chapter 3} (@ref{3.3.3}) we
+will see how to implement these and other operations for manipulating tables.
+
+Here is how data-directed programming can be used in the complex-number system.
+Ben, who developed the rectangular representation, implements his code just as
+he did originally.  He defines a collection of procedures, or a
+@newterm{package}, and interfaces these to the rest of the system by adding
+entries to the table that tell the system how to operate on rectangular
+numbers.  This is accomplished by calling the following procedure:
+
+@lisp
+(define (install-rectangular-package)
+  @r{;; internal procedures}
+  (define (real-part z) (car z))
+  (define (imag-part z) (cdr z))
+  (define (make-from-real-imag x y) 
+    (cons x y))
+  (define (magnitude z)
+    (sqrt (+ (square (real-part z))
+             (square (imag-part z)))))
+  (define (angle z)
+    (atan (imag-part z) (real-part z)))
+  (define (make-from-mag-ang r a)
+    (cons (* r (cos a)) (* r (sin a))))
+  @r{;; interface to the rest of the system}
+  (define (tag x) 
+    (attach-tag 'rectangular x))
+  (put 'real-part '(rectangular) real-part)
+  (put 'imag-part '(rectangular) imag-part)
+  (put 'magnitude '(rectangular) magnitude)
+  (put 'angle '(rectangular) angle)
+  (put 'make-from-real-imag 'rectangular
+       (lambda (x y) 
+         (tag (make-from-real-imag x y))))
+  (put 'make-from-mag-ang 'rectangular
+       (lambda (r a) 
+         (tag (make-from-mag-ang r a))))
+  'done)
+@end lisp
+
+@noindent
+Notice that the internal procedures here are the same procedures from 
+@ref{2.4.1} that Ben wrote when he was working in isolation.  No changes are
+necessary in order to interface them to the rest of the system.  Moreover,
+since these procedure definitions are internal to the installation procedure,
+Ben needn't worry about name conflicts with other procedures outside the
+rectangular package.  To interface these to the rest of the system, Ben
+installs his @code{real-part} procedure under the operation name
+@code{real-part} and the type @code{(rectangular)}, and similarly for the other
+selectors.@footnote{We use the list @code{(rectangular)} rather than the symbol
+@code{rectangular} to allow for the possibility of operations with multiple
+arguments, not all of the same type.}  The interface also defines the
+constructors to be used by the external system.@footnote{The type the
+constructors are installed under needn't be a list because a constructor is
+always used to make an object of one particular type.}  These are identical to
+Ben's internally defined constructors, except that they attach the tag.
+

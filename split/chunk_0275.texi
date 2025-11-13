@@ -1,0 +1,100 @@
+@end lisp
+
+@noindent
+matches all job entries whose third item is a two-element list whose first item
+is @code{computer}:
+
+@lisp
+(job (Bitdiddle Ben) (computer wizard))
+(job (Hacker Alyssa P) (computer programmer))
+(job (Fect Cy D) (computer programmer))
+(job (Tweakit Lem E) (computer technician))
+@end lisp
+
+@noindent
+This same pattern does @emph{not} match
+
+@lisp
+(job (Reasoner Louis) 
+     (computer programmer trainee))
+@end lisp
+
+@noindent
+because the third item in the entry is a list of three elements, and the
+pattern's third item specifies that there should be two elements.  If we wanted
+to change the pattern so that the third item could be any list beginning with
+@code{computer}, we could specify@footnote{This uses the dotted-tail notation
+introduced in @ref{Exercise 2.20}.}
+
+@lisp
+(job ?x (computer . ?type))
+@end lisp
+
+@noindent
+For example,
+
+@lisp
+(computer . ?type)
+@end lisp
+
+@noindent
+matches the data
+
+@lisp
+(computer programmer trainee)
+@end lisp
+
+@noindent
+with @code{?type} as the list @code{(programmer trainee)}.  It also
+matches the data
+
+@lisp
+(computer programmer)
+@end lisp
+
+@noindent
+with @code{?type} as the list @code{(programmer)}, and matches the data
+
+@lisp
+(computer)
+@end lisp
+
+@noindent
+with @code{?type} as the empty list @code{()}.
+
+We can describe the query language's processing of simple queries as follows:
+
+@itemize @bullet
+
+@item
+The system finds all assignments to variables in the query pattern that
+@newterm{satisfy} the pattern---that is, all sets of values for the variables
+such that if the pattern variables are @newterm{instantiated with} (replaced
+by) the values, the result is in the data base.
+
+@item
+The system responds to the query by listing all instantiations of the query
+pattern with the variable assignments that satisfy it.
+
+@end itemize
+
+@noindent
+Note that if the pattern has no variables, the query reduces to a determination
+of whether that pattern is in the data base.  If so, the empty assignment,
+which assigns no values to variables, satisfies that pattern for that data
+base.
+
+@quotation
+@strong{@anchor{Exercise 4.55}Exercise 4.55:} Give simple queries that retrieve
+the following information from the data base:
+
+@enumerate
+
+@item
+all people supervised by Ben Bitdiddle;
+
+@item
+the names and jobs of all people in the accounting division;
+
+@item
+the names and addresses of all people who live in Slumerville.

@@ -1,0 +1,100 @@
+* 1.1::              The Elements of Programming
+* 1.2::              Procedures and the Processes They Generate
+* 1.3::              Formulating Abstractions with Higher-Order Procedures
+@end menu
+
+@node	1.1, 1.2, Chapter 1, Chapter 1
+@section The Elements of Programming
+
+A powerful programming language is more than just a means for instructing a
+computer to perform tasks.  The language also serves as a framework within
+which we organize our ideas about processes.  Thus, when we describe a
+language, we should pay particular attention to the means that the language
+provides for combining simple ideas to form more complex ideas.  Every powerful
+language has three mechanisms for accomplishing this:
+
+@itemize @bullet
+
+@item @b{primitive expressions},
+which represent the simplest entities the language is concerned with,
+
+@item @b{means of combination},
+by which compound elements are built from simpler ones, and
+
+@item @b{means of abstraction},
+by which compound elements can be named and manipulated as units.
+
+@end itemize
+
+@noindent
+In programming, we deal with two kinds of elements: procedures and data. (Later
+we will discover that they are really not so distinct.)  Informally, data is
+``stuff'' that we want to manipulate, and procedures are descriptions of the
+rules for manipulating the data.  Thus, any powerful programming language
+should be able to describe primitive data and primitive procedures and should
+have methods for combining and abstracting procedures and data.
+
+In this chapter we will deal only with simple numerical data so that we can
+focus on the rules for building procedures.@footnote{The characterization of
+numbers as ``simple data'' is a barefaced bluff.  In fact, the treatment of
+numbers is one of the trickiest and most confusing aspects of any programming
+language.  Some typical issues involved are these: Some computer systems
+distinguish @newterm{integers}, such as 2, from @newterm{real numbers}, such as
+2.71.  Is the real number 2.00 different from the integer 2?  Are the
+arithmetic operations used for integers the same as the operations used for
+real numbers?  Does 6 divided by 2 produce 3, or 3.0?  How large a number can
+we represent?  How many decimal places of accuracy can we represent?  Is the
+range of integers the same as the range of real numbers?  Above and beyond
+these questions, of course, lies a collection of issues concerning roundoff and
+truncation errors---the entire science of numerical analysis.  Since our focus
+in this book is on large-scale program design rather than on numerical
+techniques, we are going to ignore these problems.  The numerical examples in
+this chapter will exhibit the usual roundoff behavior that one observes when
+using arithmetic operations that preserve a limited number of decimal places of
+accuracy in noninteger operations.} In later chapters we will see that these
+same rules allow us to build procedures to manipulate compound data as well.
+
+@menu
+* 1.1.1::            Expressions
+* 1.1.2::            Naming and the Environment
+* 1.1.3::            Evaluating Combinations
+* 1.1.4::            Compound Procedures
+* 1.1.5::            The Substitution Model for Procedure Application
+* 1.1.6::            Conditional Expressions and Predicates
+* 1.1.7::            Example: Square Roots by Newton's Method
+* 1.1.8::            Procedures as Black-Box Abstractions
+@end menu
+
+@node	1.1.1, 1.1.2, 1.1, 1.1
+@subsection Expressions
+
+One easy way to get started at programming is to examine some typical
+interactions with an interpreter for the Scheme dialect of Lisp.  Imagine that
+you are sitting at a computer terminal.  You type an @newterm{expression}, and
+the interpreter responds by displaying the result of its @newterm{evaluating}
+that expression.
+
+One kind of primitive expression you might type is a number.  (More precisely,
+the expression that you type consists of the numerals that represent the number
+in base 10.)  If you present Lisp with a number
+
+@lisp
+486
+@end lisp
+
+@noindent
+the interpreter will respond by printing@footnote{Throughout this book, when
+we wish to emphasize the distinction between the input typed by the user and
+the response printed by the interpreter, we will show the latter in slanted
+characters.}
+
+@lisp
+@i{486}
+@end lisp
+
+@noindent
+Expressions representing numbers may be combined with an expression
+representing a primitive procedure (such as @code{+} or @code{*}) to form a
+compound expression that represents the application of the procedure to those
+numbers.  For @w{example}:
+

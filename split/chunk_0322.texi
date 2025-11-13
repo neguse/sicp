@@ -1,0 +1,100 @@
+@lisp
+(define (make-assign 
+         inst machine labels operations pc)
+  (let ((target 
+         (get-register 
+          machine 
+          (assign-reg-name inst)))
+        (value-exp (assign-value-exp inst)))
+    (let ((value-proc
+           (if (operation-exp? value-exp)
+               (make-operation-exp
+                value-exp 
+                machine
+                labels
+                operations)
+               (make-primitive-exp
+                (car value-exp)
+                machine
+                labels))))
+      (lambda ()   @r{; execution procedure}
+                   @r{; for @code{assign}}
+        (set-contents! target (value-proc))
+        (advance-pc pc)))))
+@end lisp
+
+@noindent
+@code{Make-assign} extracts the target register name (the second element of the
+instruction) and the value expression (the rest of the list that forms the
+instruction) from the @code{assign} instruction using the selectors
+
+@lisp
+(define (assign-reg-name assign-instruction)
+  (cadr assign-instruction))
+(define (assign-value-exp assign-instruction)
+  (cddr assign-instruction))
+@end lisp
+
+@noindent
+The register name is looked up with @code{get-register} to produce the target
+register object.  The value expression is passed to @code{make-operation-exp}
+if the value is the result of an operation, and to @code{make-primitive-exp}
+otherwise.  These procedures (shown below) parse the value expression and
+produce an execution procedure for the value.  This is a procedure of no
+arguments, called @code{value-proc}, which will be evaluated during the
+simulation to produce the actual value to be assigned to the register.  Notice
+that the work of looking up the register name and parsing the value expression
+is performed just once, at assembly time, not every time the instruction is
+simulated.  This saving of work is the reason we use execution procedures, and
+corresponds directly to the saving in work we obtained by separating program
+analysis from execution in the evaluator of @ref{4.1.7}.
+
+The result returned by @code{make-assign} is the execution procedure for the
+@code{assign} instruction.  When this procedure is called (by the machine
+model's @code{execute} procedure), it sets the contents of the target register
+to the result obtained by executing @code{value-proc}.  Then it advances the
+@code{pc} to the next instruction by running the procedure
+
+@lisp
+(define (advance-pc pc)
+  (set-contents! pc (cdr (get-contents pc))))
+@end lisp
+
+@noindent
+@code{Advance-pc} is the normal termination for all instructions except
+@code{branch} and @code{goto}.
+
+@subsubheading @code{Test}, @code{branch}, and @code{goto} instructions
+
+@code{Make-test} handles @code{test} instructions in a similar way.  It
+extracts the expression that specifies the condition to be tested and generates
+an execution procedure for it.  At simulation time, the procedure for the
+condition is called, the result is assigned to the @code{flag} register, and
+the @code{pc} is advanced:
+
+@lisp
+(define 
+  (make-test 
+   inst machine labels operations flag pc)
+  (let ((condition (test-condition inst)))
+    (if (operation-exp? condition)
+        (let ((condition-proc
+               (make-operation-exp
+                condition 
+                machine
+                labels
+                operations)))
+          (lambda () 
+            (set-contents! 
+             flag (condition-proc))
+            (advance-pc pc)))
+        (error "Bad TEST instruction: 
+                ASSEMBLE" inst))))
+
+(define (test-condition test-instruction)
+  (cdr test-instruction))
+@end lisp
+
+@noindent
+The execution procedure for a @code{branch} instruction checks the contents of
+the @code{flag} register and either sets the contents of the @code{pc} to the

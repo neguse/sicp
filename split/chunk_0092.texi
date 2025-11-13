@@ -1,0 +1,100 @@
+edge2    \         __--    frame
+vector    \    __--        edge1
+           \_--            vector
+            -   <--+
+          frame    |
+          origin   +-- (0, 0) point
+          vector       on display screen
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap2/Fig2.15a,78mm,,,.std.svg}
+@caption{@strong{Figure 2.15:} A frame is described by three vectors --- an origin and two edges.}
+@end iftex
+@end float
+
+@noindent
+We will use coordinates in the unit square @math{{(0 \le x, y \le 1)}} to specify
+images.  With each frame, we associate a @newterm{frame coordinate map}, which
+will be used to shift and scale images to fit the frame.  The map transforms
+the unit square into the frame by mapping the vector @math{{{\bf v} = (x, y)}} to
+the vector sum
+@ifinfo
+
+@example
+Origin(Frame) + x * Edge_1(Frame) + y * Edge_2(Frame)
+@end example
+
+@end ifinfo
+@tex
+\[ % :40:
+  {\text{Origin(Frame)}} + {x \cdot \text{Edge}_1\text{(Frame)}} + {y \cdot \text{Edge}_2\text{(Frame)}.} \]
+@end tex
+@noindent
+For example, (0, 0) is mapped to the origin of the frame, (1, 1) to the vertex
+diagonally opposite the origin, and (0.5, 0.5) to the center of the frame.  We
+can create a frame's coordinate map with the following
+procedure:@footnote{@code{Frame-coord-map} uses the vector operations described
+in @ref{Exercise 2.46} below, which we assume have been implemented using some
+representation for vectors.  Because of data abstraction, it doesn't matter
+what this vector representation is, so long as the vector operations behave
+correctly.}
+
+@lisp
+(define (frame-coord-map frame)
+  (lambda (v)
+    (add-vect
+     (origin-frame frame)
+     (add-vect 
+      (scale-vect (xcor-vect v)
+                  (edge1-frame frame))
+      (scale-vect (ycor-vect v)
+                  (edge2-frame frame))))))
+@end lisp
+
+@noindent
+Observe that applying @code{frame-coord-map} to a frame returns a procedure
+that, given a vector, returns a vector.  If the argument vector is in the unit
+square, the result vector will be in the frame.  For example,
+
+@lisp
+((frame-coord-map a-frame) (make-vect 0 0))
+@end lisp
+
+@noindent
+returns the same vector as
+
+@lisp
+(origin-frame a-frame)
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 2.46}Exercise 2.46:} A two-dimensional vector @math{\bf v}
+running from the origin to a point can be represented as a pair consisting of
+an @math{x}-coordinate and a @math{y}-coordinate.  Implement a data abstraction for
+vectors by giving a constructor @code{make-vect} and corresponding selectors
+@code{xcor-vect} and @code{ycor-vect}.  In terms of your selectors and
+constructor, implement procedures @code{add-vect}, @code{sub-vect}, and
+@code{scale-vect} that perform the operations vector addition, vector
+subtraction, and multiplying a vector by a scalar:
+@ifinfo
+
+@example
+(x_1, y_1) + (x_2, y_2) = (x_1 + x_2, y_1 + y_2)
+(x_1, y_1) - (x_2, y_2) = (x_1 - x_2, y_1 - y_2)
+             s * (x, y) = (sx, sy)
+@end example
+@end ifinfo
+@tex
+\[ % :41:
+  
+\begin{eqnarray}
+	(x_1, y_1) + (x_2, y_2)  &=&  (x_1 + x_2, y_1 + y_2), \\
+	(x_1, y_1) - (x_2, y_2)  &=&  (x_1 - x_2, y_1 - y_2), \\
+	s \cdot (x, y) 		 &=&  (sx, sy).
+\end{eqnarray}
+\]
+@end tex
+@end quotation
+

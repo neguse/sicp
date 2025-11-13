@@ -1,0 +1,100 @@
+                    (make-label-entry 
+                     next-inst
+                     insts)
+                    labels))
+               (receive 
+                   (cons (make-instruction 
+                          next-inst)
+                         insts)
+                   labels)))))))
+@end lisp
+
+@noindent
+@code{Extract-labels} works by sequentially scanning the elements of the
+@code{text} and accumulating the @code{insts} and the @code{labels}.  If an
+element is a symbol (and thus a label) an appropriate entry is added to the
+@code{labels} table.  Otherwise the element is accumulated onto the
+@code{insts} list.@footnote{Using the @code{receive} procedure here is a way to
+get @code{extract-labels} to effectively return two values---@code{labels} and
+@code{insts}---without explicitly making a compound data structure to hold
+them.  An alternative implementation, which returns an explicit pair of values,
+is
+
+@lisp
+(define (extract-labels text)
+  (if (null? text)
+      (cons '() '())
+      (let ((result 
+             (extract-labels (cdr text))))
+        (let ((insts (car result))
+              (labels (cdr result)))
+          (let ((next-inst (car text)))
+            (if (symbol? next-inst)
+                (cons 
+                 insts
+                 (cons 
+                  (make-label-entry 
+                   next-inst insts) 
+                  labels))
+                (cons 
+                 (cons 
+                  (make-instruction next-inst) 
+                  insts)
+                 labels)))))))
+@end lisp
+
+@noindent
+which would be called by @code{assemble} as follows:
+
+@lisp
+(define (assemble controller-text machine)
+  (let ((result 
+         (extract-labels controller-text)))
+    (let ((insts (car result))
+          (labels (cdr result)))
+      (update-insts! insts labels machine)
+      insts)))
+@end lisp
+
+You can consider our use of @code{receive} as demonstrating an elegant way to
+return multiple values, or simply an excuse to show off a programming trick.
+An argument like @code{receive} that is the next procedure to be invoked is
+called a ``continuation.''  Recall that we also used continuations to implement
+the backtracking control structure in the @code{amb} evaluator in 
+@ref{4.3.3}.}
+
+@code{Update-insts!} modifies the instruction list, which initially contains
+only the text of the instructions, to include the corresponding execution
+procedures:
+
+@lisp
+(define (update-insts! insts labels machine)
+  (let ((pc (get-register machine 'pc))
+        (flag (get-register machine 'flag))
+        (stack (machine 'stack))
+        (ops (machine 'operations)))
+    (for-each
+     (lambda (inst)
+       (set-instruction-execution-proc!
+        inst
+        (make-execution-procedure
+         (instruction-text inst) 
+         labels
+         machine
+         pc
+         flag
+         stack
+         ops)))
+     insts)))
+@end lisp
+
+@noindent
+The machine instruction data structure simply pairs the instruction text with
+the corresponding execution procedure.  The execution procedure is not yet
+available when @code{extract-labels} constructs the instruction, and is
+inserted later by @code{update-insts!}.
+
+@lisp
+(define (make-instruction text)
+  (cons text '()))
+(define (instruction-text inst) (car inst))

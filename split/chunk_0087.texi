@@ -1,0 +1,100 @@
+@math{{n \times n}} chessboard.  @code{Queens} has an internal procedure
+@code{queen-cols} that returns the sequence of all ways to place queens in the
+first @math{k} columns of the board.
+
+@lisp
+(define (queens board-size)
+  (define (queen-cols k)
+    (if (= k 0)
+        (list empty-board)
+        (filter
+         (lambda (positions) 
+           (safe? k positions))
+         (flatmap
+          (lambda (rest-of-queens)
+            (map (lambda (new-row)
+                   (adjoin-position 
+                    new-row 
+                    k 
+                    rest-of-queens))
+                 (enumerate-interval 
+                  1 
+                  board-size)))
+          (queen-cols (- k 1))))))
+  (queen-cols board-size))
+@end lisp
+
+In this procedure @code{rest-of-queens} is a way to place @math{{k - 1}} queens in
+the first @math{{k - 1}} columns, and @code{new-row} is a proposed row in which to
+place the queen for the @math{k^{\text{th}}} column.  Complete the program by implementing
+the representation for sets of board positions, including the procedure
+@code{adjoin-position}, which adjoins a new row-column position to a set of
+positions, and @code{empty-board}, which represents an empty set of positions.
+You must also write the procedure @code{safe?}, which determines for a set of
+positions, whether the queen in the @math{k^{\text{th}}} column is safe with respect to the
+others.  (Note that we need only check whether the new queen is safe---the
+other queens are already guaranteed safe with respect to each other.)
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.43}Exercise 2.43:} Louis Reasoner is having a
+terrible time doing @ref{Exercise 2.42}.  His @code{queens} procedure seems to
+work, but it runs extremely slowly.  (Louis never does manage to wait long
+enough for it to solve even the @math{{6\times6}} case.)  When Louis asks Eva Lu Ator for
+help, she points out that he has interchanged the order of the nested mappings
+in the @code{flatmap}, writing it as
+
+@lisp
+(flatmap
+ (lambda (new-row)
+   (map (lambda (rest-of-queens)
+          (adjoin-position 
+           new-row k rest-of-queens))
+        (queen-cols (- k 1))))
+ (enumerate-interval 1 board-size))
+@end lisp
+
+Explain why this interchange makes the program run slowly.  Estimate how long
+it will take Louis's program to solve the eight-queens puzzle, assuming that
+the program in @ref{Exercise 2.42} solves the puzzle in time @math{T}.
+@end quotation
+
+@node	2.2.4, 2.3, 2.1, 2.2
+@subsection Example: A Picture Language
+
+This section presents a simple language for drawing pictures that illustrates
+the power of data abstraction and closure, and also exploits higher-order
+procedures in an essential way.  The language is designed to make it easy to
+experiment with patterns such as the ones in @ref{Figure 2.9}, which are
+composed of repeated elements that are shifted and scaled.@footnote{The picture
+language is based on the language Peter Henderson created to construct images
+like M.C. Escher's ``Square Limit'' woodcut (see @ref{Henderson 1982}).  The woodcut
+incorporates a repeated scaled pattern, similar to the arrangements drawn using
+the @code{square-limit} procedure in this section.} In this language, the data
+objects being combined are represented as procedures rather than as list
+structure.  Just as @code{cons}, which satisfies the closure property, allowed
+us to easily build arbitrarily complicated list structure, the operations in
+this language, which also satisfy the closure property, allow us to easily
+build arbitrarily complicated patterns.
+
+@float
+@anchor{Figure 2.9}
+@ifinfo
+@quotation
+@strong{Figure 2.9:} Designs generated with the picture language.
+
+[two graphic images not included]
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap2/Fig2.9,139mm,60mm,,.std.svg}
+@caption{@strong{Figure 2.9:} Designs generated with the picture language.}
+@end iftex
+@end float
+
+@subsubheading The picture language
+
+When we began our study of programming in @ref{1.1}, we emphasized the
+importance of describing a language by focusing on the language's primitives,
+its means of combination, and its means of abstraction.  We'll follow that
+framework here.

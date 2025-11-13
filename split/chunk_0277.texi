@@ -1,0 +1,100 @@
+@end lisp
+
+@noindent
+finds all people supervised by Ben Bitdiddle who are not computer programmers.
+In general,
+
+@lisp
+(not ⟨@var{query₁}⟩)
+@end lisp
+
+@noindent
+is satisfied by all assignments to the pattern variables that do not satisfy
+@math{{⟨\kern0.1em query_1⟩}}.@footnote{Actually, this description of @code{not} is valid
+only for simple cases.  The real behavior of @code{not} is more complex.  We
+will examine @code{not}'s peculiarities in @ref{4.4.2} and
+@ref{4.4.3}.}
+
+The final combining form is called @code{lisp-value}.  When @code{lisp-value}
+is the first element of a pattern, it specifies that the next element is a Lisp
+predicate to be applied to the rest of the (instantiated) elements as
+arguments.  In general,
+
+@lisp
+(lisp-value ⟨@var{predicate}⟩ ⟨@var{arg₁}⟩ @r{…} ⟨@var{argₙ}⟩)
+@end lisp
+
+@noindent
+will be satisfied by assignments to the pattern variables for which the
+@code{⟨}@var{predicate}@code{⟩} applied to the instantiated @math{{⟨\kern0.1em arg_1⟩}} @r{…}
+@math{{⟨\kern0.1em arg_n⟩}} is true.  For example, to find all people whose salary is
+greater than $30,000 we could write@footnote{@code{Lisp-value} should be used
+only to perform an operation not provided in the query language.  In
+particular, it should not be used to test equality (since that is what the
+matching in the query language is designed to do) or inequality (since that can
+be done with the @code{same} rule shown below).}
+
+@lisp
+(and (salary ?person ?amount)
+     (lisp-value > ?amount 30000))
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 4.56}Exercise 4.56:} Formulate compound queries that
+retrieve the following information:
+
+@enumerate a
+
+@item
+the names of all people who are supervised by Ben Bitdiddle, together with
+their addresses;
+
+@item
+all people whose salary is less than Ben Bitdiddle's, together with their
+salary and Ben Bitdiddle's salary;
+
+@item
+all people who are supervised by someone who is not in the computer division,
+together with the supervisor's name and job.
+
+@end enumerate
+@end quotation
+
+@subsubheading Rules
+
+In addition to primitive queries and compound queries, the query language
+provides means for abstracting queries.  These are given by @newterm{rules}.
+The rule
+
+@lisp
+(rule (lives-near ?person-1 ?person-2)
+      (and (address ?person-1 
+                    (?town . ?rest-1))
+           (address ?person-2 
+                    (?town . ?rest-2))
+           (not (same ?person-1 ?person-2))))
+@end lisp
+
+@noindent
+specifies that two people live near each other if they live in the same town.
+The final @code{not} clause prevents the rule from saying that all people live
+near themselves.  The @code{same} relation is defined by a very simple
+rule:@footnote{Notice that we do not need @code{same} in order to make two
+things be the same: We just use the same pattern variable for each---in effect,
+we have one thing instead of two things in the first place.  For example, see
+@code{?town} in the @code{lives-near} rule and @code{?middle-manager} in the
+@code{wheel} rule below.  @code{Same} is useful when we want to force two
+things to be different, such as @code{?person-1} and @code{?person-2} in the
+@code{lives-near} rule.  Although using the same pattern variable in two parts
+of a query forces the same value to appear in both places, using different
+pattern variables does not force different values to appear.  (The values
+assigned to different pattern variables may be the same or different.)}
+
+@lisp
+(rule (same ?x ?x))
+@end lisp
+
+@noindent
+The following rule declares that a person is a ``wheel'' in an organization if
+he supervises someone who is in turn a supervisor:
+

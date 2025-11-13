@@ -1,0 +1,100 @@
+           +------------------------------------+
+           | make-withdraw: ...                 |
+global --->|                                    |
+env        | W1: --+                            |
+           +-------|----------------------------+
+                   |                   ^
+                   |                   |
+                   |            +------+------+
+                   |     E1 --->| balance: 50 |
+                   |            +-------------+
+                   V                   ^
+               .---.---.               |
+               | O | O-+---------------+
+               `-|-^---'
+                 |
+                 V
+          parameters: amount
+          body: ...
+@end example
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.9b,147mm,,,.std.svg}
+@caption{@strong{Figure 3.9:} Environments after the call to @code{W1}.}
+@end iftex
+@end float
+
+Observe what happens when we create a second ``withdraw'' object by making
+another call to @code{make-withdraw}:
+
+@lisp
+(define W2 (make-withdraw 100))
+@end lisp
+
+@noindent
+This produces the environment structure of @ref{Figure 3.10}, which shows that
+@code{W2} is a procedure object, that is, a pair with some code and an
+environment.  The environment E2 for @code{W2} was created by the call to
+@code{make-withdraw}.  It contains a frame with its own local binding for
+@code{balance}.  On the other hand, @code{W1} and @code{W2} have the same code:
+the code specified by the λ-expression in the body of
+@code{make-withdraw}.@footnote{Whether @code{W1} and @code{W2} share the same
+physical code stored in the computer, or whether they each keep a copy of the
+code, is a detail of the implementation.  For the interpreter we implement in
+@ref{Chapter 4}, the code is in fact shared.} We see here why @code{W1} and
+@code{W2} behave as independent objects.  Calls to @code{W1} reference the
+state variable @code{balance} stored in E1, whereas calls to @code{W2}
+reference the @code{balance} stored in E2. Thus, changes to the local state of
+one object do not affect the other object.
+
+@float
+@anchor{Figure 3.10}
+@ifinfo
+@strong{Figure 3.10:} Using @code{(define W2 (make-withdraw 100))} to create a second object.
+
+@example
+         +-------------------------------------------------+
+         | make-withdraw: ...                              |
+global ->| W2: ---------------------------+                |
+env      | W1: --+                        |                |
+         +-------|------------------------|----------------+
+                 |              ^         |              ^
+                 |              |         |              |
+                 |       +------+------+  |       +------+-------+
+                 |  E1 ->| balance: 50 |  |  E2 ->| balance: 100 |
+                 |       +-------------+  |       +--------------+
+                 V              ^         V              ^
+             .---.---.          |     .---.---.          |
+             | O | O-+----------+     | O | O-+----------+
+             `-|-^---'                `-|-^---'
+               | +----------------------+
+               V V
+        parameters: amount
+        body: ...
+@end example
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.10b,147mm,,,.std.svg}
+@caption{@strong{Figure 3.10:} Using @code{(define W2 (make-withdraw 100))} to create a second object.}
+@end iftex
+@end float
+
+@quotation
+@strong{@anchor{Exercise 3.10}Exercise 3.10:} In the @code{make-withdraw}
+procedure, the local variable @code{balance} is created as a parameter of
+@code{make-withdraw}.  We could also create the local state variable
+explicitly, using @code{let}, as follows:
+
+@lisp
+(define (make-withdraw initial-amount)
+  (let ((balance initial-amount))
+    (lambda (amount)
+      (if (>= balance amount)
+          (begin (set! balance 
+                       (- balance amount))
+                 balance)
+          "Insufficient funds"))))
+@end lisp
+
+Recall from @ref{1.3.2} that @code{let} is simply syntactic sugar for a
+procedure call:

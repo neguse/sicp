@@ -1,0 +1,100 @@
+
+@noindent
+will both return 25.@footnote{The @abbr{MIT} implementation of Scheme
+includes @code{eval}, as well as a symbol @code{user-initial-environment} that
+is bound to the initial environment in which the user's input expressions are
+evaluated.}
+
+@quotation
+@strong{@anchor{Exercise 4.15}Exercise 4.15:} Given a one-argument procedure
+@code{p} and an object @code{a}, @code{p} is said to ``halt'' on @code{a} if
+evaluating the expression @code{(p a)} returns a value (as opposed to
+terminating with an error message or running forever).  Show that it is
+impossible to write a procedure @code{halts?} that correctly determines whether
+@code{p} halts on @code{a} for any procedure @code{p} and object @code{a}.  Use
+the following reasoning: If you had such a procedure @code{halts?}, you could
+implement the following program:
+
+@lisp
+(define (run-forever)
+  (run-forever))
+
+(define (try p)
+  (if (halts? p p)
+      (run-forever)
+      'halted))
+@end lisp
+
+Now consider evaluating the expression @code{(try try)} and show that any
+possible outcome (either halting or running forever) violates the intended
+behavior of @code{halts?}.@footnote{Although we stipulated that @code{halts?}
+is given a procedure object, notice that this reasoning still applies even if
+@code{halts?} can gain access to the procedure's text and its environment.
+This is Turing's celebrated @newterm{Halting Theorem}, which gave the first
+clear example of a @newterm{non-computable} problem, i.e., a well-posed task
+that cannot be carried out as a computational procedure.}
+@end quotation
+
+@node	4.1.6, 4.1.7, 4.1.5, 4.1
+@subsection Internal Definitions
+
+Our environment model of evaluation and our metacircular evaluator execute
+definitions in sequence, extending the environment frame one definition at a
+time.  This is particularly convenient for interactive program development, in
+which the programmer needs to freely mix the application of procedures with the
+definition of new procedures.  However, if we think carefully about the
+internal definitions used to implement block structure (introduced in 
+@ref{1.1.8}), we will find that name-by-name extension of the environment may
+not be the best way to define local variables.
+
+Consider a procedure with internal definitions, such as
+
+@lisp
+(define (f x)
+  (define (even? n)
+    (if (= n 0)
+        true
+        (odd? (- n 1))))
+  (define (odd? n)
+    (if (= n 0)
+        false
+        (even? (- n 1))))
+  ⟨@var{rest of body of @code{f}}⟩)
+@end lisp
+
+@noindent
+Our intention here is that the name @code{odd?} in the body of the procedure
+@code{even?} should refer to the procedure @code{odd?} that is defined after
+@code{even?}.  The scope of the name @code{odd?} is the entire body of
+@code{f}, not just the portion of the body of @code{f} starting at the point
+where the @code{define} for @code{odd?} occurs.  Indeed, when we consider that
+@code{odd?} is itself defined in terms of @code{even?}---so that @code{even?}
+and @code{odd?} are mutually recursive procedures---we see that the only
+satisfactory interpretation of the two @code{define}s is to regard them as if
+the names @code{even?} and @code{odd?} were being added to the environment
+simultaneously.  More generally, in block structure, the scope of a local name
+is the entire procedure body in which the @code{define} is evaluated.
+
+As it happens, our interpreter will evaluate calls to @code{f} correctly, but
+for an ``accidental'' reason: Since the definitions of the internal procedures
+come first, no calls to these procedures will be evaluated until all of them
+have been defined.  Hence, @code{odd?}  will have been defined by the time
+@code{even?} is executed.  In fact, our sequential evaluation mechanism will
+give the same result as a mechanism that directly implements simultaneous
+definition for any procedure in which the internal definitions come first in a
+body and evaluation of the value expressions for the defined variables doesn't
+actually use any of the defined variables.  (For an example of a procedure that
+doesn't obey these restrictions, so that sequential definition isn't equivalent
+to simultaneous definition, see @ref{Exercise 4.19}.)@footnote{Wanting programs
+to not depend on this evaluation mechanism is the reason for the ``management
+is not responsible'' remark in @ref{Footnote 28} of @ref{Chapter 1}.  By
+insisting that internal definitions come first and do not use each other while
+the definitions are being evaluated, the @abbr{IEEE} standard for Scheme
+leaves implementors some choice in the mechanism used to evaluate these
+definitions.  The choice of one evaluation rule rather than another here may
+seem like a small issue, affecting only the interpretation of ``badly formed''
+programs.  However, we will see in @ref{5.5.6} that moving to a model
+of simultaneous scoping for internal definitions avoids some nasty difficulties
+that would otherwise arise in implementing a compiler.}
+
+There is, however, a simple way to treat definitions so that internally defined

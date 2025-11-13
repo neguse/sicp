@@ -1,0 +1,100 @@
+(which knows that there are five kinds of U.S. coins).  It would be nicer to be
+able to supply a list of coins to be used for making change.
+
+We want to rewrite the procedure @code{cc} so that its second argument is a
+list of the values of the coins to use rather than an integer specifying which
+coins to use.  We could then have lists that defined each kind of currency:
+
+@lisp
+(define us-coins 
+  (list 50 25 10 5 1))
+
+(define uk-coins 
+  (list 100 50 20 10 5 2 1 0.5))
+@end lisp
+
+We could then call @code{cc} as follows:
+
+@lisp
+(cc 100 us-coins)
+@i{292}
+@end lisp
+
+To do this will require changing the program @code{cc} somewhat.  It will still
+have the same form, but it will access its second argument differently, as
+follows:
+
+@lisp
+(define (cc amount coin-values)
+  (cond ((= amount 0) 
+         1)
+        ((or (< amount 0) 
+             (no-more? coin-values)) 
+         0)
+        (else
+         (+ (cc 
+             amount
+             (except-first-denomination 
+              coin-values))
+            (cc 
+             (- amount
+                (first-denomination 
+                 coin-values))
+             coin-values)))))
+@end lisp
+
+Define the procedures @code{first-denomination},
+@code{except-first-denomination} and @code{no-more?} in terms of primitive
+operations on list structures.  Does the order of the list @code{coin-values}
+affect the answer produced by @code{cc}?  Why or why not?
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.20}Exercise 2.20:} The procedures @code{+},
+@code{*}, and @code{list} take arbitrary numbers of arguments. One way to
+define such procedures is to use @code{define} with @newterm{dotted-tail notation}.  
+In a procedure definition, a parameter list that has a dot before
+the last parameter name indicates that, when the procedure is called, the
+initial parameters (if any) will have as values the initial arguments, as
+usual, but the final parameter's value will be a @newterm{list} of any
+remaining arguments.  For instance, given the definition
+
+@lisp
+(define (f x y . z) ⟨@var{body}⟩)
+@end lisp
+
+@noindent
+the procedure @code{f} can be called with two or more arguments.  If we
+evaluate
+
+@lisp
+(f 1 2 3 4 5 6)
+@end lisp
+
+@noindent
+then in the body of @code{f}, @code{x} will be 1, @code{y} will be 2, and
+@code{z} will be the list @code{(3 4 5 6)}.  Given the definition
+
+@lisp
+(define (g . w) ⟨@var{body}⟩)
+@end lisp
+
+@noindent
+the procedure @code{g} can be called with zero or more arguments.  If we
+evaluate
+
+@lisp
+(g 1 2 3 4 5 6)
+@end lisp
+
+@noindent
+then in the body of @code{g}, @code{w} will be the list @code{(1 2 3 4 5
+6)}.@footnote{To define @code{f} and @code{g} using @code{lambda} we would
+write
+
+@lisp
+(define f (lambda (x y . z) ⟨@var{body}⟩))
+(define g (lambda w ⟨@var{body}⟩))
+@end lisp
+}
+

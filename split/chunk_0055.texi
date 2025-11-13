@@ -1,0 +1,100 @@
+this section, and @code{newtons-method} is readily defined in terms of this.
+It takes as arguments a procedure that computes the function for which we want
+to find a zero, together with an initial guess.  For instance, to find the
+square root of @math{x}, we can use Newton's method to find a zero of the function
+@math{{y \mapsto y^2 - x}} starting with an initial guess of 1.@footnote{For
+finding square roots, Newton's method converges rapidly to the correct solution
+from any starting point.}
+
+This provides yet another form of the square-root procedure:
+
+@lisp
+(define (sqrt x)
+  (newtons-method 
+   (lambda (y) 
+     (- (square y) x)) 
+   1.0))
+@end lisp
+
+@subsubheading Abstractions and first-class procedures
+
+We've seen two ways to express the square-root computation as an instance of a
+more general method, once as a fixed-point search and once using Newton's
+method.  Since Newton's method was itself expressed as a fixed-point process,
+we actually saw two ways to compute square roots as fixed points.  Each method
+begins with a function and finds a fixed point of some transformation of the
+function.  We can express this general idea itself as a procedure:
+
+@lisp
+(define (fixed-point-of-transform 
+         g transform guess)
+  (fixed-point (transform g) guess))
+@end lisp
+
+@noindent
+This very general procedure takes as its arguments a procedure @code{g} that
+computes some function, a procedure that transforms @code{g}, and an initial
+guess.  The returned result is a fixed point of the transformed function.
+
+Using this abstraction, we can recast the first square-root computation from
+this section (where we look for a fixed point of the average-damped version of
+@math{{y \mapsto x / y}}) as an instance of this general method:
+
+@lisp
+(define (sqrt x)
+  (fixed-point-of-transform 
+   (lambda (y) (/ x y))
+   average-damp
+   1.0))
+@end lisp
+
+@noindent
+Similarly, we can express the second square-root computation from this section
+(an instance of Newton's method that finds a fixed point of the Newton
+transform of @math{{y \mapsto y^2 - x}}) as
+
+@lisp
+(define (sqrt x)
+  (fixed-point-of-transform 
+   (lambda (y) (- (square y) x))
+   newton-transform
+   1.0))
+@end lisp
+
+@noindent
+We began section @ref{1.3} with the observation that compound procedures are a
+crucial abstraction mechanism, because they permit us to express general
+methods of computing as explicit elements in our programming language.  Now
+we've seen how higher-order procedures permit us to manipulate these general
+methods to create further abstractions.
+
+As programmers, we should be alert to opportunities to identify the underlying
+abstractions in our programs and to build upon them and generalize them to
+create more powerful abstractions.  This is not to say that one should always
+write programs in the most abstract way possible; expert programmers know how
+to choose the level of abstraction appropriate to their task.  But it is
+important to be able to think in terms of these abstractions, so that we can be
+ready to apply them in new contexts.  The significance of higher-order
+procedures is that they enable us to represent these abstractions explicitly as
+elements in our programming language, so that they can be handled just like
+other computational elements.
+
+In general, programming languages impose restrictions on the ways in which
+computational elements can be manipulated.  Elements with the fewest
+restrictions are said to have @newterm{first-class} status.  Some of the
+``rights and privileges'' of first-class elements are:@footnote{The notion of
+first-class status of programming-language elements is due to the British
+computer scientist Christopher Strachey (1916-1975).}
+
+@itemize @bullet
+
+@item
+They may be named by variables.
+
+@item
+They may be passed as arguments to procedures.
+
+@item
+They may be returned as the results of procedures.
+
+@item

@@ -1,0 +1,100 @@
+      (let ((x1 (car set1)) (x2 (car set2)))
+        (cond ((= x1 x2)
+               (cons x1 (intersection-set 
+                         (cdr set1)
+                         (cdr set2))))
+              ((< x1 x2) (intersection-set 
+                          (cdr set1) 
+                          set2))
+              ((< x2 x1) (intersection-set 
+                          set1 
+                          (cdr set2)))))))
+@end lisp
+
+@noindent
+To estimate the number of steps required by this process, observe that at each
+step we reduce the intersection problem to computing intersections of smaller
+sets---removing the first element from @code{set1} or @code{set2} or both.
+Thus, the number of steps required is at most the sum of the sizes of
+@code{set1} and @code{set2}, rather than the product of the sizes as with the
+unordered representation.  This is @math{{\Theta(n)}} growth rather than
+@math{{\Theta(n^2)}}---a considerable speedup, even for sets of moderate size.
+
+@quotation
+@strong{@anchor{Exercise 2.61}Exercise 2.61:} Give an implementation of
+@code{adjoin-set} using the ordered representation.  By analogy with
+@code{element-of-set?} show how to take advantage of the ordering to produce a
+procedure that requires on the average about half as many steps as with the
+unordered representation.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.62}Exercise 2.62:} Give a @math{{\Theta(n)}}
+implementation of @code{union-set} for sets represented as ordered lists.
+@end quotation
+
+@subsubheading Sets as binary trees
+
+We can do better than the ordered-list representation by arranging the set
+elements in the form of a tree.  Each node of the tree holds one element of the
+set, called the ``entry'' at that node, and a link to each of two other
+(possibly empty) nodes.  The ``left'' link points to elements smaller than the
+one at the node, and the ``right'' link to elements greater than the one at the
+node.  @ref{Figure 2.16} shows some trees that represent the set
+@math{{\{1, 3, 5, 7, 9, 11\}}}.  The same set may be represented by a tree in a number of
+different ways.  The only thing we require for a valid representation is that
+all elements in the left subtree be smaller than the node entry and that all
+elements in the right subtree be larger.
+
+@float
+@anchor{Figure 2.16}
+@ifinfo
+@quotation
+@strong{Figure 2.16:} Various binary trees that represent the set @math{{\{1, 3, 5, 7, 9, 11\}}}.
+
+@example
+   7          3             5
+   /\         /\            /\
+  3  9       1  7          3  9
+ /\   \         /\        /   /\
+1  5  11       5  9      1   7  11
+                   \
+                   11
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap2/Fig2.16c,120mm,,,.std.svg}
+@caption{@strong{Figure 2.16:} Various binary trees that represent the set @math{{\{1, 3, 5, 7, 9, 11\}}}.}
+@end iftex
+@end float
+
+The advantage of the tree representation is this: Suppose we want to check
+whether a number @math{x} is contained in a set.  We begin by comparing @math{x} with
+the entry in the top node.  If @math{x} is less than this, we know that we need
+only search the left subtree; if @math{x} is greater, we need only search the
+right subtree.  Now, if the tree is ``balanced,'' each of these subtrees will
+be about half the size of the original.  Thus, in one step we have reduced the
+problem of searching a tree of size @math{n} to searching a tree of size @math{{n / 2}}.
+Since the size of the tree is halved at each step, we should expect that the
+number of steps needed to search a tree of size @math{n} grows as
+@math{{\Theta(\log n)}}.@footnote{Halving the size of the problem at each
+step is the distinguishing characteristic of logarithmic growth, as we saw with
+the fast-exponentiation algorithm of @ref{1.2.4} and the half-interval
+search method of @ref{1.3.3}.} For large sets, this will be a
+significant speedup over the previous representations.
+
+We can represent trees by using lists.  Each node will be a list of three
+items: the entry at the node, the left subtree, and the right subtree.  A left
+or a right subtree of the empty list will indicate that there is no subtree
+connected there.  We can describe this representation by the following
+procedures:@footnote{We are representing sets in terms of trees, and trees in
+terms of lists---in effect, a data abstraction built upon a data abstraction.
+We can regard the procedures @code{entry}, @code{left-branch},
+@code{right-branch}, and @code{make-tree} as a way of isolating the abstraction
+of a ``binary tree'' from the particular way we might wish to represent such a
+tree in terms of list structure.}
+
+@lisp
+(define (entry tree) (car tree))
+(define (left-branch tree) (cadr tree))

@@ -1,0 +1,100 @@
+* 5.5.3::            Compiling Combinations
+* 5.5.4::            Combining Instruction Sequences
+* 5.5.5::            An Example of Compiled Code
+* 5.5.6::            Lexical Addressing
+* 5.5.7::            Interfacing Compiled Code to the Evaluator
+@end menu
+
+@node	5.5.1, 5.5.2, 5.5, 5.5
+@subsection Structure of the Compiler
+
+In @ref{4.1.7} we modified our original metacircular interpreter to
+separate analysis from execution.  We analyzed each expression to produce an
+execution procedure that took an environment as argument and performed the
+required operations.  In our compiler, we will do essentially the same
+analysis.  Instead of producing execution procedures, however, we will generate
+sequences of instructions to be run by our register machine.
+
+The procedure @code{compile} is the top-level dispatch in the compiler.  It
+corresponds to the @code{eval} procedure of @ref{4.1.1}, the
+@code{analyze} procedure of @ref{4.1.7}, and the @code{eval-dispatch}
+entry point of the explicit-control-evaluator in @ref{5.4.1}.  The
+compiler, like the interpreters, uses the expression-syntax procedures defined
+in @ref{4.1.2}.@footnote{Notice, however, that our compiler is a Scheme
+program, and the syntax procedures that it uses to manipulate expressions are
+the actual Scheme procedures used with the metacircular evaluator.  For the
+explicit-control evaluator, in contrast, we assumed that equivalent syntax
+operations were available as operations for the register machine.  (Of course,
+when we simulated the register machine in Scheme, we used the actual Scheme
+procedures in our register machine simulation.)}  @code{Compile} performs a
+case analysis on the syntactic type of the expression to be compiled.  For each
+type of expression, it dispatches to a specialized @newterm{code generator}:
+
+@lisp
+(define (compile exp target linkage)
+  (cond ((self-evaluating? exp)
+         (compile-self-evaluating 
+          exp target linkage))
+        ((quoted? exp) 
+         (compile-quoted exp target linkage))
+        ((variable? exp)
+         (compile-variable 
+          exp target linkage))
+        ((assignment? exp)
+         (compile-assignment
+          exp target linkage))
+        ((definition? exp)
+         (compile-definition
+          exp target linkage))
+        ((if? exp)
+         (compile-if exp target linkage))
+        ((lambda? exp)
+         (compile-lambda exp target linkage))
+        ((begin? exp)
+         (compile-sequence 
+          (begin-actions exp) target linkage))
+        ((cond? exp) 
+         (compile 
+          (cond->if exp) target linkage))
+        ((application? exp)
+         (compile-application 
+          exp target linkage))
+        (else
+         (error "Unknown expression type: 
+                 COMPILE" 
+                exp))))
+@end lisp
+
+@subsubheading Targets and linkages
+
+@code{Compile} and the code generators that it calls take two arguments in
+addition to the expression to compile.  There is a @newterm{target}, which
+specifies the register in which the compiled code is to return the value of the
+expression.  There is also a @newterm{linkage descriptor}, which describes how
+the code resulting from the compilation of the expression should proceed when
+it has finished its execution.  The linkage descriptor can require that the
+code do one of the following three things:
+
+@itemize @bullet
+
+@item
+continue at the next instruction in sequence (this is specified by the linkage
+descriptor @code{next}),
+
+@item
+return from the procedure being compiled (this is specified by the linkage
+descriptor @code{return}), or
+
+@item
+jump to a named entry point (this is specified by using the designated label as
+the linkage descriptor).
+
+@end itemize
+
+@noindent
+For example, compiling the expression @code{5} (which is self-evaluating) with
+a target of the @code{val} register and a linkage of @code{next} should produce
+the instruction
+
+@lisp
+(assign val (const 5))

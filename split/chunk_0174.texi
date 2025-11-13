@@ -1,0 +1,100 @@
+@quotation
+@strong{Figure 3.24:} Primitive functions in the digital logic simulator.
+
+@example
+               __          ___
+  |\        --|  \       --\  \
+--| >o--      |   )--       )  >--
+  |/        --|__/       --/__/
+
+Inverter    And-gate     Or-gate
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.24a,110mm,,,.std.svg}
+@caption{@strong{Figure 3.24:} Primitive functions in the digital logic simulator.}
+@end iftex
+@end float
+
+@noindent
+We can connect primitive functions together to construct more complex
+functions.  To accomplish this we wire the outputs of some function boxes to
+the inputs of other function boxes.  For example, the @newterm{half-adder}
+circuit shown in @ref{Figure 3.25} consists of an or-gate, two and-gates, and
+an inverter.  It takes two input signals, A and B, and has two output signals,
+S and C.  S will become 1 whenever precisely one of A and B is 1, and C will
+become 1 whenever A and B are both 1.  We can see from the figure that, because
+of the delays involved, the outputs may be generated at different times.  Many
+of the difficulties in the design of digital circuits arise from this fact.
+
+@float
+@anchor{Figure 3.25}
+@ifinfo
+@quotation
+@strong{Figure 3.25:} A half-adder circuit.
+
+@example
+    +--------------------------------------+
+    |         ____                         |
+A --------*---\   \ D               ___    |
+    |     |    >   >---------------|   \   |
+    |  +--|---/___/                |    )----- S
+    |  |  |              |\  E  +--|___/   |
+    |  |  |           +--| >o---+          |
+    |  |  |    ___    |  |/                |
+    |  |  +---|   \   |                    |
+    |  |      |    )--*----------------------- C
+B -----*------|___/                        |
+    |                                      |
+    +--------------------------------------+
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.25c,122mm,,,.std.svg}
+@caption{@strong{Figure 3.25:} A half-adder circuit.}
+@end iftex
+@end float
+
+@noindent
+We will now build a program for modeling the digital logic circuits we wish to
+study.  The program will construct computational objects modeling the wires,
+which will ``hold'' the signals.  Function boxes will be modeled by procedures
+that enforce the correct relationships among the signals.
+
+One basic element of our simulation will be a procedure @code{make-wire}, which
+constructs wires.  For example, we can construct six wires as follows:
+
+@lisp
+(define a (make-wire))
+(define b (make-wire))
+(define c (make-wire))
+(define d (make-wire))
+(define e (make-wire))
+(define s (make-wire))
+@end lisp
+
+@noindent
+We attach a function box to a set of wires by calling a procedure that
+constructs that kind of box.  The arguments to the constructor procedure are
+the wires to be attached to the box.  For example, given that we can construct
+and-gates, or-gates, and inverters, we can wire together the half-adder shown
+in @ref{Figure 3.25}:
+
+@lisp
+(or-gate a b d)
+@i{ok}
+
+(and-gate a b c)
+@i{ok}
+
+(inverter c e)
+@i{ok}
+
+(and-gate d e s)
+@i{ok}
+@end lisp
+
+@noindent
+Better yet, we can explicitly name this operation by defining a procedure

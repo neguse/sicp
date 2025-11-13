@@ -1,0 +1,100 @@
+\text{(restore} \kern1ex ⟨\kern0.1em{reg_2}⟩\text{)} \\
+
+                                        &
+⟨\kern0.1em{seq_2}⟩                     &
+⟨\kern0.1em{seq_2}⟩                     &
+⟨\kern0.1em{seq_2}⟩
+\end{array}
+\]
+@end tex
+
+@noindent
+By using @code{preserving} to combine instruction sequences the compiler avoids
+unnecessary stack operations.  This also isolates the details of whether or not
+to generate @code{save} and @code{restore} instructions within the
+@code{preserving} procedure, separating them from the concerns that arise in
+writing each of the individual code generators.  In fact no @code{save} or
+@code{restore} instructions are explicitly produced by the code generators.
+
+In principle, we could represent an instruction sequence simply as a list of
+instructions.  @code{Append-instruction-sequences} could then combine
+instruction sequences by performing an ordinary list @code{append}.  However,
+@code{preserving} would then be a complex operation, because it would have to
+analyze each instruction sequence to determine how the sequence uses its
+registers.  @code{Preserving} would be inefficient as well as complex, because
+it would have to analyze each of its instruction sequence arguments, even
+though these sequences might themselves have been constructed by calls to
+@code{preserving}, in which case their parts would have already been analyzed.
+To avoid such repetitious analysis we will associate with each instruction
+sequence some information about its register use.  When we construct a basic
+instruction sequence we will provide this information explicitly, and the
+procedures that combine instruction sequences will derive register-use
+information for the combined sequence from the information associated with the
+component sequences.
+
+An instruction sequence will contain three pieces of information:
+
+@itemize @bullet
+
+@item
+the set of registers that must be initialized before the instructions in the
+sequence are executed (these registers are said to be @newterm{needed} by the
+sequence),
+
+@item
+the set of registers whose values are modified by the instructions in the
+sequence, and
+
+@item
+the actual instructions (also called @newterm{statements}) in the sequence.
+
+@end itemize
+
+@noindent
+We will represent an instruction sequence as a list of its three parts.  The
+constructor for instruction sequences is thus
+
+@lisp
+(define (make-instruction-sequence 
+         needs modifies statements)
+  (list needs modifies statements))
+@end lisp
+
+@noindent
+For example, the two-instruction sequence that looks up the value of the
+variable @code{x} in the current environment, assigns the result to @code{val},
+and then returns, requires registers @code{env} and @code{continue} to have
+been initialized, and modifies register @code{val}.  This sequence would
+therefore be constructed as
+
+@lisp
+(make-instruction-sequence
+ '(env continue)
+ '(val)
+ '((assign val
+           (op lookup-variable-value)
+           (const x)
+           (reg env))
+   (goto (reg continue))))
+@end lisp
+
+@noindent
+We sometimes need to construct an instruction sequence with no statements:
+
+@lisp
+(define (empty-instruction-sequence)
+  (make-instruction-sequence '() '() '()))
+@end lisp
+
+@noindent
+The procedures for combining instruction sequences are shown in 
+@ref{5.5.4}.
+
+@quotation
+@strong{@anchor{Exercise 5.31}Exercise 5.31:} In evaluating a procedure
+application, the explicit-control evaluator always saves and restores the
+@code{env} register around the evaluation of the operator, saves and restores
+@code{env} around the evaluation of each operand (except the final one), saves
+and restores @code{argl} around the evaluation of each operand, and saves and
+restores @code{proc} around the evaluation of the operand sequence.  For each
+of the following combinations, say which of these @code{save} and

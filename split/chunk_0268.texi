@@ -1,0 +1,100 @@
+                 (succeed 
+                  'ok
+                  (lambda ()    @r{; *2*}
+                    (set-variable-value! 
+                     var
+                     old-value
+                     env)
+                    (fail2)))))
+               fail))))
+@end lisp
+
+@subsubheading Procedure applications
+
+The execution procedure for applications contains no new ideas except for the
+technical complexity of managing the continuations.  This complexity arises in
+@code{analyze-application}, due to the need to keep track of the success and
+failure continuations as we evaluate the operands.  We use a procedure
+@code{get-args} to evaluate the list of operands, rather than a simple
+@code{map} as in the ordinary evaluator.
+
+@lisp
+(define (analyze-application exp)
+  (let ((fproc (analyze (operator exp)))
+        (aprocs (map analyze (operands exp))))
+    (lambda (env succeed fail)
+      (fproc env
+             (lambda (proc fail2)
+               (get-args 
+                aprocs
+                env
+                (lambda (args fail3)
+                  (execute-application
+                   proc args succeed fail3))
+                fail2))
+             fail))))
+@end lisp
+
+@noindent
+In @code{get-args}, notice how @code{cdr}-ing down the list of @code{aproc}
+execution procedures and @code{cons}ing up the resulting list of @code{args} is
+accomplished by calling each @code{aproc} in the list with a success
+continuation that recursively calls @code{get-args}.  Each of these recursive
+calls to @code{get-args} has a success continuation whose value is the
+@code{cons} of the newly obtained argument onto the list of accumulated
+arguments:
+
+@lisp
+(define (get-args aprocs env succeed fail)
+  (if (null? aprocs)
+      (succeed '() fail)
+      ((car aprocs) 
+       env
+       ;; @r{success continuation for this @code{aproc}}
+       (lambda (arg fail2)
+         (get-args 
+          (cdr aprocs)
+          env
+          ;; @r{success continuation for}
+          ;; @r{recursive call to @code{get-args}}
+          (lambda (args fail3)
+            (succeed (cons arg args)
+                     fail3))
+          fail2))
+       fail)))
+@end lisp
+
+@noindent
+The actual procedure application, which is performed by
+@code{execute-application}, is accomplished in the same way as for the ordinary
+evaluator, except for the need to manage the continuations.
+
+@lisp
+(define (execute-application 
+         proc args succeed fail)
+  (cond ((primitive-procedure? proc)
+         (succeed 
+          (apply-primitive-procedure 
+           proc args)
+          fail))
+        ((compound-procedure? proc)
+         ((procedure-body proc)
+          (extend-environment 
+           (procedure-parameters proc)
+           args
+           (procedure-environment proc))
+          succeed
+          fail))
+        (else (error "Unknown procedure type: 
+                      EXECUTE-APPLICATION"
+                     proc))))
+@end lisp
+
+@subsubheading Evaluating @code{amb} expressions
+
+The @code{amb} special form is the key element in the nondeterministic
+language.  Here we see the essence of the interpretation process and the reason
+for keeping track of the continuations.  The execution procedure for @code{amb}
+defines a loop @code{try-next} that cycles through the execution procedures for
+all the possible values of the @code{amb} expression.  Each execution procedure
+is called with a failure continuation that will try the next one.  When there

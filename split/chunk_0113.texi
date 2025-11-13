@@ -1,0 +1,100 @@
+``higher-level'' operations from ``lower-level'' rep@-re@-sen@-ta@-tions.  In addition,
+there is a ``vertical'' barrier that gives us the ability to separately design
+and install alternative representations.
+
+@float
+@anchor{Figure 2.19}
+@ifinfo
+@quotation
+@strong{Figure 2.19:} Data-abstraction barriers in the complex-number system.
+
+@example
+           Programs that use complex numbers
+  +-------------------------------------------------+
+--| add-complex sub-complex mul-complex div-complex |--
+  +-------------------------------------------------+
+              Complex arithmetic package
+---------------------------+---------------------------
+          Rectangular      |         Polar
+        representation     |     representation
+---------------------------+---------------------------
+    List structure and primitive machine arithmetic
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap2/Fig2.19a,147mm,,,.std.svg}
+@caption{@strong{Figure 2.19:} Data-abstraction barriers in the complex-number system.}
+@end iftex
+@end float
+
+@noindent
+In @ref{2.5} we will show how to use type tags and data-directed style
+to develop a generic arithmetic package.  This provides procedures (@code{add},
+@code{mul}, and so on) that can be used to manipulate all sorts of ``numbers''
+and can be easily extended when a new kind of number is needed.  In 
+@ref{2.5.3}, we'll show how to use generic arithmetic in a system that performs
+symbolic algebra.
+
+@menu
+* 2.4.1::            Representations for Complex Numbers
+* 2.4.2::            Tagged data
+* 2.4.3::            Data-Directed Programming and Additivity
+@end menu
+
+@node	2.4.1, 2.4.2, 2.4, 2.4
+@subsection Representations for Complex Numbers
+
+We will develop a system that performs arithmetic operations on complex numbers
+as a simple but unrealistic example of a program that uses generic operations.
+We begin by discussing two plausible representations for complex numbers as
+ordered pairs: rectangular form (real part and imaginary part) and polar form
+(magnitude and angle).@footnote{In actual computational systems, rectangular
+form is preferable to polar form most of the time because of roundoff errors in
+conversion between rectangular and polar form.  This is why the complex-number
+example is unrealistic.  Nevertheless, it provides a clear illustration of the
+design of a system using generic operations and a good introduction to the more
+substantial systems to be developed later in this chapter.}  
+Section @ref{2.4.2} will show how both representations can be made to coexist in a
+single system through the use of type tags and generic operations.
+
+Like rational numbers, complex numbers are naturally represented as ordered
+pairs.  The set of complex numbers can be thought of as a two-dimensional space
+with two orthogonal axes, the ``real'' axis and the ``imaginary'' axis. (See
+@ref{Figure 2.20}.)  From this point of view, the complex number 
+@math{{z = x + iy}} (where @math{{i^{\kern0.1em 2} = \text{−1}}}) can be thought of as the point in the plane
+whose real coordinate is @math{x} and whose imaginary coordinate is @math{y}.
+Addition of complex numbers reduces in this representation to addition of
+coordinates:
+@ifinfo
+
+@example
+Real-part(z_1 + z_2) = Real-part(z_1) + Real-part(z_2)
+
+Imaginary-part(z_1 + z_2) = Imaginary-part(z_1) + Imaginary-part(z_2)
+@end example
+
+@end ifinfo
+@tex
+\[ % :46:
+\begin{eqnarray}
+\text{Real-part} (z_1 + z_2) 	    &=& \text{Real-part} (z_1) + \\
+                                    & & \text{Real-part} (z_2),  \\
+\text{Imaginary-part} (z_1 + z_2)   &=& \text{Imaginary-part} (z_1) + \\
+                                    & & \text{Imaginary-part} (z_2).
+\end{eqnarray}
+\]
+@end tex
+
+@float
+@anchor{Figure 2.20}
+@ifinfo
+@strong{Figure 2.20:} Complex numbers as points in the plane.
+
+@example
+ Imaginary
+    ^
+    |
+  y |.........................* z = x + ?y = r e^(?A)
+    |                    __-- .
+    |                __--     .

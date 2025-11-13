@@ -1,0 +1,100 @@
+@noindent
+To combine images, we use various operations that construct new painters from
+given painters.  For example, the @code{beside} operation takes two painters
+and produces a new, compound painter that draws the first painter's image in
+the left half of the frame and the second painter's image in the right half of
+the frame.  Similarly, @code{below} takes two painters and produces a compound
+painter that draws the first painter's image below the second painter's image.
+Some operations transform a single painter to produce a new painter.  For
+example, @code{flip-vert} takes a painter and produces a painter that draws its
+image upside-down, and @code{flip-horiz} produces a painter that draws the
+original painter's image left-to-right reversed.
+
+@ref{Figure 2.12} shows the drawing of a painter called
+@code{wave4} that is built up in two stages starting from @code{wave}:
+
+@lisp
+(define wave2 (beside wave (flip-vert wave)))
+(define wave4 (below wave2 wave2))
+@end lisp
+
+@float
+@anchor{Figure 2.12}
+@ifinfo
+@quotation
+@strong{Figure 2.12:} Creating a complex figure, starting
+from the @code{wave} painter of @ref{Figure 2.10}.
+
+[two graphic images not included]
+
+@lisp
+(define wave2                      (define wave4
+  (beside wave (flip-vert wave)))    (below wave2 wave2))
+@end lisp
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap2/Fig2.12,118mm,,,.std.svg}
+@caption{@strong{Figure 2.12:} Creating a complex figure, starting from the @code{wave} painter of @ref{Figure 2.10}.}
+@end iftex
+@end float
+
+@noindent
+In building up a complex image in this manner we are exploiting the fact that
+painters are closed under the language's means of combination.  The
+@code{beside} or @code{below} of two painters is itself a painter; therefore,
+we can use it as an element in making more complex painters.  As with building
+up list structure using @code{cons}, the closure of our data under the means of
+combination is crucial to the ability to create complex structures while using
+only a few operations.
+
+Once we can combine painters, we would like to be able to abstract typical
+patterns of combining painters.  We will implement the painter operations as
+Scheme procedures.  This means that we don't need a special abstraction
+mechanism in the picture language: Since the means of combination are ordinary
+Scheme procedures, we automatically have the capability to do anything with
+painter operations that we can do with procedures.  For example, we can
+abstract the pattern in @code{wave4} as
+
+@lisp
+(define (flipped-pairs painter)
+  (let ((painter2 
+         (beside painter 
+                 (flip-vert painter))))
+    (below painter2 painter2)))
+@end lisp
+
+@noindent
+and define @code{wave4} as an instance of this pattern:
+
+@lisp
+(define wave4 (flipped-pairs wave))
+@end lisp
+
+@noindent
+We can also define recursive operations.  Here's one that makes painters split
+and branch towards the right as shown in @ref{Figure 2.13}
+and @ref{Figure 2.14}:
+
+@lisp
+(define (right-split painter n)
+  (if (= n 0)
+      painter
+      (let ((smaller (right-split painter 
+                                  (- n 1))))
+        (beside painter 
+                (below smaller smaller)))))
+@end lisp
+
+@float
+@anchor{Figure 2.13}
+@ifinfo
+@quotation
+@strong{Figure 2.13:} Recursive plans for @code{right-split} and @code{corner-split}.
+
+@example
++-------------+-------------+    +------+------+-------------+
+|             |             |    | up-  | up-  |             |
+|             | right-split |    | split| split| corner-split|
+|             |             |    |      |      |             |
+|             |     n-1     |    |  n-1 |  n-1 |     n-1     |

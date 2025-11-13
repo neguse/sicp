@@ -1,0 +1,100 @@
+@quotation
+@strong{@anchor{Exercise 5.42}Exercise 5.42:} Using @code{find-variable} from
+@ref{Exercise 5.41}, rewrite @code{compile-variable} and
+@code{compile-assignment} to output lexical-address instructions.  In cases
+where @code{find-variable} returns @code{not-found} (that is, where the
+variable is not in the compile-time environment), you should have the code
+generators use the evaluator operations, as before, to search for the binding.
+(The only place a variable that is not found at compile time can be is in the
+global environment, which is part of the run-time environment but is not part
+of the compile-time environment.@footnote{Lexical addresses cannot be used to
+access variables in the global environment, because these names can be defined
+and redefined interactively at any time.  With internal definitions scanned
+out, as in @ref{Exercise 5.43}, the only definitions the compiler sees are
+those at top level, which act on the global environment.  Compilation of a
+definition does not cause the defined name to be entered in the compile-time
+environment.}  Thus, if you wish, you may have the evaluator operations look
+directly in the global environment, which can be obtained with the operation
+@code{(op get-global-environment)}, instead of having them search the whole
+run-time environment found in @code{env}.)  Test the modified compiler on a few
+simple cases, such as the nested @code{lambda} combination at the beginning of
+this section.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.43}Exercise 5.43:} We argued in @ref{4.1.6}
+that internal definitions for block structure should not be considered ``real''
+@code{define}s.  Rather, a procedure body should be interpreted as if the
+internal variables being defined were installed as ordinary @code{lambda}
+variables initialized to their correct values using @code{set!}.  
+@ref{4.1.6} and @ref{Exercise 4.16} showed how to modify the metacircular
+interpreter to accomplish this by scanning out internal definitions.  Modify
+the compiler to perform the same transformation before it compiles a procedure
+body.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.44}Exercise 5.44:} In this section we have focused
+on the use of the compile-time environment to produce lexical addresses.  But
+there are other uses for compile-time environments.  For instance, in
+@ref{Exercise 5.38} we increased the efficiency of compiled code by open-coding
+primitive procedures.  Our implementation treated the names of open-coded
+procedures as reserved words.  If a program were to rebind such a name, the
+mechanism described in @ref{Exercise 5.38} would still open-code it as a
+primitive, ignoring the new binding.  For example, consider the procedure
+
+@lisp
+(lambda (+ * a b x y)
+  (+ (* a x) (* b y)))
+@end lisp
+
+@noindent
+which computes a linear combination of @code{x} and @code{y}.  We might call it
+with arguments @code{+matrix}, @code{*matrix}, and four matrices, but the
+open-coding compiler would still open-code the @code{+} and the @code{*} in
+@code{(+ (* a x) (* b y))} as primitive @code{+} and @code{*}.  Modify the
+open-coding compiler to consult the compile-time environment in order to
+compile the correct code for expressions involving the names of primitive
+procedures.  (The code will work correctly as long as the program does not
+@code{define} or @code{set!} these names.)
+@end quotation
+
+@node	5.5.7, References, 5.4, 5.5
+@subsection Interfacing Compiled Code to the Evaluator
+
+We have not yet explained how to load compiled code into the evaluator machine
+or how to run it.  We will assume that the explicit-control-evaluator machine
+has been defined as in @ref{5.4.4}, with the additional operations
+specified in @ref{Footnote 323}.  We will implement a procedure
+@code{compile-and-go} that compiles a Scheme expression, loads the resulting
+object code into the evaluator machine, and causes the machine to run the code
+in the evaluator global environment, print the result, and enter the
+evaluator's driver loop.  We will also modify the evaluator so that interpreted
+expressions can call compiled procedures as well as interpreted ones.  We can
+then put a compiled procedure into the machine and use the evaluator to call
+it:
+
+@lisp
+(compile-and-go
+ '(define (factorial n)
+    (if (= n 1)
+        1
+        (* (factorial (- n 1)) n))))
+
+@i{;;; EC-Eval value:}
+@i{ok}
+
+@i{;;; EC-Eval input:}
+(factorial 5)
+
+@i{;;; EC-Eval value:}
+@i{120}
+@end lisp
+
+@noindent
+To allow the evaluator to handle compiled procedures (for example, to evaluate
+the call to @code{factorial} above), we need to change the code at
+@code{apply-dispatch} (@ref{5.4.1}) so that it recognizes compiled
+procedures (as distinct from compound or primitive procedures) and transfers
+control directly to the entry point of the compiled code:@footnote{Of course,
+compiled procedures as well as interpreted procedures are compound

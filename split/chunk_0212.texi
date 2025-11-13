@@ -1,0 +1,100 @@
+@i{3.166666666666667}
+@i{3.142105263157895}
+@i{3.141599357319005}
+@i{3.1415927140337785}
+@i{3.1415926539752927}
+@i{3.1415926535911765}
+@i{3.141592653589778}
+@r{…}
+@end lisp
+
+@noindent
+The result is impressive.  Taking eight terms of the sequence yields the
+correct value of @math{\pi} to 14 decimal places.  If we had used only the
+original @math{\pi} sequence, we would need to compute on the order of @math{10^{13}}
+terms (i.e., expanding the series far enough so that the individual terms are
+less than @math{10^{-13}}) to get that much accuracy!
+
+We could have implemented these acceleration techniques without using streams.
+But the stream formulation is particularly elegant and convenient because the
+entire sequence of states is available to us as a data structure that can be
+manipulated with a uniform set of operations.
+
+@quotation
+@strong{@anchor{Exercise 3.63}Exercise 3.63:} Louis Reasoner asks why the
+@code{sqrt-stream} procedure was not written in the following more
+straightforward way, without the local variable @code{guesses}:
+
+@lisp
+(define (sqrt-stream x)
+  (cons-stream 
+   1.0
+   (stream-map (lambda (guess)
+                 (sqrt-improve guess x))
+               (sqrt-stream x))))
+@end lisp
+
+Alyssa P. Hacker replies that this version of the procedure is considerably
+less efficient because it performs redundant computation.  Explain Alyssa's
+answer.  Would the two versions still differ in efficiency if our
+implementation of @code{delay} used only @code{(lambda () ⟨@var{exp}⟩)} without
+using the optimization provided by @code{memo-proc} (@ref{3.5.1})?
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.64}Exercise 3.64:} Write a procedure
+@code{stream-limit} that takes as arguments a stream and a number (the
+tolerance).  It should examine the stream until it finds two successive
+elements that differ in absolute value by less than the tolerance, and return
+the second of the two elements.  Using this, we could compute square roots up
+to a given tolerance by
+
+@lisp
+(define (sqrt x tolerance)
+  (stream-limit (sqrt-stream x) tolerance))
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.65}Exercise 3.65:} Use the series
+@ifinfo
+
+@example
+            1     1     1
+ln 2 = 1 - --- + --- - --- + ...
+            2     3     4
+@end example
+
+@end ifinfo
+@tex
+\[ % :69:
+  \ln 2 \,=\, 1 - {1\over2} + {1\over3} - {1\over4} + \dots  \]
+@end tex
+@noindent
+to compute three sequences of approximations to the natural logarithm of 2, in
+the same way we did above for @math{\pi}.  How rapidly do these sequences
+converge?
+@end quotation
+
+@subsubheading Infinite streams of pairs
+
+In @ref{2.2.3}, we saw how the sequence paradigm handles traditional
+nested loops as processes defined on sequences of pairs.  If we generalize this
+technique to infinite streams, then we can write programs that are not easily
+represented as loops, because the ``looping'' must range over an infinite set.
+
+For example, suppose we want to generalize the @code{prime-sum-pairs} procedure
+of @ref{2.2.3} to produce the stream of pairs of @emph{all} integers
+@math{{(i, j)}} with @math{{i \le j}} such that @math{{i + j}} is prime.  If
+@code{int-pairs} is the sequence of all pairs of integers @math{{(i, j)}} with
+@math{{i \le j}}, then our required stream is simply@footnote{As in 
+@ref{2.2.3}, we represent a pair of integers as a list rather than a Lisp
+pair.}
+
+@lisp
+(stream-filter 
+ (lambda (pair)
+   (prime? (+ (car pair) (cadr pair))))
+ int-pairs)
+@end lisp
+

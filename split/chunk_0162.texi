@@ -1,0 +1,100 @@
+
+@example
+     +---+---+     +---+---+     +---+---+
+x -->| * | * |     | * | *-+---->| * | / |
+     +-|-+-|-+     +-|-+---+     +-|-+---+
+       |   |         V             V
+       |   |       +---+         +---+
+       |   |       | c |         | d |
+       |   |       +---+         +---+
+       |   |       +---+---+     +---+---+
+       +---+------>| * | *-+---->| * | / |
+           |       +-|-+---+     +-|-+---+
+           |         V             V
+           |       +---+         +---+
+           |       | a |         | b |
+           |       +---+         +---+
+           +------>+---+---+     +---+---+
+                   | * | *-+---->| * | / |
+              y -->+-|-+---+     +-|-+---+
+                     V             V
+                   +---+         +---+
+                   | e |         | f |
+                   +---+         +---+
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.15b,123mm,,,.std.svg}
+@caption{@strong{Figure 3.15:} Effect of @code{(set-cdr! x y)} on the lists in @ref{Figure 3.12}.}
+@end iftex
+@end float
+
+@noindent 
+@code{Cons} builds new list structure by creating new pairs, while
+@code{set-car!} and @code{set-cdr!} modify existing pairs.  Indeed, we could
+implement @code{cons} in terms of the two mutators, together with a procedure
+@code{get-new-pair}, which returns a new pair that is not part of any existing
+list structure.  We obtain the new pair, set its @code{car} and @code{cdr}
+pointers to the designated objects, and return the new pair as the result of
+the @code{cons}.@footnote{@code{Get-new-pair} is one of the operations that
+must be implemented as part of the memory management required by a Lisp
+implementation.  We will discuss this in @ref{5.3.1}.}
+
+@lisp
+(define (cons x y)
+  (let ((new (get-new-pair)))
+    (set-car! new x)
+    (set-cdr! new y)
+    new))
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 3.12}Exercise 3.12:} The following procedure for
+appending lists was introduced in @ref{2.2.1}:
+
+@lisp
+(define (append x y)
+  (if (null? x)
+      y
+      (cons (car x) (append (cdr x) y))))
+@end lisp
+
+@code{Append} forms a new list by successively @code{cons}ing the elements of
+@code{x} onto @code{y}.  The procedure @code{append!} is similar to
+@code{append}, but it is a mutator rather than a constructor.  It appends the
+lists by splicing them together, modifying the final pair of @code{x} so that
+its @code{cdr} is now @code{y}.  (It is an error to call @code{append!} with an
+empty @code{x}.)
+
+@lisp
+(define (append! x y)
+  (set-cdr! (last-pair x) y)
+  x)
+@end lisp
+
+Here @code{last-pair} is a procedure that returns the last pair in its
+argument:
+
+@lisp
+(define (last-pair x)
+  (if (null? (cdr x))
+      x
+      (last-pair (cdr x))))
+@end lisp
+
+Consider the interaction
+
+@lisp
+(define x (list 'a 'b))
+(define y (list 'c 'd))
+(define z (append x y))
+
+z
+@i{(a b c d)}
+
+(cdr x)
+⟨@var{response}⟩
+
+(define w (append! x y))
+

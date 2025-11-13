@@ -1,0 +1,100 @@
+
+@end ifinfo
+@tex
+
+\[ % :9:
+ 
+\varphi^2 \,=\, {\varphi + 1.}
+\]
+
+@end tex
+Thus, the process uses a number of steps that grows exponentially with the
+input.  On the other hand, the space required grows only linearly with the
+input, because we need keep track only of which nodes are above us in the tree
+at any point in the computation.  In general, the number of steps required by a
+tree-recursive process will be proportional to the number of nodes in the tree,
+while the space required will be proportional to the maximum depth of the tree.
+
+We can also formulate an iterative process for computing the Fibonacci numbers.
+The idea is to use a pair of integers @math{a} and @math{b}, initialized to
+@math{{\text{Fib(1) = 1}}} and @math{{\text{Fib(0) = 0}}}, and to repeatedly apply the
+simultaneous transformations
+
+@ifinfo
+
+@example
+a <- a + b
+b <- a
+@end example
+
+@end ifinfo
+@tex
+
+\[ % :10:
+ 
+\begin{array}{l}
+  a \;\leftarrow\; a + b, \\ 
+  b \;\leftarrow\; a. 
+\end{array}
+\]
+
+@end tex
+@noindent
+It is not hard to show that, after applying this transformation @math{n} times,
+@math{a} and @math{b} will be equal, respectively, to @math{{\text{Fib}(n+1)}} and
+@math{{\text{Fib}(n)}}.  Thus, we can compute Fibonacci numbers iteratively using
+the procedure
+
+@lisp
+(define (fib n) 
+  (fib-iter 1 0 n))
+
+(define (fib-iter a b count)
+  (if (= count 0)
+      b
+      (fib-iter (+ a b) a (- count 1))))
+@end lisp
+
+@noindent
+This second method for computing @math{{\text{Fib}(n)}} is a linear iteration.  The
+difference in number of steps required by the two methods---one linear in
+@math{n}, one growing as fast as @math{{\text{Fib}(n)}} itself---is enormous, even for
+small inputs.
+
+One should not conclude from this that tree-recursive processes are useless.
+When we consider processes that operate on hierarchically structured data
+rather than numbers, we will find that tree recursion is a natural and powerful
+tool.@footnote{An example of this was hinted at in @ref{1.1.3}. The
+interpreter itself evaluates expressions using a tree-recursive process.} But
+even in numerical operations, tree-recursive processes can be useful in helping
+us to understand and design programs.  For instance, although the first
+@code{fib} procedure is much less efficient than the second one, it is more
+straightforward, being little more than a translation into Lisp of the
+definition of the Fibonacci sequence.  To formulate the iterative algorithm
+required noticing that the computation could be recast as an iteration with
+three state variables.
+
+@subsubheading Example: Counting change
+
+It takes only a bit of cleverness to come up with the iterative Fibonacci
+algorithm.  In contrast, consider the following problem: How many different
+ways can we make change of $1.00, given half-dollars, quarters, dimes,
+nickels, and pennies?  More generally, can we write a procedure to compute the
+number of ways to change any given amount of money?
+
+This problem has a simple solution as a recursive procedure.  Suppose we think
+of the types of coins available as arranged in some order.  Then the following
+relation holds:
+
+The number of ways to change amount @math{a} using @math{n} kinds of coins equals
+
+@itemize @bullet
+
+@item
+the number of ways to change amount @math{a} using all but the first kind of coin,
+plus
+
+@item
+the number of ways to change amount @math{{a - d}} using all @math{n} kinds of
+coins, where @math{d} is the denomination of the first kind of coin.
+

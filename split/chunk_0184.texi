@@ -1,0 +1,100 @@
+                       (- (get-value sum) 
+                          (get-value a2))
+                       me))))
+  (define (process-forget-value)
+    (forget-value! sum me)
+    (forget-value! a1 me)
+    (forget-value! a2 me)
+    (process-new-value))
+  (define (me request)
+    (cond ((eq? request 'I-have-a-value)
+           (process-new-value))
+          ((eq? request 'I-lost-my-value)
+           (process-forget-value))
+          (else (error "Unknown request: 
+                        ADDER" request))))
+  (connect a1 me)
+  (connect a2 me)
+  (connect sum me)
+  me)
+@end lisp
+
+@noindent
+@code{Adder} connects the new adder to the designated connectors and returns it
+as its value.  The procedure @code{me}, which represents the adder, acts as a
+dispatch to the local procedures.  The following ``syntax interfaces'' (see
+@ref{Footnote 155} in @ref{3.3.4}) are used in conjunction with
+the dispatch:
+
+@lisp
+(define (inform-about-value constraint)
+  (constraint 'I-have-a-value))
+(define (inform-about-no-value constraint)
+  (constraint 'I-lost-my-value))
+@end lisp
+
+@noindent
+The adder's local procedure @code{process-new-value} is called when the adder
+is informed that one of its connectors has a value. The adder first checks to
+see if both @code{a1} and @code{a2} have values. If so, it tells @code{sum} to
+set its value to the sum of the two addends.  The @code{informant} argument to
+@code{set-value!} is @code{me}, which is the adder object itself.  If @code{a1}
+and @code{a2} do not both have values, then the adder checks to see if perhaps
+@code{a1} and @code{sum} have values.  If so, it sets @code{a2} to the
+difference of these two.  Finally, if @code{a2} and @code{sum} have values,
+this gives the adder enough information to set @code{a1}.  If the adder is told
+that one of its connectors has lost a value, it requests that all of its
+connectors now lose their values.  (Only those values that were set by this
+adder are actually lost.)  Then it runs @code{process-new-value}.  The reason
+for this last step is that one or more connectors may still have a value (that
+is, a connector may have had a value that was not originally set by the adder),
+and these values may need to be propagated back through the adder.
+
+A multiplier is very similar to an adder. It will set its @code{product} to 0
+if either of the factors is 0, even if the other factor is not known.
+
+@lisp
+(define (multiplier m1 m2 product)
+  (define (process-new-value)
+    (cond ((or (and (has-value? m1) 
+                    (= (get-value m1) 0))
+               (and (has-value? m2) 
+                    (= (get-value m2) 0)))
+           (set-value! product 0 me))
+          ((and (has-value? m1) 
+                (has-value? m2))
+           (set-value! product
+                       (* (get-value m1) 
+                          (get-value m2))
+                       me))
+          ((and (has-value? product) 
+                (has-value? m1))
+           (set-value! m2
+                       (/ (get-value product) 
+                          (get-value m1))
+                       me))
+          ((and (has-value? product) 
+                (has-value? m2))
+           (set-value! m1
+                       (/ (get-value product) 
+                          (get-value m2))
+                       me))))
+  (define (process-forget-value)
+    (forget-value! product me)
+    (forget-value! m1 me)
+    (forget-value! m2 me)
+    (process-new-value))
+  (define (me request)
+    (cond ((eq? request 'I-have-a-value)
+           (process-new-value))
+          ((eq? request 'I-lost-my-value)
+           (process-forget-value))
+          (else
+           (error "Unknown request: 
+                   MULTIPLIER" 
+                  request))))
+  (connect m1 me)
+  (connect m2 me)
+  (connect product me)
+  me)
+@end lisp

@@ -1,0 +1,100 @@
+ 0
+ (filter odd? (enumerate-interval 0 n)))
+@end lisp
+
+@noindent
+constructs two lists: the enumeration and the result of filtering the
+enumeration.  When the accumulation is complete, these lists are no longer
+needed, and the allocated memory can be reclaimed.  If we can arrange to
+collect all the garbage periodically, and if this turns out to recycle memory
+at about the same rate at which we construct new pairs, we will have preserved
+the illusion that there is an infinite amount of memory.
+
+In order to recycle pairs, we must have a way to determine which allocated
+pairs are not needed (in the sense that their contents can no longer influence
+the future of the computation).  The method we shall examine for accomplishing
+this is known as @newterm{garbage collection}.  Garbage collection is based on
+the observation that, at any moment in a Lisp interpretation, the only objects
+that can affect the future of the computation are those that can be reached by
+some succession of @code{car} and @code{cdr} operations starting from the
+pointers that are currently in the machine registers.@footnote{We assume here
+that the stack is represented as a list as described in @ref{5.3.1}, so
+that items on the stack are accessible via the pointer in the stack register.}
+Any memory cell that is not so accessible may be recycled.
+
+There are many ways to perform garbage collection.  The method we shall examine
+here is called @newterm{stop-and-copy}.  The basic idea is to divide memory
+into two halves: ``working memory'' and ``free memory.''  When @code{cons}
+constructs pairs, it allocates these in working memory.  When working memory is
+full, we perform garbage collection by locating all the useful pairs in working
+memory and copying these into consecutive locations in free memory.  (The
+useful pairs are located by tracing all the @code{car} and @code{cdr} pointers,
+starting with the machine registers.)  Since we do not copy the garbage, there
+will presumably be additional free memory that we can use to allocate new
+pairs.  In addition, nothing in the working memory is needed, since all the
+useful pairs in it have been copied.  Thus, if we interchange the roles of
+working memory and free memory, we can continue processing; new pairs will be
+allocated in the new working memory (which was the old free memory).  When this
+is full, we can copy the useful pairs into the new free memory (which was the
+old working memory).@footnote{This idea was invented and first implemented by
+Minsky, as part of the implementation of Lisp for the PDP-1 at the
+@abbr{MIT} Research Laboratory of Electronics.  It was further developed by
+@ref{Fenichel and Yochelson (1969)} for use in the Lisp implementation for the
+Multics time-sharing system.  Later, @ref{Baker (1978)} developed a ``real-time''
+version of the method, which does not require the computation to stop during
+garbage collection.  Baker's idea was extended by Hewitt, Lieberman, and Moon
+(see @ref{Lieberman and Hewitt 1983}) to take advantage of the fact that some
+structure is more volatile and other structure is more permanent.
+
+An alternative commonly used garbage-collection technique is the
+@newterm{mark-sweep} method.  This consists of tracing all the structure
+accessible from the machine registers and marking each pair we reach.  We then
+scan all of memory, and any location that is unmarked is ``swept up'' as
+garbage and made available for reuse.  A full discussion of the mark-sweep
+method can be found in @ref{Allen 1978}.
+
+The Minsky-Fenichel-Yochelson algorithm is the dominant algorithm in use for
+large-memory systems because it examines only the useful part of memory.  This
+is in contrast to mark-sweep, in which the sweep phase must check all of
+memory.  A second advantage of stop-and-copy is that it is a
+@newterm{compacting} garbage collector.  That is, at the end of the
+garbage-collection phase the useful data will have been moved to consecutive
+memory locations, with all garbage pairs compressed out.  This can be an
+extremely important performance consideration in machines with virtual memory,
+in which accesses to widely separated memory addresses may require extra paging
+operations.}
+
+@subsubheading Implementation of a stop-and-copy garbage collector
+
+We now use our register-machine language to describe the stop-and-copy
+algorithm in more detail.  We will assume that there is a register called
+@code{root} that contains a pointer to a structure that eventually points at
+all accessible data.  This can be arranged by storing the contents of all the
+machine registers in a pre-allocated list pointed at by @code{root} just before
+starting garbage collection.@footnote{This list of registers does not include
+the registers used by the storage-allocation system---@code{root},
+@code{the-cars}, @code{the-cdrs}, and the other registers that will be
+introduced in this section.} We also assume that, in addition to the current
+working memory, there is free memory available into which we can copy the
+useful data.  The current working memory consists of vectors whose base
+addresses are in registers called @code{the-cars} and @code{the-cdrs}, and the
+free memory is in registers called @code{new-cars} and @code{new-cdrs}.
+
+Garbage collection is triggered when we exhaust the free cells in the current
+working memory, that is, when a @code{cons} operation attempts to increment the
+@code{free} pointer beyond the end of the memory vector.  When the
+garbage-collection process is complete, the @code{root} pointer will point into
+the new memory, all objects accessible from the @code{root} will have been
+moved to the new memory, and the @code{free} pointer will indicate the next
+place in the new memory where a new pair can be allocated.  In addition, the
+roles of working memory and new memory will have been interchanged---new pairs
+will be constructed in the new memory, beginning at the place indicated by
+@code{free}, and the (previous) working memory will be available as the new
+memory for the next garbage collection.  @ref{Figure 5.15} shows the
+arrangement of memory just before and just after garbage collection.
+
+@float
+@anchor{Figure 5.15}
+@ifinfo
+@strong{Figure 5.15:} Reconfiguration of memory by the garbage-collection process.
+

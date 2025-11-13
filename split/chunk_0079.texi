@@ -1,0 +1,100 @@
+        ((not (pair? tree))
+         (if (odd? tree) (square tree) 0))
+        (else (+ (sum-odd-squares 
+                  (car tree))
+                 (sum-odd-squares 
+                  (cdr tree))))))
+@end lisp
+
+@noindent
+On the surface, this procedure is very different from the following one, which
+constructs a list of all the even Fibonacci numbers @math{{\text{Fib}(k)}}, where
+@math{k} is less than or equal to a given integer @math{n}:
+
+@lisp
+(define (even-fibs n)
+  (define (next k)
+    (if (> k n)
+        nil
+        (let ((f (fib k)))
+          (if (even? f)
+              (cons f (next (+ k 1)))
+              (next (+ k 1))))))
+  (next 0))
+@end lisp
+
+@noindent
+Despite the fact that these two procedures are structurally very different, a
+more abstract description of the two computations reveals a great deal of
+similarity.  The first program
+
+@itemize @bullet
+
+@item
+enumerates the leaves of a tree;
+
+@item
+filters them, selecting the odd ones;
+
+@item
+squares each of the selected ones; and
+
+@item
+accumulates the results using @code{+}, starting with 0.
+
+@end itemize
+
+@noindent
+The second program
+
+@itemize @bullet
+
+@item
+enumerates the integers from 0 to @math{n};
+
+@item
+computes the Fibonacci number for each integer;
+
+@item
+filters them, selecting the even ones; and
+
+@item
+accumulates the results using @code{cons},  starting with the
+empty list.
+
+@end itemize
+
+@noindent
+A signal-processing engineer would find it natural to conceptualize these
+processes in terms of signals flowing through a cascade of stages, each of
+which implements part of the program plan, as shown in @ref{Figure 2.7}.  In
+@code{sum-odd-squares}, we begin with an @newterm{enumerator}, which generates
+a ``signal'' consisting of the leaves of a given tree.  This signal is passed
+through a @newterm{filter}, which eliminates all but the odd elements.  The
+resulting signal is in turn passed through a @newterm{map}, which is a
+``transducer'' that applies the @code{square} procedure to each element.  The
+output of the map is then fed to an @newterm{accumulator}, which combines the
+elements using @code{+}, starting from an initial 0.  The plan for
+@code{even-fibs} is analogous.
+
+@float
+@anchor{Figure 2.7}
+@ifinfo
+@quotation
+@strong{Figure 2.7:} The signal-flow plans for the
+procedures @code{sum-odd-squares} (top) and @code{even-fibs} (bottom) reveal
+the commonality between the two programs.
+
+@example
++-------------+   +-------------+   +-------------+   +-------------+
+| enumerate:  |-->| filter:     |-->| map:        |-->| accumulate: |
+| tree leaves |   | odd?        |   | square      |   | +, 0        |
++-------------+   +-------------+   +-------------+   +-------------+
+
++-------------+   +-------------+   +-------------+   +-------------+
+| enumerate:  |-->| map:        |-->| filter:     |-->| accumulate: |
+| integers    |   | fib         |   | even?       |   | cons, ()    |
++-------------+   +-------------+   +-------------+   +-------------+
+@end example
+@end quotation
+@end ifinfo

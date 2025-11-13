@@ -1,0 +1,100 @@
+perception here is one of interacting with a system that has a changing state.
+One way to resolve this paradox is to realize that it is the user's temporal
+existence that imposes state on the system.  If the user could step back from
+the interaction and think in terms of streams of balances rather than
+individual transactions, the system would appear stateless.@footnote{Similarly
+in physics, when we observe a moving particle, we say that the position (state)
+of the particle is changing.  However, from the perspective of the particle's
+world line in space-time there is no change involved.}
+
+From the point of view of one part of a complex process, the other parts appear
+to change with time.  They have hidden time-varying local state.  If we wish to
+write programs that model this kind of natural decomposition in our world (as
+we see it from our viewpoint as a part of that world) with structures in our
+computer, we make computational objects that are not functional---they must
+change with time.  We model state with local state variables, and we model the
+changes of state with assignments to those variables.  By doing this we make
+the time of execution of a computation model time in the world that we are part
+of, and thus we get ``objects'' in our computer.
+
+Modeling with objects is powerful and intuitive, largely because this matches
+the perception of interacting with a world of which we are part.  However, as
+we've seen repeatedly throughout this chapter, these models raise thorny
+problems of constraining the order of events and of synchronizing multiple
+processes.  The possibility of avoiding these problems has stimulated the
+development of @newterm{functional programming languages}, which do not include
+any provision for assignment or mutable data.  In such a language, all
+procedures implement well-defined mathematical functions of their arguments,
+whose behavior does not change.  The functional approach is extremely
+attractive for dealing with concurrent systems.@footnote{John Backus, the
+inventor of Fortran, gave high visibility to functional programming when he was
+awarded the @abbr{ACM} Turing award in 1978.  His acceptance speech 
+(@ref{Backus 1978}) strongly advocated the functional approach.  A good overview of
+functional programming is given in @ref{Henderson 1980} and in 
+@ref{Darlington et al. 1982}.}
+
+On the other hand, if we look closely, we can see time-related problems
+creeping into functional models as well.  One particularly troublesome area
+arises when we wish to design interactive systems, especially ones that model
+interactions between independent entities.  For instance, consider once more
+the implementation of a banking system that permits joint bank accounts.  In a
+conventional system using assignment and objects, we would model the fact that
+Peter and Paul share an account by having both Peter and Paul send their
+transaction requests to the same bank-account object, as we saw in 
+@ref{3.1.3}.  From the stream point of view, where there are no ``objects''
+@emph{per se}, we have already indicated that a bank account can be modeled as
+a process that operates on a stream of transaction requests to produce a stream
+of responses.  Accordingly, we could model the fact that Peter and Paul have a
+joint bank account by merging Peter's stream of transaction requests with
+Paul's stream of requests and feeding the result to the bank-account stream
+process, as shown in @ref{Figure 3.38}.
+
+@float
+@anchor{Figure 3.38}
+@ifinfo
+@strong{Figure 3.38:} A joint bank account, modeled by merging two streams of transaction requests.
+
+@example
+Peter's requests   +---------+     +---------+
+------------------>|         |     |         |
+Paul's requests    |  merge  |---->| bank    |---->
+------------------>|         |     | account |
+                   +---------+     +---------+
+@end example
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.38a,143mm,,,.std.svg}
+@caption{@strong{Figure 3.38:} A joint bank account, modeled by merging two streams of transaction requests.}
+@end iftex
+@end float
+
+@noindent
+The trouble with this formulation is in the notion of @newterm{merge}.  It will
+not do to merge the two streams by simply taking alternately one request from
+Peter and one request from Paul. Suppose Paul accesses the account only very
+rarely.  We could hardly force Peter to wait for Paul to access the account
+before he could issue a second transaction.  However such a merge is
+implemented, it must interleave the two transaction streams in some way that is
+constrained by ``real time'' as perceived by Peter and Paul, in the sense that,
+if Peter and Paul meet, they can agree that certain transactions were processed
+before the meeting, and other transactions were processed after the
+meeting.@footnote{Observe that, for any two streams, there is in general more
+than one acceptable order of interleaving.  Thus, technically, ``merge'' is a
+relation rather than a function---the answer is not a deterministic function of
+the inputs.  We already mentioned (@ref{Footnote 167}) that nondeterminism is
+essential when dealing with concurrency.  The merge relation illustrates the
+same essential nondeterminism, from the functional perspective.  In 
+@ref{4.3}, we will look at nondeterminism from yet another point of view.} This
+is precisely the same constraint that we had to deal with in 
+@ref{3.4.1}, where we found the need to introduce explicit synchronization to
+ensure a ``correct'' order of events in concurrent processing of objects with
+state.  Thus, in an attempt to support the functional style, the need to merge
+inputs from different agents reintroduces the same problems that the functional
+style was meant to eliminate.
+
+We began this chapter with the goal of building computational models whose
+structure matches our perception of the real world we are trying to model.  We
+can model the world as a collection of separate, time-bound, interacting
+objects with state, or we can model the world as a single, timeless, stateless
+unity.  Each view has powerful advantages, but neither view alone is completely
+satisfactory.  A grand unification has yet to emerge.@footnote{The object model

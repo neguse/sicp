@@ -1,0 +1,100 @@
+same value for any expression.  But each time we called a procedure, we would
+save @code{continue} and return after the call to undo the (useless) save.
+These extra saves would accumulate during a nest of procedure
+calls.@footnote{Making a compiler generate tail-recursive code might seem like
+a straightforward idea.  But most compilers for common languages, including C
+and Pascal, do not do this, and therefore these languages cannot represent
+iterative processes in terms of procedure call alone.  The difficulty with tail
+recursion in these languages is that their implementations use the stack to
+store procedure arguments and local variables as well as return addresses.  The
+Scheme implementations described in this book store arguments and variables in
+memory to be garbage-collected.  The reason for using the stack for variables
+and arguments is that it avoids the need for garbage collection in languages
+that would not otherwise require it, and is generally believed to be more
+efficient.  Sophisticated Lisp compilers can, in fact, use the stack for
+arguments without destroying tail recursion.  (See @ref{Hanson 1990} for a
+description.)  There is also some debate about whether stack allocation is
+actually more efficient than garbage collection in the first place, but the
+details seem to hinge on fine points of computer architecture.  (See @ref{Appel 1987}
+and @ref{Miller and Rozas 1994} for opposing views on this issue.)}
+
+@code{Compile-proc-appl} generates the above procedure-application code by
+considering four cases, depending on whether the target for the call is
+@code{val} and whether the linkage is @code{return}.  Observe that the
+instruction sequences are declared to modify all the registers, since executing
+the procedure body can change the registers in arbitrary ways.@footnote{The
+variable @code{all-regs} is bound to the list of names of all the registers:
+
+@lisp
+(define all-regs '(env proc val argl continue))
+@end lisp
+}
+Also note that the code sequence for the case with target @code{val} and
+linkage @code{return} is declared to need @code{continue}: Even though
+@code{continue} is not explicitly used in the two-instruction sequence, we must
+be sure that @code{continue} will have the correct value when we enter the
+compiled procedure.
+
+@lisp
+(define (compile-proc-appl target linkage)
+  (cond ((and (eq? target 'val)
+              (not (eq? linkage 'return)))
+         (make-instruction-sequence 
+          '(proc)
+          all-regs
+          `((assign continue (label ,linkage))
+            (assign 
+             val 
+             (op compiled-procedure-entry)
+             (reg proc))
+            (goto (reg val)))))
+        ((and (not (eq? target 'val))
+              (not (eq? linkage 'return)))
+         (let ((proc-return 
+                (make-label 'proc-return)))
+           (make-instruction-sequence 
+            '(proc)
+            all-regs
+            `((assign continue 
+                      (label ,proc-return))
+              (assign 
+               val 
+               (op compiled-procedure-entry)
+               (reg proc))
+              (goto (reg val))
+              ,proc-return
+              (assign ,target (reg val))
+              (goto (label ,linkage))))))
+        ((and (eq? target 'val)
+              (eq? linkage 'return))
+         (make-instruction-sequence 
+          '(proc continue) 
+          all-regs
+          '((assign 
+             val 
+             (op compiled-procedure-entry)
+             (reg proc))
+            (goto (reg val)))))
+        ((and (not (eq? target 'val))
+              (eq? linkage 'return))
+         (error "return linkage, 
+                 target not val: COMPILE"
+                target))))
+@end lisp
+
+@node	5.5.4, 5.5.5, 5.5.3, 5.5
+@subsection Combining Instruction Sequences
+
+This section describes the details on how instruction sequences are represented
+and combined.  Recall from @ref{5.5.1} that an instruction sequence is
+represented as a list of the registers needed, the registers modified, and the
+actual instructions.  We will also consider a label (symbol) to be a degenerate
+case of an instruction sequence, which doesn't need or modify any registers.
+So to determine the registers needed and modified by instruction sequences we
+use the selectors
+
+@lisp
+(define (registers-needed s)
+  (if (symbol? s) '() (car s)))
+(define (registers-modified s)
+  (if (symbol? s) '() (cadr s)))

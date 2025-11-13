@@ -1,0 +1,100 @@
+
+@lisp
+(let ((⟨@var{var}⟩ ⟨@var{exp}⟩)) ⟨@var{body}⟩)
+@end lisp
+
+@noindent
+is interpreted as an alternate syntax for
+
+@lisp
+((lambda (⟨@var{var}⟩) ⟨@var{body}⟩) ⟨@var{exp}⟩)
+@end lisp
+
+Use the environment model to analyze this alternate version of
+@code{make-withdraw}, drawing figures like the ones above to illustrate the
+interactions
+
+@lisp
+(define W1 (make-withdraw 100))
+(W1 50)
+(define W2 (make-withdraw 100))
+@end lisp
+
+Show that the two versions of @code{make-withdraw} create objects with the same
+behavior.  How do the environment structures differ for the two versions?
+@end quotation
+
+@node	3.2.4, 3.3, 3.1, 3.2
+@subsection Internal Definitions
+
+Section @ref{1.1.8} introduced the idea that procedures can have internal
+definitions, thus leading to a block structure as in the following procedure to
+compute square roots:
+
+@lisp
+(define (sqrt x)
+  (define (good-enough? guess)
+    (< (abs (- (square guess) x)) 0.001))
+  (define (improve guess)
+    (average guess (/ x guess)))
+  (define (sqrt-iter guess)
+    (if (good-enough? guess)
+        guess
+        (sqrt-iter (improve guess))))
+  (sqrt-iter 1.0))
+@end lisp
+
+@noindent
+Now we can use the environment model to see why these internal definitions
+behave as desired.  @ref{Figure 3.11} shows the point in the evaluation of the
+expression @code{(sqrt 2)} where the internal procedure @code{good-enough?} has
+been called for the first time with @code{guess} equal to 1.
+
+@float
+@anchor{Figure 3.11}
+@ifinfo
+@strong{Figure 3.11:} @code{Sqrt} procedure with internal definitions.
+
+@example
+          +--------------------------------------------------+
+global -->| sqrt: --+                                        |
+env       |         |                                        |
+          +---------|----------------------------------------+
+                    V       ^                   ^
+                .---.---.   |                   |
+     +----------+-O | O-+---+        +----------+------------+
+     |          `---^---'            | x: 2                  |
+     V                         E1 -->| good-enough?: -+      |
+parameters: x                        | improve: ...   |      |
+body: (define good-enough? ...)      | sqrt-iter: ... |      |
+      (define improve ...)           +----------------|------+
+      (define sqrt-iter ...)          ^  ^            |     ^
+      (sqrt-iter 1.0)                 |  |            V     |
+                            +---------++ |        .---.---. |
+                      E2 -->| guess: 1 | |        | O | O-+-+
+                            +----------+ |        `-|-^---'
+                      call to sqrt-iter  |          |
+                                         |          V
+                               +---------++    parameters: guess
+                         E3 -->| guess: 1 |    body: (< (abs ...)
+                               +----------+             ...)
+                         call to good-enough?
+@end example
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.11b,147mm,,,.std.svg}
+@caption{@strong{Figure 3.11:} @code{Sqrt} procedure with internal definitions.}
+@end iftex
+@end float
+
+Observe the structure of the environment.  @code{Sqrt} is a symbol in the
+global environment that is bound to a procedure object whose associated
+environment is the global environment.  When @code{sqrt} was called, a new
+environment E1 was formed, subordinate to the global environment, in which the
+parameter @code{x} is bound to 2.  The body of @code{sqrt} was then evaluated
+in E1.  Since the first expression in the body of @code{sqrt} is
+
+@lisp
+(define (good-enough? guess)
+  (< (abs (- (square guess) x)) 0.001))
+@end lisp

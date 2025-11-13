@@ -1,0 +1,100 @@
+procedure.  The entire @code{sqrt} program can be viewed as a cluster of
+procedures (shown in @ref{Figure 1.2}) that mirrors the decomposition of the
+problem into subproblems.
+
+@float
+@anchor{Figure 1.2}
+@ifinfo
+@strong{Figure 1.2:} Procedural decomposition of the @code{sqrt} program.
+
+@example
+                 sqrt
+                  |
+              sqrt-iter
+              /       \
+        good-enough   improve
+        /         \         \
+   square         abs       average
+@end example
+@end ifinfo
+@iftex
+@image{fig/chap1/Fig1.2,,38mm,,.std.svg}
+@caption{@strong{Figure 1.2:} Procedural decomposition of the @code{sqrt} program.}
+@end iftex
+@end float
+
+@noindent
+The importance of this decomposition strategy is not simply that one is
+dividing the program into parts.  After all, we could take any large program
+and divide it into parts---the first ten lines, the next ten lines, the next
+ten lines, and so on.  Rather, it is crucial that each procedure accomplishes
+an identifiable task that can be used as a module in defining other procedures.
+For example, when we define the @code{good-enough?} procedure in terms of
+@code{square}, we are able to regard the @code{square} procedure as a ``black
+box.''  We are not at that moment concerned with @emph{how} the procedure
+computes its result, only with the fact that it computes the square.  The
+details of how the square is computed can be suppressed, to be considered at a
+later time.  Indeed, as far as the @code{good-enough?} procedure is concerned,
+@code{square} is not quite a procedure but rather an abstraction of a
+procedure, a so-called @newterm{procedural abstraction}.  At this level of
+abstraction, any procedure that computes the square is equally good.
+
+Thus, considering only the values they return, the following two procedures for
+squaring a number should be indistinguishable.  Each takes a numerical argument
+and produces the square of that number as the value.@footnote{It is not even
+clear which of these procedures is a more efficient implementation.  This
+depends upon the hardware available.  There are machines for which the
+``obvious'' implementation is the less efficient one.  Consider a machine that
+has extensive tables of logarithms and antilogarithms stored in a very
+efficient manner.}
+
+@lisp
+(define (square x) (* x x))
+
+(define (square x) 
+  (exp (double (log x))))
+
+(define (double x) (+ x x))
+@end lisp
+
+@noindent
+So a procedure definition should be able to suppress detail.  The users of the
+procedure may not have written the procedure themselves, but may have obtained
+it from another programmer as a black box.  A user should not need to know how
+the procedure is implemented in order to use it.
+
+@subsubheading Local names
+
+One detail of a procedure's implementation that should not matter to the user
+of the procedure is the implementer's choice of names for the procedure's
+formal parameters.  Thus, the following procedures should not be
+distinguishable:
+
+@lisp
+(define (square x) (* x x))
+(define (square y) (* y y))
+@end lisp
+
+@noindent
+This principle---that the meaning of a procedure should be independent of the
+parameter names used by its author---seems on the surface to be self-evident,
+but its consequences are profound.  The simplest consequence is that the
+parameter names of a procedure must be local to the body of the procedure.  For
+example, we used @code{square} in the definition of @code{good-enough?} in our
+square-root procedure:
+
+@lisp
+(define (good-enough? guess x)
+  (< (abs (- (square guess) x)) 0.001))
+@end lisp
+
+@noindent
+The intention of the author of @code{good-enough?} is to determine if the
+square of the first argument is within a given tolerance of the second
+argument.  We see that the author of @code{good-enough?} used the name
+@code{guess} to refer to the first argument and @code{x} to refer to the second
+argument.  The argument of @code{square} is @code{guess}.  If the author of
+@code{square} used @code{x} (as above) to refer to that argument, we see that
+the @code{x} in @code{good-enough?} must be a different @code{x} than the one
+in @code{square}.  Running the procedure @code{square} must not affect the
+value of @code{x} that is used by @code{good-enough?}, because that value of

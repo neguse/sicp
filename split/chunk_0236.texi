@@ -1,0 +1,100 @@
+
+@itemize @bullet
+
+@item
+@code{(apply-primitive-procedure ⟨@var{proc}⟩ ⟨@var{args}⟩)}
+
+@noindent
+applies the given primitive procedure to the argument values in the list
+@code{⟨}@var{args}@code{⟩} and returns the result of the application.
+
+@item
+@code{(primitive-procedure? ⟨@var{proc}⟩)}
+
+@noindent
+tests whether @code{⟨}@var{proc}@code{⟩} is a primitive procedure.
+
+@end itemize
+
+@noindent
+These mechanisms for handling primitives are further described in 
+@ref{4.1.4}.
+
+Compound procedures are constructed from parameters, procedure bodies, and
+environments using the constructor @code{make-procedure}:
+
+@lisp
+(define (make-procedure parameters body env)
+  (list 'procedure parameters body env))
+(define (compound-procedure? p)
+  (tagged-list? p 'procedure))
+(define (procedure-parameters p) (cadr p))
+(define (procedure-body p) (caddr p))
+(define (procedure-environment p) (cadddr p))
+@end lisp
+
+@subsubheading Operations on Environments
+
+The evaluator needs operations for manipulating environments.  As explained in
+@ref{3.2}, an environment is a sequence of frames, where each frame is
+a table of bindings that associate variables with their corresponding values.
+We use the following operations for manipulating environments:
+
+@itemize @bullet
+
+@item
+@code{(lookup-variable-value ⟨@var{var}⟩ ⟨@var{env}⟩)}
+
+returns the value that is bound to the symbol @code{⟨}@var{var}@code{⟩} in the environment
+@code{⟨}@var{env}@code{⟩}, or signals an error if the variable is unbound.
+
+@item
+@code{(extend-environment ⟨@var{variables}⟩ ⟨@var{values}⟩ ⟨@var{base-env}⟩)}
+
+returns a new environment, consisting of a new frame in which the symbols in
+the list @code{⟨}@var{variables}@code{⟩} are bound to the corresponding elements in the list
+@code{⟨}@var{values}@code{⟩}, where the enclosing environment is the environment
+@code{⟨}@var{base-env}@code{⟩}.
+
+@item
+@code{(define-variable! ⟨@var{var}⟩ ⟨@var{value}⟩ ⟨@var{env}⟩)}
+
+adds to the first frame in the environment @code{⟨}@var{env}@code{⟩} a new binding that
+associates the variable @code{⟨}@var{var}@code{⟩} with the value @code{⟨}@var{value}@code{⟩}.
+
+@item
+@code{(set-variable-value! ⟨@var{var}⟩ ⟨@var{value}⟩ ⟨@var{env}⟩)}
+
+changes the binding of the variable @code{⟨}@var{var}@code{⟩} in the environment @code{⟨}@var{env}@code{⟩}
+so that the variable is now bound to the value @code{⟨}@var{value}@code{⟩}, or signals an
+error if the variable is unbound.
+
+@end itemize
+
+@noindent
+To implement these operations we represent an environment as a list of frames.
+The enclosing environment of an environment is the @code{cdr} of the list.  The
+empty environment is simply the empty list.
+
+@lisp
+(define (enclosing-environment env) (cdr env))
+(define (first-frame env) (car env))
+(define the-empty-environment '())
+@end lisp
+
+@noindent
+Each frame of an environment is represented as a pair of lists: a list of the
+variables bound in that frame and a list of the associated
+values.@footnote{Frames are not really a data abstraction in the following
+code: @code{Set-variable-value!} and @code{define-variable!} use
+@code{set-car!}  to directly modify the values in a frame.  The purpose of the
+frame procedures is to make the environment-manipulation procedures easy to
+read.}
+
+@lisp
+(define (make-frame variables values)
+  (cons variables values))
+(define (frame-variables frame) (car frame))
+(define (frame-values frame) (cdr frame))
+(define (add-binding-to-frame! var val frame)
+  (set-car! frame (cons var (car frame)))

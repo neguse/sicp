@@ -1,0 +1,100 @@
+        (append (symbols left) 
+                (symbols right))
+        (+ (weight left) (weight right))))
+@end lisp
+
+@noindent
+If we make a tree in this way, we have the following selectors:
+
+@lisp
+(define (left-branch tree) (car tree))
+(define (right-branch tree) (cadr tree))
+
+(define (symbols tree)
+  (if (leaf? tree)
+      (list (symbol-leaf tree))
+      (caddr tree)))
+
+(define (weight tree)
+  (if (leaf? tree)
+      (weight-leaf tree)
+      (cadddr tree)))
+@end lisp
+
+@noindent
+The procedures @code{symbols} and @code{weight} must do something slightly
+different depending on whether they are called with a leaf or a general tree.
+These are simple examples of @newterm{generic procedures} (procedures that can
+handle more than one kind of data), which we will have much more to say about
+in @ref{2.4} and @ref{2.5}.
+
+@subsubheading The decoding procedure
+
+The following procedure implements the decoding algorithm.  It takes as
+arguments a list of zeros and ones, together with a Huffman tree.
+
+@lisp
+(define (decode bits tree)
+  (define (decode-1 bits current-branch)
+    (if (null? bits)
+        '()
+        (let ((next-branch
+               (choose-branch 
+                (car bits) 
+                current-branch)))
+          (if (leaf? next-branch)
+              (cons 
+               (symbol-leaf next-branch)
+               (decode-1 (cdr bits) tree))
+              (decode-1 (cdr bits) 
+                        next-branch)))))
+  (decode-1 bits tree))
+
+(define (choose-branch bit branch)
+  (cond ((= bit 0) (left-branch branch))
+        ((= bit 1) (right-branch branch))
+        (else (error "bad bit: 
+               CHOOSE-BRANCH" bit))))
+@end lisp
+
+@noindent
+The procedure @code{decode-1} takes two arguments: the list of remaining bits
+and the current position in the tree.  It keeps moving ``down'' the tree,
+choosing a left or a right branch according to whether the next bit in the list
+is a zero or a one.  (This is done with the procedure @code{choose-branch}.)
+When it reaches a leaf, it returns the symbol at that leaf as the next symbol
+in the message by @code{cons}ing it onto the result of decoding the rest of the
+message, starting at the root of the tree.  Note the error check in the final
+clause of @code{choose-branch}, which complains if the procedure finds
+something other than a zero or a one in the input data.
+
+@subsubheading Sets of weighted elements
+
+In our representation of trees, each non-leaf node contains a set of symbols,
+which we have represented as a simple list.  However, the tree-generating
+algorithm discussed above requires that we also work with sets of leaves and
+trees, successively merging the two smallest items.  Since we will be required
+to repeatedly find the smallest item in a set, it is convenient to use an
+ordered representation for this kind of set.
+
+We will represent a set of leaves and trees as a list of elements, arranged in
+increasing order of weight.  The following @code{adjoin-set} procedure for
+constructing sets is similar to the one described in @ref{Exercise 2.61};
+however, items are compared by their weights, and the element being added to
+the set is never already in it.
+
+@lisp
+(define (adjoin-set x set)
+  (cond ((null? set) (list x))
+        ((< (weight x) (weight (car set))) 
+         (cons x set))
+        (else 
+         (cons (car set)
+               (adjoin-set x (cdr set))))))
+@end lisp
+
+@noindent
+The following procedure takes a list of symbol-frequency pairs such as
+@code{((A 4) (B 2) (C 1) (D 1))} and constructs an initial ordered set of
+leaves, ready to be merged according to the Huffman algorithm:
+

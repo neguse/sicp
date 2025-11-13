@@ -1,0 +1,100 @@
+|  +------+
+|  | a<-b |
+|  +---+--+
+|      |
+|      V
+|  +------+
++--+ b<-t |
+   +------+
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap5/Fig5.2,75mm,,,.std.svg}
+@caption{@strong{Figure 5.2:} Controller for a @abbr{GCD} machine.}
+@end iftex
+@end float
+
+@quotation
+@strong{@anchor{Exercise 5.1}Exercise 5.1:} Design a register machine to
+compute factorials using the iterative algorithm specified by the following
+procedure.  Draw data-path and controller diagrams for this machine.
+
+@lisp
+(define (factorial n)
+  (define (iter product counter)
+    (if (> counter n)
+        product
+        (iter (* counter product)
+              (+ counter 1))))
+  (iter 1 1))
+@end lisp
+@end quotation
+
+@menu
+* 5.1.1::            A Language for Describing Register Machines
+* 5.1.2::            Abstraction in Machine Design
+* 5.1.3::            Subroutines
+* 5.1.4::            Using a Stack to Implement Recursion
+* 5.1.5::            Instruction Summary
+@end menu
+
+@node	5.1.1, 5.1.2, 5.1, 5.1
+@subsection A Language for Describing Register Machines
+
+Data-path and controller diagrams are adequate for representing simple machines
+such as @abbr{GCD}, but they are unwieldy for describing large machines such
+as a Lisp interpreter.  To make it possible to deal with complex machines, we
+will create a language that presents, in textual form, all the information
+given by the data-path and controller diagrams.  We will start with a notation
+that directly mirrors the diagrams.
+
+We define the data paths of a machine by describing the registers and the
+operations.  To describe a register, we give it a name and specify the buttons
+that control assignment to it.  We give each of these buttons a name and
+specify the source of the data that enters the register under the button's
+control.  (The source is a register, a constant, or an operation.)  To describe
+an operation, we give it a name and specify its inputs (registers or
+constants).
+
+We define the controller of a machine as a sequence of @newterm{instructions}
+together with @newterm{labels} that identify @newterm{entry points} in the
+sequence. An instruction is one of the following:
+
+@itemize @bullet
+
+@item
+The name of a data-path button to push to assign a value to a register.  (This
+corresponds to a box in the controller diagram.)
+
+@item
+A @code{test} instruction, that performs a specified test.
+
+@item
+A conditional branch (@code{branch} instruction) to a location indicated by a
+controller label, based on the result of the previous test.  (The test and
+branch together correspond to a diamond in the controller diagram.)  If the
+test is false, the controller should continue with the next instruction in the
+sequence.  Otherwise, the controller should continue with the instruction after
+the label.
+
+@item
+An unconditional branch (@code{goto} instruction) naming a controller label at
+which to continue execution.
+
+@end itemize
+
+@noindent
+The machine starts at the beginning of the controller instruction sequence and
+stops when execution reaches the end of the sequence.  Except when a branch
+changes the flow of control, instructions are executed in the order in which
+they are listed.
+
+@noindent
+@ref{Figure 5.3} shows the @abbr{GCD} machine described in this way.  This
+example only hints at the generality of these descriptions, since the
+@abbr{GCD} machine is a very simple case: Each register has only one button,
+and each button and test is used only once in the controller.
+
+@quotation
+@strong{@anchor{Figure 5.3}Figure 5.3:} @math{\downarrow} A specification of the @abbr{GCD}

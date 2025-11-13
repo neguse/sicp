@@ -1,0 +1,100 @@
+@end quotation
+
+@noindent
+This is a reasonable approach for handling small problems, but it would be
+awkward if there were many instances of @abbr{GCD} computations in the
+controller sequence.  To decide where to continue executing after the
+@code{gcd} subroutine, we would need tests in the data paths and branch
+instructions in the controller for all the places that use @code{gcd}.  A more
+powerful method for implementing subroutines is to have the @code{continue}
+register hold the label of the entry point in the controller sequence at which
+execution should continue when the subroutine is finished.  Implementing this
+strategy requires a new kind of connection between the data paths and the
+controller of a register machine: There must be a way to assign to a register a
+label in the controller sequence in such a way that this value can be fetched
+from the register and used to continue execution at the designated entry point.
+
+To reflect this ability, we will extend the @code{assign} instruction of the
+register-machine language to allow a register to be assigned as value a label
+from the controller sequence (as a special kind of constant).  We will also
+extend the @code{goto} instruction to allow execution to continue at the entry
+point described by the contents of a register rather than only at an entry
+point described by a constant label.  Using these new constructs we can
+terminate the @code{gcd} subroutine with a branch to the location stored in the
+@code{continue} register.  This leads to the controller sequence shown in
+@ref{Figure 5.10}.
+
+@quotation
+@strong{@anchor{Figure 5.10}Figure 5.10:} @math{\downarrow} Assigning labels to the
+@code{continue} register simplifies and generalizes the strategy shown in
+@ref{Figure 5.9}.
+
+@lisp
+gcd
+ (test (op =) (reg b) (const 0))
+ (branch (label gcd-done))
+ (assign t (op rem) (reg a) (reg b))
+ (assign a (reg b))
+ (assign b (reg t))
+ (goto (label gcd))
+gcd-done
+ (goto (reg continue))
+  @r{…}
+@r{;; Before calling @code{gcd},} 
+@r{;; we assign to @code{continue} the label}
+@r{;; to which @code{gcd} should return.}
+ (assign continue (label after-gcd-1))
+ (goto (label gcd))
+after-gcd-1
+  @r{…}
+@r{;; Here is the second call to @code{gcd},}
+@r{;; with a different continuation.}
+ (assign continue (label after-gcd-2))
+ (goto (label gcd))
+after-gcd-2
+@end lisp
+
+@end quotation
+
+@noindent
+A machine with more than one subroutine could use multiple continuation
+registers (e.g., @code{gcd-continue}, @code{factorial-continue}) or we could
+have all subroutines share a single @code{continue} register.  Sharing is more
+economical, but we must be careful if we have a subroutine (@code{sub1}) that
+calls another subroutine (@code{sub2}).  Unless @code{sub1} saves the contents
+of @code{continue} in some other register before setting up @code{continue} for
+the call to @code{sub2}, @code{sub1} will not know where to go when it is
+finished.  The mechanism developed in the next section to handle recursion also
+provides a better solution to this problem of nested subroutine calls.
+
+@node	5.1.4, 5.1.5, 5.1.3, 5.1
+@subsection Using a Stack to Implement Recursion
+
+With the ideas illustrated so far, we can implement any iterative process by
+specifying a register machine that has a register corresponding to each state
+variable of the process.  The machine repeatedly executes a controller loop,
+changing the contents of the registers, until some termination condition is
+satisfied.  At each point in the controller sequence, the state of the machine
+(representing the state of the iterative process) is completely determined by
+the contents of the registers (the values of the state variables).
+
+Implementing recursive processes, however, requires an additional mechanism.
+Consider the following recursive method for computing factorials, which we
+first examined in @ref{1.2.1}:
+
+@lisp
+(define (factorial n)
+  (if (= n 1) 
+      1
+      (* (factorial (- n 1)) n)))
+@end lisp
+
+@noindent
+As we see from the procedure, computing @math{{n!}} requires computing @math{{(n - 1)!}}.
+Our @abbr{GCD} machine, modeled on the procedure
+
+@lisp
+(define (gcd a b)
+  (if (= b 0) 
+      a
+      (gcd b (remainder a b))))

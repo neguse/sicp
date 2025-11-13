@@ -1,0 +1,100 @@
+@quotation
+@strong{@anchor{Exercise 5.13}Exercise 5.13:} Modify the simulator so that it
+uses the controller sequence to determine what registers the machine has rather
+than requiring a list of registers as an argument to @code{make-machine}.
+Instead of pre-allocating the registers in @code{make-machine}, you can
+allocate them one at a time when they are first seen during assembly of the
+instructions.
+@end quotation
+
+@node	5.2.4, 5.3, 5.1, 5.2
+@subsection Monitoring Machine Performance
+
+Simulation is useful not only for verifying the correctness of a proposed
+machine design but also for measuring the machine's performance.  For example,
+we can install in our simulation program a ``meter'' that measures the number
+of stack operations used in a computation.  To do this, we modify our simulated
+stack to keep track of the number of times registers are saved on the stack and
+the maximum depth reached by the stack, and add a message to the stack's
+interface that prints the statistics, as shown below.  We also add an operation
+to the basic machine model to print the stack statistics, by initializing
+@code{the-ops} in @code{make-new-machine} to
+
+@lisp
+(list (list 'initialize-stack
+            (lambda () 
+              (stack 'initialize)))
+      (list 'print-stack-statistics
+            (lambda () 
+              (stack 'print-statistics))))
+@end lisp
+
+@noindent
+Here is the new version of @code{make-stack}:
+
+@lisp
+(define (make-stack)
+  (let ((s '())
+        (number-pushes 0)
+        (max-depth 0)
+        (current-depth 0))
+    (define (push x)
+      (set! s (cons x s))
+      (set! number-pushes (+ 1 number-pushes))
+      (set! current-depth (+ 1 current-depth))
+      (set! max-depth 
+            (max current-depth max-depth)))
+    (define (pop)
+      (if (null? s)
+          (error "Empty stack: POP")
+          (let ((top (car s)))
+            (set! s (cdr s))
+            (set! current-depth
+                  (- current-depth 1))
+            top)))
+    (define (initialize)
+      (set! s '())
+      (set! number-pushes 0)
+      (set! max-depth 0)
+      (set! current-depth 0)
+      'done)
+
+    (define (print-statistics)
+      (newline)
+      (display (list 'total-pushes 
+                     '= 
+                     number-pushes
+                     'maximum-depth
+                     '=
+                     max-depth)))
+    (define (dispatch message)
+      (cond ((eq? message 'push) push)
+            ((eq? message 'pop) (pop))
+            ((eq? message 'initialize)
+             (initialize))
+            ((eq? message 'print-statistics)
+             (print-statistics))
+            (else
+             (error "Unknown request: STACK"
+                    message))))
+    dispatch))
+@end lisp
+
+@noindent
+@ref{Exercise 5.15} through @ref{Exercise 5.19} describe other useful
+monitoring and debugging features that can be added to the register-machine
+simulator.
+
+@quotation
+@strong{@anchor{Exercise 5.14}Exercise 5.14:} Measure the number of pushes and
+the maximum stack depth required to compute @math{{n!}} for various small values of
+@math{n} using the factorial machine shown in @ref{Figure 5.11}.  From your data
+determine formulas in terms of @math{n} for the total number of push operations
+and the maximum stack depth used in computing @math{{n!}} for any @math{{n > 1}}. Note
+that each of these is a linear function of @math{n} and is thus determined by two
+constants.  In order to get the statistics printed, you will have to augment
+the factorial machine with instructions to initialize the stack and print the
+statistics.  You may want to also modify the machine so that it repeatedly
+reads a value for @math{n}, computes the factorial, and prints the result (as we
+did for the @abbr{GCD} machine in @ref{Figure 5.4}), so that you will not
+have to repeatedly invoke @code{get-register-contents},

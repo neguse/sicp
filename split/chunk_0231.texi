@@ -1,0 +1,100 @@
+we used data abstraction to decouple the general rules of operation from the
+details of how expressions are represented.  In the differentiation program
+this meant that the same differentiation procedure could deal with algebraic
+expressions in prefix form, in infix form, or in some other form.  For the
+evaluator, this means that the syntax of the language being evaluated is
+determined solely by the procedures that classify and extract pieces of
+expressions.
+
+Here is the specification of the syntax of our language:
+
+@itemize
+
+@item
+The only self-evaluating items are numbers and strings:
+
+@lisp
+(define (self-evaluating? exp)
+  (cond ((number? exp) true)
+        ((string? exp) true)
+        (else false)))
+@end lisp
+
+@item
+Variables are represented by symbols:
+
+@lisp
+(define (variable? exp) (symbol? exp))
+@end lisp
+
+@item
+Quotations have the form @code{(quote ⟨@var{text-of-quotation}⟩)}:@footnote{As
+mentioned in @ref{2.3.1}, the evaluator sees a quoted expression as a
+list beginning with @code{quote}, even if the expression is typed with the
+quotation mark.  For example, the expression @code{'a} would be seen by the
+evaluator as @code{(quote a)}.  See @ref{Exercise 2.55}.}
+
+@lisp
+(define (quoted? exp)
+  (tagged-list? exp 'quote))
+
+(define (text-of-quotation exp)
+  (cadr exp))
+@end lisp
+
+@code{Quoted?} is defined in terms of the procedure @code{tagged-list?}, which
+identifies lists beginning with a designated symbol:
+
+@lisp
+(define (tagged-list? exp tag)
+  (if (pair? exp)
+      (eq? (car exp) tag)
+      false))
+@end lisp
+
+@item
+Assignments have the form @code{(set! ⟨@var{var}⟩ ⟨@var{value}⟩)}:
+
+@lisp
+(define (assignment? exp)
+  (tagged-list? exp 'set!))
+
+(define (assignment-variable exp) 
+  (cadr exp))
+
+(define (assignment-value exp) (caddr exp))
+@end lisp
+
+@item
+Definitions have the form
+
+@lisp
+(define ⟨@var{var}⟩ ⟨@var{value}⟩)
+@end lisp
+
+@noindent
+or the form
+
+@lisp
+(define (⟨@var{var}⟩ ⟨@var{param₁}⟩ @r{…} ⟨@var{paramₙ}⟩)
+  ⟨@var{body}⟩)
+@end lisp
+
+The latter form (standard procedure definition) is syntactic sugar for
+
+@lisp
+(define ⟨@var{var}⟩
+  (lambda (⟨@var{param₁}⟩ @r{…} ⟨@var{paramₙ}⟩)
+    ⟨@var{body}⟩))
+@end lisp
+
+The corresponding syntax procedures are the following:
+
+@lisp
+(define (definition? exp)
+  (tagged-list? exp 'define))
+
+(define (definition-variable exp)
+  (if (symbol? (cadr exp))
+      (cadr exp)
+      (caadr exp)))

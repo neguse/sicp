@@ -1,0 +1,100 @@
+@ifinfo
+
+@example
+n! = n * [(n - 1) * (n - 2) ... 3 * 2 * 1] = n * (n - 1)!
+@end example
+
+@end ifinfo
+@tex
+
+\[ % :6:
+ 
+n! \,=\, {n \cdot [(n - 1)} \cdot {(n - 2)} \cdots {3 \cdot 2 \cdot 1]} \,=\, {n \cdot (n - 1)!.}
+\]
+
+@end tex
+Thus, we can compute @math{{n!}} by computing @math{{(n - 1)!}} and multiplying the
+result by @math{n}.  If we add the stipulation that 1! is equal to 1, this
+observation translates directly into a procedure:
+
+@lisp
+(define (factorial n)
+  (if (= n 1) 
+      1 
+      (* n (factorial (- n 1)))))
+@end lisp
+
+@noindent
+We can use the substitution model of @ref{1.1.5} to watch this
+procedure in action computing 6!, as shown in @ref{Figure 1.3}.
+
+@float
+@anchor{Figure 1.3}
+@ifinfo
+@quotation
+@strong{Figure 1.3:} A linear recursive process for computing 6!.
+
+@example
+(factorial 6)        ----------------
+(* 6 (factorial 5))                   \
+(* 6 (* 5 (factorial 4)))               \
+(* 6 (* 5 (* 4 (factorial 3))))           \
+(* 6 (* 5 (* 4 (* 3 (factorial 2)))))       \
+(* 6 (* 5 (* 4 (* 3 (* 2 (factorial 1))))))  |
+(* 6 (* 5 (* 4 (* 3 (* 2 1)))))             /
+(* 6 (* 5 (* 4 (* 3 2))))                 /
+(* 6 (* 5 (* 4 6)))                     /
+(* 6 (* 5 24))                        /
+(* 6 120)                           /
+720          <---------------------
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap1/Fig1.3d,139mm,,,.std.svg}
+@caption{@strong{Figure 1.3:} A linear recursive process for computing 6!.}
+@end iftex
+@end float
+
+@noindent
+Now let's take a different perspective on computing factorials.  We could
+describe a rule for computing @math{{n!}} by specifying that we first multiply 1 by
+2, then multiply the result by 3, then by 4, and so on until we reach @math{n}.
+More formally, we maintain a running product, together with a counter that
+counts from 1 up to @math{n}.  We can describe the computation by saying that the
+counter and the product simultaneously change from one step to the next
+according to the rule
+
+@example
+product @math{\gets} counter * product
+counter @math{\gets} counter + 1
+@end example
+
+@noindent
+and stipulating that @math{{n!}} is the value of the product when the counter
+exceeds @math{n}.
+
+Once again, we can recast our description as a procedure for computing
+factorials:@footnote{In a real program we would probably use the block
+structure introduced in the last section to hide the definition of
+@code{fact-iter}:
+
+@lisp
+(define (factorial n)
+  (define (iter product counter)
+    (if (> counter n)
+        product
+        (iter (* counter product)
+              (+ counter 1))))
+  (iter 1 1))
+@end lisp
+
+We avoided doing this here so as to minimize the number of things to think
+about at once.}
+
+@lisp
+(define (factorial n) 
+  (fact-iter 1 1 n))
+
+(define (fact-iter product counter max-count)
+  (if (> counter max-count)

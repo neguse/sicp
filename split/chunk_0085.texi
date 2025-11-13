@@ -1,0 +1,100 @@
+i + j | 3 5 5 7 7 7 11
+@end example
+
+@end ifinfo
+@tex
+\[ % :39:
+ 
+\begin{array}{c|ccccccc}
+i 	& 2 & 3 & 4 & 4 & 5 & 6 & 6 \\
+j 	& 1 & 2 & 1 & 3 & 2 & 1 & 5 \\
+\hline
+i + j	& 3 & 5 & 5 & 7 & 7 & 7 & 11 
+\end{array}
+\]
+@end tex
+A natural way to organize this computation is to generate the sequence of all
+ordered pairs of positive integers less than or equal to @math{n}, filter to
+select those pairs whose sum is prime, and then, for each pair @math{{(i, j)}}
+that passes through the filter, produce the triple @math{{(i, j, i + j)}}.
+
+Here is a way to generate the sequence of pairs: For each integer @math{{i \le n}}, 
+enumerate the integers @math{{j < i}}, and for each such @math{i} and @math{j}
+generate the pair @math{{(i, j)}}.  In terms of sequence operations, we map along
+the sequence @code{(enumerate-interval 1 n)}.  For each @math{i} in this sequence,
+we map along the sequence @code{(enumerate-interval 1 (- i 1))}.  For each
+@math{j} in this latter sequence, we generate the pair @code{(list i j)}.  This
+gives us a sequence of pairs for each @math{i}.  Combining all the sequences for
+all the @math{i} (by accumulating with @code{append}) produces the required
+sequence of pairs:@footnote{We're representing a pair here as a list of two
+elements rather than as a Lisp pair.  Thus, the ``pair'' @math{{(i, j)}} is
+represented as @code{(list i j)}, not @code{(cons i j)}.}
+
+@lisp
+(accumulate 
+ append
+ nil
+ (map (lambda (i)
+        (map (lambda (j) 
+               (list i j))
+             (enumerate-interval 1 (- i 1))))
+      (enumerate-interval 1 n)))
+@end lisp
+
+@noindent
+The combination of mapping and accumulating with @code{append} is so common in
+this sort of program that we will isolate it as a separate procedure:
+
+@lisp
+(define (flatmap proc seq)
+  (accumulate append nil (map proc seq)))
+@end lisp
+
+@noindent
+Now filter this sequence of pairs to find those whose sum is prime. The filter
+predicate is called for each element of the sequence; its argument is a pair
+and it must extract the integers from the pair.  Thus, the predicate to apply
+to each element in the sequence is
+
+@lisp
+(define (prime-sum? pair)
+  (prime? (+ (car pair) (cadr pair))))
+@end lisp
+
+@noindent
+Finally, generate the sequence of results by mapping over the filtered pairs
+using the following procedure, which constructs a triple consisting of the two
+elements of the pair along with their sum:
+
+@lisp
+(define (make-pair-sum pair)
+  (list (car pair) 
+        (cadr pair) 
+        (+ (car pair) (cadr pair))))
+@end lisp
+
+@noindent
+Combining all these steps yields the complete procedure:
+
+@lisp
+(define (prime-sum-pairs n)
+  (map make-pair-sum
+       (filter 
+        prime-sum?
+        (flatmap
+         (lambda (i)
+           (map (lambda (j) 
+                  (list i j))
+                (enumerate-interval 
+                 1 
+                 (- i 1))))
+         (enumerate-interval 1 n)))))
+@end lisp
+
+@noindent
+Nested mappings are also useful for sequences other than those that enumerate
+intervals.  Suppose we wish to generate all the permutations of a set @math{{S;}}
+that is, all the ways of ordering the items in the set.  For instance, the
+permutations of @math{{\{1, 2, 3\}}} are @math{{\{1, 2, 3\}}}, @math{{\{1, 3, 2\}}}, @math{{\{2, 1, 3\}}}, @math{{\{2, 3, 1\}}},
+@math{{\{3, 1, 2\}}}, and @math{{\{3, 2, 1\}}}.  Here is a plan for generating the permutations of
+@math{S}: For each item @math{x} in @math{S}, recursively generate the sequence of

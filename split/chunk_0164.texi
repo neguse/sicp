@@ -1,0 +1,100 @@
+@caption{@strong{Figure 3.16:} The list @code{z1} formed by @code{(cons x x)}.}
+@end iftex
+@end float
+
+In contrast to @ref{Figure 3.16}, @ref{Figure 3.17} shows the structure created
+by
+
+@lisp
+(define z2 
+  (cons (list 'a 'b) (list 'a 'b)))
+@end lisp
+
+@float
+@anchor{Figure 3.17}
+@ifinfo
+@quotation
+@strong{Figure 3.17:} The list @code{z2} formed by @code{(cons (list 'a 'b) (list 'a 'b))}.
+
+@example
+      +---+---+     +---+---+     +---+---+
+z2 -->| * | *-+---->| * | *-+---->| * | / |
+      +-|-+---+     +-|-+---+     +-|-+---+
+        |             V             V
+        |           +---+         +---+
+        |           | a |         | b |
+        |           +---+         +---+
+        |             ^             ^
+        |             |             |
+        |           +-|-+---+     +-|-+---+
+        +---------->| * | *-+---->| * | / |
+                    +---+---+     +---+---+
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.17b,121mm,,,.std.svg}
+@caption{@strong{Figure 3.17:} The list @code{z2} formed by @code{(cons (list 'a 'b) (list 'a 'b))}.}
+@end iftex
+@end float
+
+@noindent
+In this structure, the pairs in the two @code{(a b)} lists are distinct,
+although the actual symbols are shared.@footnote{The two pairs are distinct
+because each call to @code{cons} returns a new pair.  The symbols are shared;
+in Scheme there is a unique symbol with any given name.  Since Scheme provides
+no way to mutate a symbol, this sharing is undetectable.  Note also that the
+sharing is what enables us to compare symbols using @code{eq?}, which simply
+checks equality of pointers.}
+
+@noindent
+When thought of as a list, @code{z1} and @code{z2} both represent ``the same''
+list, @code{((a b) a b)}.  In general, sharing is completely undetectable if we
+operate on lists using only @code{cons}, @code{car}, and @code{cdr}.  However,
+if we allow mutators on list structure, sharing becomes significant.  As an
+example of the difference that sharing can make, consider the following
+procedure, which modifies the @code{car} of the structure to which it is
+applied:
+
+@lisp
+(define (set-to-wow! x)
+  (set-car! (car x) 'wow)
+  x)
+@end lisp
+
+@noindent
+Even though @code{z1} and @code{z2} are ``the same'' structure, applying
+@code{set-to-wow!} to them yields different results.  With @code{z1}, altering
+the @code{car} also changes the @code{cdr}, because in @code{z1} the @code{car}
+and the @code{cdr} are the same pair.  With @code{z2}, the @code{car} and
+@code{cdr} are distinct, so @code{set-to-wow!} modifies only the @code{car}:
+
+@lisp
+z1
+@i{((a b) a b)}
+
+(set-to-wow! z1)
+@i{((wow b) wow b)}
+
+z2
+@i{((a b) a b)}
+
+(set-to-wow! z2)
+@i{((wow b) a b)}
+@end lisp
+
+@noindent
+One way to detect sharing in list structures is to use the predicate
+@code{eq?}, which we introduced in @ref{2.3.1} as a way to test whether
+two symbols are equal.  More generally, @code{(eq?  x y)} tests whether
+@code{x} and @code{y} are the same object (that is, whether @code{x} and
+@code{y} are equal as pointers).  Thus, with @code{z1} and @code{z2} as defined
+in @ref{Figure 3.16} and @ref{Figure 3.17}, @code{(eq?  (car z1) (cdr
+z1))} is true and @code{(eq? (car z2) (cdr z2))} is false.
+
+As will be seen in the following sections, we can exploit sharing to greatly
+extend the repertoire of data structures that can be represented by pairs.  On
+the other hand, sharing can also be dangerous, since modifications made to
+structures will also affect other structures that happen to share the modified
+parts.  The mutation operations @code{set-car!} and @code{set-cdr!} should be
+used with care; unless we have a good understanding of how our data objects are

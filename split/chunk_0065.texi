@@ -1,0 +1,100 @@
+adding 1 as
+
+@lisp
+(define zero (lambda (f) (lambda (x) x)))
+
+(define (add-1 n)
+  (lambda (f) (lambda (x) (f ((n f) x)))))
+@end lisp
+
+This representation is known as @newterm{Church numerals}, after its inventor,
+Alonzo Church, the logician who invented the λ-calculus.
+
+Define @code{one} and @code{two} directly (not in terms of @code{zero} and
+@code{add-1}).  (Hint: Use substitution to evaluate @code{(add-1 zero)}).  Give
+a direct definition of the addition procedure @code{+} (not in terms of
+repeated application of @code{add-1}).
+@end quotation
+
+@node	2.1.4, 2.2, Chapter 2, 2.1
+@subsection Extended Exercise: Interval Arithmetic
+
+Alyssa P. Hacker is designing a system to help people solve engineering
+problems.  One feature she wants to provide in her system is the ability to
+manipulate inexact quantities (such as measured parameters of physical devices)
+with known precision, so that when computations are done with such approximate
+quantities the results will be numbers of known precision.
+
+Electrical engineers will be using Alyssa's system to compute electrical
+quantities.  It is sometimes necessary for them to compute the value of a
+parallel equivalent resistance @math{R_p} of two resistors @math{R_1} and @math{R_2}
+using the formula
+@ifinfo
+
+@example
+            1
+R_p = -------------
+      1/R_1 + 1/R_2
+@end example
+
+@end ifinfo
+@tex
+\[ % :32:
+  R_p \,=\, {{1 \over 1 / R_1 + 1 / R_2}.}   \]
+@end tex
+Resistance values are usually known only up to some tolerance guaranteed by the
+manufacturer of the resistor.  For example, if you buy a resistor labeled ``6.8
+ohms with 10% tolerance'' you can only be sure that the resistor has a
+resistance between 6.8 @math{-} 0.68 = 6.12 and 6.8 + 0.68 = 7.48 ohms.  Thus, if you
+have a 6.8-ohm 10% resistor in parallel with a 4.7-ohm 5% resistor, the
+resistance of the combination can range from about 2.58 ohms (if the two
+resistors are at the lower bounds) to about 2.97 ohms (if the two resistors are
+at the upper bounds).
+
+Alyssa's idea is to implement ``interval arithmetic'' as a set of arithmetic
+operations for combining ``intervals'' (objects that represent the range of
+possible values of an inexact quantity).  The result of adding, subtracting,
+multiplying, or dividing two intervals is itself an interval, representing the
+range of the result.
+
+Alyssa postulates the existence of an abstract object called an ``interval''
+that has two endpoints: a lower bound and an upper bound.  She also presumes
+that, given the endpoints of an interval, she can construct the interval using
+the data constructor @code{make-interval}.  Alyssa first writes a procedure for
+adding two intervals.  She reasons that the minimum value the sum could be is
+the sum of the two lower bounds and the maximum value it could be is the sum of
+the two upper bounds:
+
+@lisp
+(define (add-interval x y)
+  (make-interval (+ (lower-bound x) 
+                    (lower-bound y))
+                 (+ (upper-bound x) 
+                    (upper-bound y))))
+@end lisp
+
+@noindent
+Alyssa also works out the product of two intervals by finding the minimum and
+the maximum of the products of the bounds and using them as the bounds of the
+resulting interval.  (@code{Min} and @code{max} are primitives that find the
+minimum or maximum of any number of arguments.)
+
+@lisp
+(define (mul-interval x y)
+  (let ((p1 (* (lower-bound x) 
+               (lower-bound y)))
+        (p2 (* (lower-bound x) 
+               (upper-bound y)))
+        (p3 (* (upper-bound x) 
+               (lower-bound y)))
+        (p4 (* (upper-bound x) 
+               (upper-bound y))))
+    (make-interval (min p1 p2 p3 p4)
+                   (max p1 p2 p3 p4))))
+@end lisp
+
+@noindent
+To divide two intervals, Alyssa multiplies the first by the reciprocal of the
+second.  Note that the bounds of the reciprocal interval are the reciprocal of
+the upper bound and the reciprocal of the lower bound, in that order.
+

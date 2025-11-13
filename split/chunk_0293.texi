@@ -1,0 +1,100 @@
+         (extend-if-consistent 
+          pat dat frame))
+        ((and (pair? pat) (pair? dat))
+         (pattern-match 
+          (cdr pat) 
+          (cdr dat)
+          (pattern-match
+           (car pat) (car dat) frame)))
+        (else 'failed)))
+@end lisp
+
+@noindent
+Here is the procedure that extends a frame by adding a new binding, if this is
+consistent with the bindings already in the frame:
+
+@lisp
+(define (extend-if-consistent var dat frame)
+  (let ((binding (binding-in-frame var frame)))
+    (if binding
+        (pattern-match 
+         (binding-value binding) dat frame)
+        (extend var dat frame))))
+@end lisp
+
+@noindent
+If there is no binding for the variable in the frame, we simply add the binding
+of the variable to the data.  Otherwise we match, in the frame, the data
+against the value of the variable in the frame.  If the stored value contains
+only constants, as it must if it was stored during pattern matching by
+@code{extend-if-consistent}, then the match simply tests whether the stored and
+new values are the same.  If so, it returns the unmodified frame; if not, it
+returns a failure indication.  The stored value may, however, contain pattern
+variables if it was stored during unification (see @ref{4.4.4.4}).  The
+recursive match of the stored pattern against the new data will add or check
+bindings for the variables in this pattern.  For example, suppose we have a
+frame in which @code{?x} is bound to @code{(f ?y)} and @code{?y} is unbound,
+and we wish to augment this frame by a binding of @code{?x} to @code{(f b)}.
+We look up @code{?x} and find that it is bound to @code{(f ?y)}.  This leads us
+to match @code{(f ?y)} against the proposed new value @code{(f b)} in the same
+frame.  Eventually this match extends the frame by adding a binding of
+@code{?y} to @code{b}.  @code{?X} remains bound to @code{(f ?y)}.  We never
+modify a stored binding and we never store more than one binding for a given
+variable.
+
+The procedures used by @code{extend-if-consistent} to manipulate bindings are
+defined in @ref{4.4.4.8}.
+
+@subsubheading Patterns with dotted tails
+
+If a pattern contains a dot followed by a pattern variable, the pattern
+variable matches the rest of the data list (rather than the next element of the
+data list), just as one would expect with the dotted-tail notation described in
+@ref{Exercise 2.20}.  Although the pattern matcher we have just implemented
+doesn't look for dots, it does behave as we want.  This is because the Lisp
+@code{read} primitive, which is used by @code{query-driver-loop} to read the
+query and represent it as a list structure, treats dots in a special way.
+
+When @code{read} sees a dot, instead of making the next item be the next
+element of a list (the @code{car} of a @code{cons} whose @code{cdr} will be the
+rest of the list) it makes the next item be the @code{cdr} of the list
+structure.  For example, the list structure produced by @code{read} for the
+pattern @code{(computer ?type)} could be constructed by evaluating the
+expression @code{(cons 'computer (cons '?type '()))}, and that for
+@code{(computer . ?type)} could be constructed by evaluating the expression
+@code{(cons 'computer '?type)}.
+
+Thus, as @code{pattern-match} recursively compares @code{car}s and @code{cdr}s
+of a data list and a pattern that had a dot, it eventually matches the variable
+after the dot (which is a @code{cdr} of the pattern) against a sublist of the
+data list, binding the variable to that list.  For example, matching the
+pattern @code{(computer . ?type)} against @code{(computer programmer trainee)}
+will match @code{?type} against the list @code{(programmer trainee)}.
+
+@node 4.4.4.4, 4.4.4.5, 4.4.4.3, 4.4.4
+@subsubsection Rules and Unification
+
+@code{Apply-rules} is the rule analog of @code{find-assertions} 
+(@ref{4.4.4.3}).  It takes as input a pattern and a frame, and it forms a stream
+of extension frames by applying rules from the data base.
+@code{Stream-flatmap} maps @code{apply-a-rule} down the stream of possibly
+applicable rules (selected by @code{fetch-rules}, @ref{4.4.4.5}) and
+combines the resulting streams of frames.
+
+@lisp
+(define (apply-rules pattern frame)
+  (stream-flatmap 
+   (lambda (rule)
+     (apply-a-rule rule pattern frame))
+   (fetch-rules pattern frame)))
+@end lisp
+
+@noindent
+@code{Apply-a-rule} applies rules using the method outlined in 
+@ref{4.4.2}.  It first augments its argument frame by unifying the rule
+conclusion with the pattern in the given frame.  If this succeeds, it evaluates
+the rule body in this new frame.
+
+Before any of this happens, however, the program renames all the variables in
+the rule with unique new names.  The reason for this is to prevent the
+variables for different rule applications from becoming confused with each

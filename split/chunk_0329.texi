@@ -1,0 +1,100 @@
+represent the list @code{((1 2) 3 4)}, whose box-and-pointer diagram is also
+shown.  We use letter prefixes to denote the data-type information.  Thus, a
+pointer to the pair with index 5 is denoted @code{p5}, the empty list is
+denoted by the pointer @code{e0}, and a pointer to the number 4 is denoted
+@code{n4}.  In the box-and-pointer diagram, we have indicated at the lower left
+of each pair the vector index that specifies where the @code{car} and
+@code{cdr} of the pair are stored.  The blank locations in @code{the-cars} and
+@code{the-cdrs} may contain parts of other list structures (not of interest
+here).
+
+@float
+@anchor{Figure 5.14}
+@ifinfo
+@strong{Figure 5.14:} Box-and-pointer and memory-vector representations of the list @code{((1 2) 3 4)}.
+
+@example
+               +---+---+               +---+---+    +---+---+
+((1 2) 3 4) -->| * | *-+-------------->| * | *-+--->| * | / |
+               +-|-+---+               +-|-+---+    +-|-+---+
+              1  |                    2  |         4  |
+                 V                       V            V
+               +---+---+    +---+---+  +---+        +---+
+               | * | *-+--->| * | / |  | 3 |        | 4 |
+               +-|-+---+    +-|-+---+  +---+        +---+
+              5  |         7  |
+                 V            V
+               +---+        +---+
+               | 1 |        | 2 |
+               +---+        +---+
+
+   Index   0    1    2    3    4    5    6    7    8    ...
+         +----+----+----+----+----+----+----+----+----+----
+the-cars |    | p5 | n3 |    | n4 | n1 |    | n2 |    | ...
+         +----+----+----+----+----+----+----+----+----+----
+the-cdrs |    | p2 | p4 |    | e0 | p7 |    | e0 |    | ...
+         +----+----+----+----+----+----+----+----+----+----
+@end example
+@end ifinfo
+@iftex
+@image{fig/chap5/Fig5.14b,137mm,,,.std.svg}
+@caption{@strong{Figure 5.14:} Box-and-pointer and memory-vector representations of the list @code{((1 2) 3 4)}.}
+@end iftex
+@end float
+
+@noindent
+A pointer to a number, such as @code{n4}, might consist of a type indicating
+numeric data together with the actual representation of the number
+4.@footnote{This decision on the representation of numbers determines whether
+@code{eq?}, which tests equality of pointers, can be used to test for equality
+of numbers.  If the pointer contains the number itself, then equal numbers will
+have the same pointer.  But if the pointer contains the index of a location
+where the number is stored, equal numbers will be guaranteed to have equal
+pointers only if we are careful never to store the same number in more than one
+location.}  To deal with numbers that are too large to be represented in the
+fixed amount of space allocated for a single pointer, we could use a distinct
+@newterm{bignum} data type, for which the pointer designates a list in which
+the parts of the number are stored.@footnote{This is just like writing a number
+as a sequence of digits, except that each ``digit'' is a number between 0 and
+the largest number that can be stored in a single pointer.}
+
+A symbol might be represented as a typed pointer that designates a sequence of
+the characters that form the symbol's printed representation.  This sequence is
+constructed by the Lisp reader when the character string is initially
+encountered in input.  Since we want two instances of a symbol to be recognized
+as the ``same'' symbol by @code{eq?} and we want @code{eq?} to be a simple test
+for equality of pointers, we must ensure that if the reader sees the same
+character string twice, it will use the same pointer (to the same sequence of
+characters) to represent both occurrences.  To accomplish this, the reader
+maintains a table, traditionally called the @newterm{obarray}, of all the
+symbols it has ever encountered.  When the reader encounters a character string
+and is about to construct a symbol, it checks the obarray to see if it has ever
+before seen the same character string.  If it has not, it uses the characters
+to construct a new symbol (a typed pointer to a new character sequence) and
+enters this pointer in the obarray.  If the reader has seen the string before,
+it returns the symbol pointer stored in the obarray.  This process of replacing
+character strings by unique pointers is called @newterm{interning} symbols.
+
+@subsubheading Implementing the primitive list operations
+
+Given the above representation scheme, we can replace each ``primitive'' list
+operation of a register machine with one or more primitive vector operations.
+We will use two registers, @code{the-cars} and @code{the-cdrs}, to identify the
+memory vectors, and will assume that @code{vector-ref} and @code{vector-set!}
+are available as primitive operations.  We also assume that numeric operations
+on pointers (such as incrementing a pointer, using a pair pointer to index a
+vector, or adding two numbers) use only the index portion of the typed pointer.
+
+For example, we can make a register machine support the instructions
+
+@lisp
+(assign ⟨@var{reg₁}⟩ (op car) (reg ⟨@var{reg₂}⟩))
+(assign ⟨@var{reg₁}⟩ (op cdr) (reg ⟨@var{reg₂}⟩))
+@end lisp
+
+@noindent
+if we implement these, respectively, as
+
+@lisp
+(assign ⟨@var{reg₁}⟩ 
+        (op vector-ref)

@@ -1,0 +1,100 @@
+following sentence can be parsed in five different ways: ``The professor
+lectures to the student in the class with the cat.''  Give the five parses and
+explain the differences in shades of meaning among them.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.46}Exercise 4.46:} The evaluators in 
+@ref{4.1} and @ref{4.2} do not determine what order operands are evaluated in.
+We will see that the @code{amb} evaluator evaluates them from left to right.
+Explain why our parsing program wouldn't work if the operands were evaluated in
+some other order.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.47}Exercise 4.47:} Louis Reasoner suggests that,
+since a verb phrase is either a verb or a verb phrase followed by a
+prepositional phrase, it would be much more straightforward to define the
+procedure @code{parse-verb-phrase} as follows (and similarly for noun phrases):
+
+@lisp
+(define (parse-verb-phrase)
+  (amb (parse-word verbs)
+       (list 
+        'verb-phrase
+        (parse-verb-phrase)
+        (parse-prepositional-phrase))))
+@end lisp
+
+Does this work?  Does the program's behavior change if we interchange the order
+of expressions in the @code{amb}?
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.48}Exercise 4.48:} Extend the grammar given above to
+handle more complex sentences.  For example, you could extend noun phrases and
+verb phrases to include adjectives and adverbs, or you could handle compound
+sentences.@footnote{This kind of grammar can become arbitrarily complex, but it
+is only a toy as far as real language understanding is concerned.  Real
+natural-language understanding by computer requires an elaborate mixture of
+syntactic analysis and interpretation of meaning.  On the other hand, even toy
+parsers can be useful in supporting flexible command languages for programs
+such as information-retrieval systems.  @ref{Winston 1992} discusses computational
+approaches to real language understanding and also the applications of simple
+grammars to command languages.}
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.49}Exercise 4.49:} Alyssa P. Hacker is more
+interested in generating interesting sentences than in parsing them.  She
+reasons that by simply changing the procedure @code{parse-word} so that it
+ignores the ``input sentence'' and instead always succeeds and generates an
+appropriate word, we can use the programs we had built for parsing to do
+generation instead.  Implement Alyssa's idea, and show the first half-dozen or
+so sentences generated.@footnote{Although Alyssa's idea works just fine (and is
+surprisingly simple), the sentences that it generates are a bit boring---they
+don't sample the possible sentences of this language in a very interesting way.
+In fact, the grammar is highly recursive in many places, and Alyssa's technique
+``falls into'' one of these recursions and gets stuck.  See @ref{Exercise 4.50}
+for a way to deal with this.}
+@end quotation
+
+@node	4.3.3, 4.4, 4.2, 4.3
+@subsection Implementing the @code{Amb} Evaluator
+
+The evaluation of an ordinary Scheme expression may return a value, may never
+terminate, or may signal an error.  In nondeterministic Scheme the evaluation
+of an expression may in addition result in the discovery of a dead end, in
+which case evaluation must backtrack to a previous choice point.  The
+interpretation of nondeterministic Scheme is complicated by this extra case.
+
+We will construct the @code{amb} evaluator for nondeterministic Scheme by
+modifying the analyzing evaluator of @ref{4.1.7}.@footnote{We chose to
+implement the lazy evaluator in @ref{4.2} as a modification of the
+ordinary metacircular evaluator of @ref{4.1.1}.  In contrast, we will
+base the @code{amb} evaluator on the analyzing evaluator of 
+@ref{4.1.7}, because the execution procedures in that evaluator provide a
+convenient framework for implementing backtracking.}  As in the analyzing
+evaluator, evaluation of an expression is accomplished by calling an execution
+procedure produced by analysis of that expression.  The difference between the
+interpretation of ordinary Scheme and the interpretation of nondeterministic
+Scheme will be entirely in the execution procedures.
+
+@subsubheading Execution procedures and continuations
+
+Recall that the execution procedures for the ordinary evaluator take one
+argument: the environment of execution.  In contrast, the execution procedures
+in the @code{amb} evaluator take three arguments: the environment, and two
+procedures called @newterm{continuation procedures}.  The evaluation of an
+expression will finish by calling one of these two continuations: If the
+evaluation results in a value, the @newterm{success continuation} is called
+with that value; if the evaluation results in the discovery of a dead end, the
+@newterm{failure continuation} is called.  Constructing and calling appropriate
+continuations is the mechanism by which the nondeterministic evaluator
+implements backtracking.
+
+It is the job of the success continuation to receive a value and proceed with
+the computation.  Along with that value, the success continuation is passed
+another failure continuation, which is to be called subsequently if the use of
+that value leads to a dead end.
+

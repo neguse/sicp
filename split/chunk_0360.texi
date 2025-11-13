@@ -1,0 +1,100 @@
+(define (statements s)
+  (if (symbol? s) (list s) (caddr s)))
+@end lisp
+
+@noindent
+and to determine whether a given
+sequence needs or modifies a given register we use the predicates
+
+@lisp
+(define (needs-register? seq reg)
+  (memq reg (registers-needed seq)))
+(define (modifies-register? seq reg)
+  (memq reg (registers-modified seq)))
+@end lisp
+
+@noindent
+In terms of these predicates and selectors, we can implement the various
+instruction sequence combiners used throughout the compiler.
+
+The basic combiner is @code{append-instruction-sequences}.  This takes as
+arguments an arbitrary number of instruction sequences that are to be executed
+sequentially and returns an instruction sequence whose statements are the
+statements of all the sequences appended together.  The subtle point is to
+determine the registers that are needed and modified by the resulting sequence.
+It modifies those registers that are modified by any of the sequences; it needs
+those registers that must be initialized before the first sequence can be run
+(the registers needed by the first sequence), together with those registers
+needed by any of the other sequences that are not initialized (modified) by
+sequences preceding it.
+
+The sequences are appended two at a time by @code{append-2-sequences}.  This
+takes two instruction sequences @code{seq1} and @code{seq2} and returns the
+instruction sequence whose statements are the statements of @code{seq1}
+followed by the statements of @code{seq2}, whose modified registers are those
+registers that are modified by either @code{seq1} or @code{seq2}, and whose
+needed registers are the registers needed by @code{seq1} together with those
+registers needed by @code{seq2} that are not modified by @code{seq1}.  (In
+terms of set operations, the new set of needed registers is the union of the
+set of registers needed by @code{seq1} with the set difference of the registers
+needed by @code{seq2} and the registers modified by @code{seq1}.)  Thus,
+@code{append-instruction-sequences} is implemented as follows:
+
+@lisp
+(define (append-instruction-sequences . seqs)
+  (define (append-2-sequences seq1 seq2)
+    (make-instruction-sequence
+     (list-union 
+      (registers-needed seq1)
+      (list-difference 
+       (registers-needed seq2)
+       (registers-modified seq1)))
+     (list-union
+      (registers-modified seq1)
+      (registers-modified seq2))
+     (append (statements seq1)
+             (statements seq2))))
+  (define (append-seq-list seqs)
+    (if (null? seqs)
+        (empty-instruction-sequence)
+        (append-2-sequences 
+         (car seqs)
+         (append-seq-list (cdr seqs)))))
+  (append-seq-list seqs))
+@end lisp
+
+@noindent
+This procedure uses some simple operations for manipulating sets represented as
+lists, similar to the (unordered) set representation described in 
+@ref{2.3.3}:
+
+@lisp
+(define (list-union s1 s2)
+  (cond ((null? s1) s2)
+        ((memq (car s1) s2)
+         (list-union (cdr s1) s2))
+        (else
+         (cons (car s1)
+               (list-union (cdr s1) s2)))))
+
+(define (list-difference s1 s2)
+  (cond ((null? s1) '())
+        ((memq (car s1) s2)
+         (list-difference (cdr s1) s2))
+        (else 
+         (cons (car s1)
+               (list-difference (cdr s1)
+                                s2)))))
+@end lisp
+
+@noindent
+@code{Preserving}, the second major instruction sequence combiner, takes a list
+of registers @code{regs} and two instruction sequences @code{seq1} and
+@code{seq2} that are to be executed sequentially.  It returns an instruction
+sequence whose statements are the statements of @code{seq1} followed by the
+statements of @code{seq2}, with appropriate @code{save} and @code{restore}
+instructions around @code{seq1} to protect the registers in @code{regs} that
+are modified by @code{seq1} but needed by @code{seq2}.  To accomplish this,
+@code{preserving} first creates a sequence that has the required @code{save}s
+followed by the statements of @code{seq1} followed by the required
+@code{restore}s.  This sequence needs the registers being saved and restored in

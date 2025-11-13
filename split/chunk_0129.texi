@@ -1,0 +1,100 @@
+example, if we add @math{{2 + 3i}} to @math{{4 - 3i}}, it would be nice to obtain the
+answer as the integer 6 rather than as the complex number @math{{6 + 0i}}.
+@ref{Exercise 2.85} discusses a way to implement such a lowering operation.
+(The trick is that we need a general way to distinguish those objects that can
+be lowered, such as @math{{6 + 0i}}, from those that cannot, such as @math{{6 + 2i}}.)
+
+@subsubheading Inadequacies of hierarchies
+
+If the data types in our system can be naturally arranged in a tower, this
+greatly simplifies the problems of dealing with generic operations on different
+types, as we have seen.  Unfortunately, this is usually not the case.
+@ref{Figure 2.26} illustrates a more complex arrangement of mixed types, this
+one showing relations among different types of geometric figures.  We see that,
+in general, a type may have more than one subtype.  Triangles and
+quadrilaterals, for instance, are both subtypes of polygons.  In addition, a
+type may have more than one supertype.  For example, an isosceles right
+triangle may be regarded either as an isosceles triangle or as a right
+triangle.  This multiple-supertypes issue is particularly thorny, since it
+means that there is no unique way to ``raise'' a type in the hierarchy.
+Finding the ``correct'' supertype in which to apply an operation to an object
+may involve considerable searching through the entire type network on the part
+of a procedure such as @code{apply-generic}.  Since there generally are
+multiple subtypes for a type, there is a similar problem in coercing a value
+``down'' the type hierarchy.  Dealing with large numbers of interrelated types
+while still preserving modularity in the design of large systems is very
+difficult, and is an area of much current research.@footnote{This statement,
+which also appears in the first edition of this book, is just as true now as it
+was when we wrote it twelve years ago.  Developing a useful, general framework
+for expressing the relations among different types of entities (what
+philosophers call ``ontology'') seems intractably difficult.  The main
+difference be@-tween the confusion that existed ten years ago and the confusion
+that exists now is that now a variety of inadequate ontological theories have
+been embodied in a ple@-tho@-ra of correspondingly inadequate programming
+languages.  For example, much of the complexity of object-oriented programming
+languages---and the subtle and confusing differences among contemporary
+object-oriented languages---centers on the treatment of generic operations on
+interrelated types.  Our own discussion of computational objects in
+@ref{Chapter 3} avoids these issues entirely.  Readers familiar with
+object-oriented programming will notice that we have much to say in
+chapter 3 about local state, but we do not even mention ``classes'' or
+``inheritance.''  In fact, we suspect that these problems cannot be adequately
+addressed in terms of computer-language design alone, without also drawing on
+work in knowledge representation and automated reasoning.}
+
+@float
+@anchor{Figure 2.26}
+@ifinfo
+@quotation
+@strong{Figure 2.26:} Relations among types of geometric figures.
+
+@example
+                     polygon
+                    /       \
+                   /         \
+            triangle         quadrilateral
+            /     \              /     \
+           /       \            /       \
+     isosceles   right      trapezoid   kite
+     triangle    triangle       |         |
+      |     \      |            |         |
+      |      \     |            |         |
+equilateral   isosceles   parallelogram   |
+triangle      right          |       \    |
+              triangle       |        \   |
+                          rectangle  rhombus
+                                \    /
+                                 \  /
+                                square
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap2/Fig2.26f,147mm,,,.std.svg}
+@caption{@strong{Figure 2.26:} Relations among types of geometric figures.}
+@end iftex
+@end float
+
+@quotation
+@strong{@anchor{Exercise 2.81}Exercise 2.81:} Louis Reasoner has noticed that
+@code{apply-generic} may try to coerce the arguments to each other's type even
+if they already have the same type.  Therefore, he reasons, we need to put
+procedures in the coercion table to @newterm{coerce} arguments of each type to
+their own type.  For example, in addition to the
+@code{scheme-number->complex} coercion shown above, he would do:
+
+@lisp
+(define (scheme-number->scheme-number n) n)
+(define (complex->complex z) z)
+
+(put-coercion 'scheme-number 'scheme-number
+              scheme-number->scheme-number)
+
+(put-coercion 'complex 'complex 
+              complex->complex)
+@end lisp
+
+@enumerate a
+
+@item
+With Louis's coercion procedures installed, what happens if

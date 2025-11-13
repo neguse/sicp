@@ -1,0 +1,100 @@
+
+@code{Without-interrupts} disables time-slicing interrupts while its procedure
+ar@-gu@-ment is being executed.}  Alternatively, multiprocessing computers provide
+instructions that support atomic operations directly in
+hardware.@footnote{There are many variants of such instructions---including
+test-and-set, test-and-clear, swap, compare-and-exchange, load-reserve, and
+store-conditional---whose design must be carefully matched to the machine's
+processor-memory interface.  One issue that arises here is to determine what
+happens if two processes attempt to acquire the same resource at exactly the
+same time by using such an instruction.  This requires some mechanism for
+making a decision about which process gets control.  Such a mechanism is called
+an @newterm{arbiter}.  Arbiters usually boil down to some sort of hardware
+device.  Unfortunately, it is possible to prove that one cannot physically
+construct a fair arbiter that works 100% of the time unless one allows the
+arbiter an arbitrarily long time to make its decision.  The fundamental
+phenomenon here was originally observed by the fourteenth-century French
+philosopher Jean Buridan in his commentary on Aristotle's @i{De caelo}.
+Buridan argued that a perfectly rational dog placed between two equally
+attractive sources of food will starve to death, because it is incapable of
+deciding which to go to first.}
+
+@quotation
+@strong{@anchor{Exercise 3.46}Exercise 3.46:} Suppose that we implement
+@code{test-and-set!}  using an ordinary procedure as shown in the text, without
+attempting to make the operation atomic.  Draw a timing diagram like the one in
+@ref{Figure 3.29} to demonstrate how the mutex implementation can fail by
+allowing two processes to acquire the mutex at the same time.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.47}Exercise 3.47:} A semaphore (of size @math{n}) is a
+generalization of a mutex.  Like a mutex, a semaphore supports acquire and
+release operations, but it is more general in that up to @math{n} processes can
+acquire it concurrently.  Additional processes that attempt to acquire the
+semaphore must wait for release operations.  Give implementations of semaphores
+
+@enumerate a
+
+@item
+in terms of mutexes
+
+@item
+in terms of atomic @code{test-and-set!} operations.
+
+@end enumerate
+@end quotation
+
+@subsubheading Deadlock
+
+Now that we have seen how to implement serializers, we can see that account
+exchanging still has a problem, even with the @code{serialized-exchange}
+procedure above.  Imagine that Peter attempts to exchange @math{{a1}} with @math{{a2}}
+while Paul concurrently attempts to exchange @math{{a2}} with @math{{a1}}.  Suppose that
+Peter's process reaches the point where it has entered a serialized procedure
+protecting @math{{a1}} and, just after that, Paul's process enters a serialized
+procedure protecting @math{{a2}}.  Now Peter cannot proceed (to enter a serialized
+procedure protecting @math{{a2}}) until Paul exits the serialized procedure
+protecting @math{{a2}}.  Similarly, Paul cannot proceed until Peter exits the
+serialized procedure protecting @math{{a1}}.  Each process is stalled forever,
+waiting for the other.  This situation is called a @newterm{deadlock}.
+Deadlock is always a danger in systems that provide concurrent access to
+multiple shared resources.
+
+One way to avoid the deadlock in this situation is to give each account a
+unique identification number and rewrite @code{serialized-exchange} so that a
+process will always attempt to enter a procedure protecting the lowest-numbered
+account first.  Although this method works well for the exchange problem, there
+are other situations that require more sophisticated deadlock-avoidance
+techniques, or where deadlock cannot be avoided at all.  (See @ref{Exercise 3.48} 
+and @ref{Exercise 3.49}.)@footnote{The general technique for avoiding
+deadlock by numbering the shared resources and acquiring them in order is due
+to @ref{Havender (1968)}.  Situations where deadlock cannot be avoided require
+@newterm{deadlock-recovery} methods, which entail having processes ``back out''
+of the deadlocked state and try again.  Deadlock-recovery mechanisms are widely
+used in database management systems, a topic that is treated in detail in 
+@ref{Gray and Reuter 1993}.}
+
+@quotation
+@strong{@anchor{Exercise 3.48}Exercise 3.48:} Explain in detail why the
+deadlock-avoidance method described above, (i.e., the accounts are numbered,
+and each process attempts to acquire the smaller-numbered account first) avoids
+deadlock in the exchange problem.  Rewrite @code{serialized-exchange} to
+incorporate this idea.  (You will also need to modify @code{make-account} so
+that each account is created with a number, which can be accessed by sending an
+appropriate message.)
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.49}Exercise 3.49:} Give a scenario where the
+deadlock-avoidance mechanism described above does not work.  (Hint: In the
+exchange problem, each process knows in advance which accounts it will need to
+get access to.  Consider a situation where a process must get access to some
+shared resources before it can know which additional shared resources it will
+require.)
+@end quotation
+
+@subsubheading Concurrency, time, and communication
+
+We've seen how programming concurrent systems requires controlling the ordering
+of events when different processes access shared state, and we've seen how to

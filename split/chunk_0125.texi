@@ -1,0 +1,100 @@
+  (define (add-complex z1 z2)
+    (make-from-real-imag 
+     (+ (real-part z1) (real-part z2))
+     (+ (imag-part z1) (imag-part z2))))
+  (define (sub-complex z1 z2)
+    (make-from-real-imag 
+     (- (real-part z1) (real-part z2))
+     (- (imag-part z1) (imag-part z2))))
+  (define (mul-complex z1 z2)
+    (make-from-mag-ang 
+     (* (magnitude z1) (magnitude z2))
+     (+ (angle z1) (angle z2))))
+  (define (div-complex z1 z2)
+    (make-from-mag-ang 
+     (/ (magnitude z1) (magnitude z2))
+     (- (angle z1) (angle z2))))
+  @r{;; interface to rest of the system}
+  (define (tag z) (attach-tag 'complex z))
+  (put 'add '(complex complex)
+       (lambda (z1 z2) 
+         (tag (add-complex z1 z2))))
+  (put 'sub '(complex complex)
+       (lambda (z1 z2) 
+         (tag (sub-complex z1 z2))))
+  (put 'mul '(complex complex)
+       (lambda (z1 z2) 
+         (tag (mul-complex z1 z2))))
+  (put 'div '(complex complex)
+       (lambda (z1 z2) 
+         (tag (div-complex z1 z2))))
+  (put 'make-from-real-imag 'complex
+       (lambda (x y) 
+         (tag (make-from-real-imag x y))))
+  (put 'make-from-mag-ang 'complex
+       (lambda (r a) 
+         (tag (make-from-mag-ang r a))))
+  'done)
+@end lisp
+
+@noindent
+Programs outside the complex-number package can construct complex numbers
+either from real and imaginary parts or from magnitudes and angles.  Notice how
+the underlying procedures, originally defined in the rectangular and polar
+packages, are exported to the complex package, and exported from there to the
+outside world.
+
+@lisp
+(define (make-complex-from-real-imag x y)
+  ((get 'make-from-real-imag 'complex) x y))
+(define (make-complex-from-mag-ang r a)
+  ((get 'make-from-mag-ang 'complex) r a))
+@end lisp
+
+@noindent
+What we have here is a two-level tag system.  A typical complex number, such as
+@math{{3 + 4i}} in rectangular form, would be represented as shown in @ref{Figure 2.24}.  
+The outer tag (@code{complex}) is used to direct the number to the
+complex package.  Once within the complex package, the next tag
+(@code{rectangular}) is used to direct the number to the rectangular package.
+In a large and complicated system there might be many levels, each interfaced
+with the next by means of generic operations.  As a data object is passed
+``downward,'' the outer tag that is used to direct it to the appropriate
+package is stripped off (by applying @code{contents}) and the next level of tag
+(if any) becomes visible to be used for further dispatching.
+
+@float
+@anchor{Figure 2.24}
+@ifinfo
+@quotation
+@strong{Figure 2.24:} Representation of @math{{3 + 4i}} in rectangular form.
+
+@example
+     +---+---+     +---+---+     +---+---+
+---->| * | *-+---->| * | *-+---->| * | * |
+     +-|-+---+     +-|-+---+     +-|-+-|-+
+       |             |             |   |
+       V             V             V   V
+ +---------+   +-------------+  +---+ +---+
+ | complex |   | rectangular |  | 3 | | 4 |
+ +---------+   +-------------+  +---+ +---+
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap2/Fig2.24d,108mm,,,.std.svg}
+@caption{@strong{Figure 2.24:} Representation of @math{{3 + 4i}} in rectangular form.}
+@end iftex
+@end float
+
+@noindent
+In the above packages, we used @code{add-rat}, @code{add-complex}, and the
+other arithmetic procedures exactly as originally written.  Once these
+definitions are internal to different installation procedures, however, they no
+longer need names that are distinct from each other: we could simply name them
+@code{add}, @code{sub}, @code{mul}, and @code{div} in both packages.
+
+@quotation
+@strong{@anchor{Exercise 2.77}Exercise 2.77:} Louis Reasoner tries to evaluate
+the expression @code{(magnitude z)} where @code{z} is the object shown in
+@ref{Figure 2.24}.  To his surprise, instead of the answer 5 he gets an error

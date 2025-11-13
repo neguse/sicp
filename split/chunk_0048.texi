@@ -1,0 +1,100 @@
+@lisp
+(define (f x y)
+  (let ((a (+ 1 (* x y)))
+        (b (- 1 y)))
+    (+ (* x (square a))
+       (* y b)
+       (* a b))))
+@end lisp
+
+@noindent
+The general form of a @code{let} expression is
+
+@lisp
+(let ((⟨@var{var₁}⟩ ⟨@var{exp₁}⟩)
+      (⟨@var{var₂}⟩ ⟨@var{exp₂}⟩)
+      @r{…}
+      (⟨@var{varₙ}⟩ ⟨@var{expₙ}⟩))
+  ⟨@var{body}⟩)
+@end lisp
+
+@noindent
+which can be thought of as saying
+
+@example
+let ⟨@var{var₁}⟩ @r{have the value} ⟨@var{exp₁}⟩ @r{and}
+    ⟨@var{var₂}⟩ @r{have the value} ⟨@var{exp₂}⟩ @r{and}
+    @r{…}
+    ⟨@var{varₙ}⟩ @r{have the value} ⟨@var{expₙ}⟩
+  @r{in} ⟨@var{body}⟩
+@end example
+
+@noindent
+The first part of the @code{let} expression is a list of name-expression pairs.
+When the @code{let} is evaluated, each name is associated with the value of the
+corresponding expression.  The body of the @code{let} is evaluated with these
+names bound as local variables.  The way this happens is that the @code{let}
+expression is interpreted as an alternate syntax for
+
+@lisp
+((lambda (⟨@var{var₁}⟩ @r{…} ⟨@var{varₙ}⟩)
+   ⟨@var{body}⟩)
+ ⟨@var{exp₁}⟩
+ @r{…}
+ ⟨@var{expₙ}⟩)
+@end lisp
+
+@noindent
+No new mechanism is required in the interpreter in order to provide local
+variables.  A @code{let} expression is simply syntactic sugar for the
+underlying @code{lambda} application.
+
+We can see from this equivalence that the scope of a variable specified by a
+@code{let} expression is the body of the @code{let}.  This implies that:
+
+@itemize @bullet
+
+@item
+@code{Let} allows one to bind variables as locally as possible to where they
+are to be used.  For example, if the value of @code{x} is 5, the value of the
+expression
+
+@lisp
+(+ (let ((x 3))
+     (+ x (* x 10)))
+   x)
+@end lisp
+
+@noindent
+is 38.  Here, the @code{x} in the body of the @code{let} is 3, so the value of
+the @code{let} expression is 33.  On the other hand, the @code{x} that is the
+second argument to the outermost @code{+} is still 5.
+
+@item
+The variables' values are computed outside the @code{let}.  This matters when
+the expressions that provide the values for the local variables depend upon
+variables having the same names as the local variables themselves.  For
+example, if the value of @code{x} is 2, the expression
+
+@lisp
+(let ((x 3)
+      (y (+ x 2)))
+  (* x y))
+@end lisp
+
+@noindent
+will have the value 12 because, inside the body of the @code{let}, @code{x}
+will be 3 and @code{y} will be 4 (which is the outer @code{x} plus 2).
+
+@end itemize
+
+@noindent
+Sometimes we can use internal definitions to get the same effect as with
+@code{let}.  For example, we could have defined the procedure @code{f} above as
+
+@lisp
+(define (f x y)
+  (define a 
+    (+ 1 (* x y)))
+  (define b (- 1 y))
+  (+ (* x (square a))

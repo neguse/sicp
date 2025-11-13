@@ -1,0 +1,100 @@
+stream, it instantiates the original query using the values of the variables
+found in the frame.  This stream of instantiated queries is then
+printed.@footnote{The reason we use streams (rather than lists) of frames is
+that the recursive application of rules can generate infinite numbers of values
+that satisfy a query.  The delayed evaluation embodied in streams is crucial
+here: The system will print responses one by one as they are generated,
+regardless of whether there are a finite or infinite number of responses.}
+
+The driver also checks for the special command @code{assert!}, which signals
+that the input is not a query but rather an assertion or rule to be added to
+the data base.  For instance,
+
+@lisp
+(assert!
+ (job (Bitdiddle Ben)
+      (computer wizard)))
+
+(assert!
+ (rule (wheel ?person)
+       (and (supervisor 
+             ?middle-manager ?person)
+            (supervisor
+             ?x ?middle-manager))))
+@end lisp
+
+@node	4.4.3, 4.4.4, 4.4.2, 4.4
+@subsection Is Logic Programming Mathematical Logic?
+
+The means of combination used in the query language may at first seem identical
+to the operations @code{and}, @code{or}, and @code{not} of mathematical logic,
+and the application of query-language rules is in fact accomplished through a
+legitimate method of inference.@footnote{That a particular method of inference
+is legitimate is not a trivial assertion.  One must prove that if one starts
+with true premises, only true conclusions can be derived.  The method of
+inference represented by rule applications is @newterm{modus ponens}, the
+familiar method of inference that says that if @math{A} is true and @emph{A
+implies B} is true, then we may conclude that @math{B} is true.} This
+identification of the query language with mathematical logic is not really
+valid, though, because the query language provides a @newterm{control structure} 
+that interprets the logical statements procedurally.  We can often
+take advantage of this control structure.  For example, to find all of the
+supervisors of programmers we could formulate a query in either of two
+logically equivalent forms:
+
+@lisp
+(and (job ?x (computer programmer))
+     (supervisor ?x ?y))
+@end lisp
+
+@noindent
+or
+
+@lisp
+(and (supervisor ?x ?y)
+     (job ?x (computer programmer)))
+@end lisp
+
+@noindent
+If a company has many more supervisors than programmers (the usual case), it is
+better to use the first form rather than the second because the data base must
+be scanned for each intermediate result (frame) produced by the first clause of
+the @code{and}.
+
+The aim of logic programming is to provide the programmer with techniques for
+decomposing a computational problem into two separate problems: ``what'' is to
+be computed, and ``how'' this should be computed.  This is accomplished by
+selecting a subset of the statements of mathematical logic that is powerful
+enough to be able to describe anything one might want to compute, yet weak
+enough to have a controllable procedural interpretation.  The intention here is
+that, on the one hand, a program specified in a logic programming language
+should be an effective program that can be carried out by a computer.  Control
+(``how'' to compute) is effected by using the order of evaluation of the
+language.  We should be able to arrange the order of clauses and the order of
+subgoals within each clause so that the computation is done in an order deemed
+to be effective and efficient.  At the same time, we should be able to view the
+result of the computation (``what'' to compute) as a simple consequence of the
+laws of logic.
+
+Our query language can be regarded as just such a procedurally interpretable
+subset of mathematical logic.  An assertion represents a simple fact (an atomic
+proposition).  A rule represents the implication that the rule conclusion holds
+for those cases where the rule body holds.  A rule has a natural procedural
+interpretation: To establish the conclusion of the rule, establish the body of
+the rule.  Rules, therefore, specify computations.  However, because rules can
+also be regarded as statements of mathematical logic, we can justify any
+``inference'' accomplished by a logic program by asserting that the same result
+could be obtained by working entirely within mathematical logic.@footnote{We
+must qualify this statement by agreeing that, in speaking of the ``inference''
+accomplished by a logic program, we assume that the computation terminates.
+Unfortunately, even this qualified statement is false for our implementation of
+the query language (and also false for programs in Prolog and most other
+current logic programming languages) because of our use of @code{not} and
+@code{lisp-value}.  As we will describe below, the @code{not} implemented in
+the query language is not always consistent with the @code{not} of mathematical
+logic, and @code{lisp-value} introduces additional complications.  We could
+implement a language consistent with mathematical logic by simply removing
+@code{not} and @code{lisp-value} from the language and agreeing to write
+programs using only simple queries, @code{and}, and @code{or}.  However, this
+would greatly restrict the expressive power of the language.  One of the major
+concerns of research in logic programming is to find ways to achieve more

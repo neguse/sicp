@@ -1,0 +1,100 @@
+about assignments, because we may not be able to control the order of the
+assignments made by the different processes.  If several such changes might be
+made concurrently (as with two depositors accessing a joint account) we need
+some way to ensure that our system behaves correctly.  For example, in the case
+of withdrawals from a joint bank account, we must ensure that money is
+conserved.  To make concurrent programs behave correctly, we may have to place
+some restrictions on concurrent execution.
+
+@noindent
+One possible restriction on concurrency would stipulate that no two operations
+that change any shared state variables can occur at the same time.  This is an
+extremely stringent requirement.  For distributed banking, it would require the
+system designer to ensure that only one transaction could proceed at a time.
+This would be both inefficient and overly conservative.  @ref{Figure 3.30}
+shows Peter and Paul sharing a bank account, where Paul has a private account
+as well.  The diagram illustrates two withdrawals from the shared account (one
+by Peter and one by Paul) and a deposit to Paul's private account.@footnote{The
+columns show the contents of Peter's wallet, the joint account (in Bank1),
+Paul's wallet, and Paul's private account (in Bank2), before and after each
+withdrawal (W) and deposit (D).  Peter withdraws $10 from Bank1; Paul deposits
+$5 in Bank2, then withdraws $25 from Bank1.}  The two withdrawals from the
+shared account must not be concurrent (since both access and update the same
+account), and Paul's deposit and withdrawal must not be concurrent (since both
+access and update the amount in Paul's wallet).  But there should be no problem
+permitting Paul's deposit to his private account to proceed concurrently with
+Peter's withdrawal from the shared account.
+
+@float
+@anchor{Figure 3.30}
+@ifinfo
+@strong{Figure 3.30:} Concurrent deposits and withdrawals from a joint account 
+in Bank1 and a private account in Bank2.
+
+@example
+ |    Peter          Bank1          Paul           Bank2
+ |    ____           ____           ____           ____  
+ |   /    \         /    \         /    \         /    \ 
+ |  |  $7  |--. .--| $100 |       |  $5  |--. .--| $300 |
+ |   \____/   V V   \____/         \____/   V V   \____/ 
+ |           +---+                         +---+         
+ |           | W |                         | D |         
+ |    ____   ++-++   ____           ____   ++-++   ____  
+ |   /    \   | |   /    \         /    \   | |   /    \ 
+ |  | $17  |<-' `->| $90  |--. .--|  $0  |<-' `->| $305 |
+ |   \____/         \____/   V V   \____/         \____/ 
+ |                          +---+
+ |                          | W |
+ |    ____           ____   ++-++   ____           ____  
+ |   /    \         /    \   | |   /    \         /    \ 
+ |  | $17  |       | $65  |<-' `->| $25  |       | $305 |
+ |   \____/         \____/         \____/         \____/ 
+ V
+time
+@end example
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.30c,147mm,,,.std.svg}
+@caption{@strong{Figure 3.30:} Concurrent deposits and withdrawals from a joint account in Bank1 and a private account in Bank2.}
+@end iftex
+@end float
+
+A less stringent restriction on concurrency would ensure that a concurrent
+system produces the same result as if the processes had run sequentially in
+some order.  There are two important aspects to this requirement.  First, it
+does not require the processes to actually run sequentially, but only to
+produce results that are the same @emph{as if} they had run sequentially.  For
+the example in @ref{Figure 3.30}, the designer of the bank account system can
+safely allow Paul's deposit and Peter's withdrawal to happen concurrently,
+because the net result will be the same as if the two operations had happened
+sequentially.  Second, there may be more than one possible ``correct'' result
+produced by a concurrent program, because we require only that the result be
+the same as for @emph{some} sequential order.  For example, suppose that Peter
+and Paul's joint account starts out with $100, and Peter deposits $40 while
+Paul concurrently withdraws half the money in the account.  Then sequential
+execution could result in the account balance being either $70 or $90 (see
+@ref{Exercise 3.38}).@footnote{@anchor{Footnote 167} A more formal
+way to express this idea is to say that concurrent programs are inherently
+@newterm{nondeterministic}. That is, they are described not by single-valued
+functions, but by functions whose results are sets of possible values.  In
+@ref{4.3} we will study a language for expressing nondeterministic
+computations.}
+
+There are still weaker requirements for correct execution of concurrent
+programs.  A program for simulating diffusion (say, the flow of heat in an
+object) might consist of a large number of processes, each one representing a
+small volume of space, that update their values concurrently.  Each process
+repeatedly changes its value to the average of its own value and its neighbors'
+values.  This algorithm converges to the right answer independent of the order
+in which the operations are done; there is no need for any restrictions on
+concurrent use of the shared values.
+
+@quotation
+@strong{@anchor{Exercise 3.38}Exercise 3.38:} Suppose that Peter, Paul, and
+Mary share a joint bank account that initially contains $100.  Concurrently,
+Peter deposits $10, Paul withdraws $20, and Mary withdraws half the money in
+the account, by executing the following commands:
+
+@example
+Peter: (set! balance (+ balance 10))
+Paul:  (set! balance (- balance 20))

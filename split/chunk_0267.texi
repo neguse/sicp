@@ -1,0 +1,100 @@
+               (if (true? pred-value)
+                   (cproc env succeed fail2)
+                   (aproc env succeed fail2)))
+             @r{;; failure continuation for}
+             @r{;; evaluating the predicate}
+             fail))))
+@end lisp
+
+@noindent
+Sequences are also handled in the same way as in the previous evaluator, except
+for the machinations in the subprocedure @code{sequentially} that are required
+for passing the continuations.  Namely, to sequentially execute @code{a} and
+then @code{b}, we call @code{a} with a success continuation that calls
+@code{b}.
+
+@lisp
+(define (analyze-sequence exps)
+  (define (sequentially a b)
+    (lambda (env succeed fail)
+      (a env
+         @r{;; success continuation for calling @code{a}}
+         (lambda (a-value fail2)
+           (b env succeed fail2))
+         @r{;; failure continuation for calling @code{a}}
+         fail)))
+  (define (loop first-proc rest-procs)
+    (if (null? rest-procs)
+        first-proc
+        (loop (sequentially first-proc 
+                            (car rest-procs))
+              (cdr rest-procs))))
+  (let ((procs (map analyze exps)))
+    (if (null? procs)
+        (error "Empty sequence: ANALYZE"))
+    (loop (car procs) (cdr procs))))
+@end lisp
+
+@subsubheading Definitions and assignments
+
+Definitions are another case where we must go to some trouble to manage the
+continuations, because it is necessary to evaluate the definition-value
+expression before actually defining the new variable.  To accomplish this, the
+definition-value execution procedure @code{vproc} is called with the
+environment, a success continuation, and the failure continuation.  If the
+execution of @code{vproc} succeeds, obtaining a value @code{val} for the
+defined variable, the variable is defined and the success is propagated:
+
+@lisp
+(define (analyze-definition exp)
+  (let ((var (definition-variable exp))
+        (vproc (analyze 
+                (definition-value exp))))
+    (lambda (env succeed fail)
+      (vproc env
+             (lambda (val fail2)
+               (define-variable! var val env)
+               (succeed 'ok fail2))
+             fail))))
+@end lisp
+
+@noindent
+Assignments are more interesting.  This is the first place where we really use
+the continuations, rather than just passing them around.  The execution
+procedure for assignments starts out like the one for definitions.  It first
+attempts to obtain the new value to be assigned to the variable. If this
+evaluation of @code{vproc} fails, the assignment fails.
+
+If @code{vproc} succeeds, however, and we go on to make the assignment, we must
+consider the possibility that this branch of the computation might later fail,
+which will require us to backtrack out of the assignment.  Thus, we must
+arrange to undo the assignment as part of the backtracking process.@footnote{We
+didn't worry about undoing definitions, since we can assume that internal
+definitions are scanned out (@ref{4.1.6}).}
+
+This is accomplished by giving @code{vproc} a success continuation (marked with
+the comment ``*1*'' below) that saves the old value of the variable before
+assigning the new value to the variable and proceeding from the assignment.
+The failure continuation that is passed along with the value of the assignment
+(marked with the comment ``*2*'' below) restores the old value of the variable
+before continuing the failure.  That is, a successful assignment provides a
+failure continuation that will intercept a subsequent failure; whatever failure
+would otherwise have called @code{fail2} calls this procedure instead, to undo
+the assignment before actually calling @code{fail2}.
+
+@lisp
+(define (analyze-assignment exp)
+  (let ((var (assignment-variable exp))
+        (vproc (analyze 
+                (assignment-value exp))))
+    (lambda (env succeed fail)
+      (vproc env
+             (lambda (val fail2)    @r{; *1*}
+               (let ((old-value
+                      (lookup-variable-value 
+                       var 
+                       env)))
+                 (set-variable-value!
+                  var 
+                  val 
+                  env)

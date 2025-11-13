@@ -1,0 +1,100 @@
+@comment * Version 2.andresraba6.6 (September 16, 2015) by Andres Raba.
+@comment   Fixed broken links. Tinted chapter and section numbers.
+@comment   License updated to CC BY-SA 4.0.
+
+@documentencoding UTF-8
+
+@dircategory The Algorithmic Language Scheme
+@direntry
+* SICP: (sicp). Structure and Interpretation of Computer Programs
+@end direntry
+
+@macro newterm{term}
+@cindex \term\
+@dfn{\term\}
+@end macro
+
+@setshortcontentsaftertitlepage
+
+@titlepage
+
+@titlefont{Structure and Interpretation@* of Computer Programs}
+
+@subtitle @abbr{Second Edition}@* Unofficial Texinfo Format @value{utfversion}
+
+@author Harold Abelson and Gerald Jay Sussman with Julie Sussman, foreword by Alan J. Perlis
+
+@page
+@vskip 0pt plus 1filll
+@noindent
+@copyright{}1996 by The Massachusetts Institute of Technology
+
+@noindent
+@image{fig/icons/cc, 6mm,,,.std.svg}
+@image{fig/icons/by, 6mm,,,.std.svg}
+@image{fig/icons/sa, 6mm,,,.std.svg}
+
+@noindent
+This work is licensed under a Creative Commons Attribution-ShareAlike 4.0
+International License (@url{http://creativecommons.org/licenses/by-sa/4.0/, @abbr{CC BY-SA 4.0}}).
+Based on a work at @url{http://mitpress.mit.edu/sicp/, mitpress.mit.edu}.
+
+@noindent
+The @abbr{MIT} Press@*
+Cambridge, Massachusetts@* 
+London, England
+
+@noindent
+McGraw-Hill Book Company@*
+New York, St. Louis, San Francisco,@*
+Montreal, Toronto
+
+@noindent
+This book is one of a series of texts written by faculty of the Electrical
+Engineering and Computer Science Department at the Massachusetts Institute of
+Technology.  It was edited and produced by The @abbr{MIT} Press under a
+joint production-distribution arrangement with the McGraw-Hill Book Company.
+
+@noindent
+Unofficial Texinfo Format @url{http://sicpebook.wordpress.com, @value{utfversion}} (@value{utfversiondate}),
+based on @url{http://www.neilvandyke.org/sicp-texi/, 2.neilvandyke4} (January 10, 2007).
+
+@end titlepage
+
+@shortcontents
+
+@contents
+
+@headings off
+
+@finalout
+
+@node Top, UTF, (dir), (dir)
+
+@ifinfo
+
+@heading Structure and Interpretation of Computer Programs
+
+@noindent
+Second Edition@*
+by Harold Abelson and Gerald Jay Sussman, with Julie Sussman@*
+foreword by Alan J. Perlis@*
+@copyright{} 1996 Massachusetts Institute of Technology
+
+@noindent
+Unofficial Texinfo Format version @value{utfversion} (@value{utfversiondate})
+
+@end ifinfo
+
+@menu
+* UTF::              Unofficial Texinfo Format
+* Dedication::       Dedication
+* Foreword::         Foreword
+* Preface::          Preface to the Second Edition
+* Preface 1e::       Preface to the First Edition
+* Acknowledgments::  Acknowledgments
+* Chapter 1::        Building Abstractions with Procedures
+* Chapter 2::        Building Abstractions with Data
+* Chapter 3::        Modularity, Objects, and State
+* Chapter 4::        Metalinguistic Abstraction
+* Chapter 5::        Computing with Register Machines

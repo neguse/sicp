@@ -1,0 +1,100 @@
+(define (div-complex z1 z2)
+  (make-from-mag-ang 
+   (/ (magnitude z1) (magnitude z2))
+   (- (angle z1) (angle z2))))
+@end lisp
+
+@noindent
+To complete the complex-number package, we must choose a representation and we
+must implement the constructors and selectors in terms of primitive numbers and
+primitive list structure.  There are two obvious ways to do this: We can
+represent a complex number in ``rectangular form'' as a pair (real part,
+imaginary part) or in ``polar form'' as a pair (magnitude, angle).  Which shall
+we choose?
+
+In order to make the different choices concrete, imagine that there are two
+programmers, Ben Bitdiddle and Alyssa P. Hacker, who are independently
+designing representations for the complex-number system.  Ben chooses to
+represent complex numbers in rectangular form.  With this choice, selecting the
+real and imaginary parts of a complex number is straightforward, as is
+constructing a complex number with given real and imaginary parts.  To find the
+magnitude and the angle, or to construct a complex number with a given
+magnitude and angle, he uses the trigonometric relations
+
+@ifinfo
+
+@example
+                      __________
+x = r cos A     r = ./ x^2 + y^2
+
+y = r sin A     A = arctan(y,x)
+@end example
+
+@end ifinfo
+@tex
+\[ % :48:
+\begin{eqnarray}
+  x &=& r \cos A, \\
+  y &=& r \sin A, \\
+  r &=& \sqrt{x^2 + y^2,} \\
+  A &=& \arctan(y, x),
+\end{eqnarray}
+\]
+@end tex
+
+@noindent
+which relate the real and imaginary parts @math{{(x, y)}} to the magnitude and
+the angle @math{{(r, A)}}.@footnote{The arctangent function referred to here,
+computed by Scheme's @code{atan} procedure, is defined so as to take two
+arguments @math{y} and @math{x} and to return the angle whose tangent is @math{{y / x}}.
+The signs of the arguments determine the quadrant of the angle.}  Ben's
+representation is therefore given by the following selectors and constructors:
+
+@lisp
+(define (real-part z) (car z))
+(define (imag-part z) (cdr z))
+
+(define (magnitude z)
+  (sqrt (+ (square (real-part z)) 
+           (square (imag-part z)))))
+
+(define (angle z)
+  (atan (imag-part z) (real-part z)))
+
+(define (make-from-real-imag x y) 
+  (cons x y))
+
+(define (make-from-mag-ang r a)
+  (cons (* r (cos a)) (* r (sin a))))
+@end lisp
+
+@noindent
+Alyssa, in contrast, chooses to represent complex numbers in polar form.  For
+her, selecting the magnitude and angle is straightforward, but she has to use
+the trigonometric relations to obtain the real and imaginary parts.  Alyssa's
+representation is:
+
+@lisp
+(define (real-part z)
+  (* (magnitude z) (cos (angle z))))
+
+(define (imag-part z)
+  (* (magnitude z) (sin (angle z))))
+
+(define (magnitude z) (car z))
+(define (angle z) (cdr z))
+
+(define (make-from-real-imag x y)
+  (cons (sqrt (+ (square x) (square y)))
+        (atan y x)))
+
+(define (make-from-mag-ang r a) 
+  (cons r a))
+@end lisp
+
+@noindent
+The discipline of data abstraction ensures that the same implementation of
+@code{add-complex}, @code{sub-complex}, @code{mul-complex}, and
+@code{div-complex} will work with either Ben's representation or Alyssa's
+representation.
+

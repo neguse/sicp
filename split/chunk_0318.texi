@@ -1,0 +1,100 @@
+@lisp
+(define (make-new-machine)
+  (let ((pc (make-register 'pc))
+        (flag (make-register 'flag))
+        (stack (make-stack))
+        (the-instruction-sequence '()))
+    (let ((the-ops
+           (list 
+            (list 'initialize-stack
+                  (lambda () 
+                    (stack 'initialize)))))
+          (register-table
+           (list (list 'pc pc) 
+                 (list 'flag flag))))
+      (define (allocate-register name)
+        (if (assoc name register-table)
+            (error 
+             "Multiply defined register: " 
+             name)
+            (set! register-table
+                  (cons 
+                   (list name 
+                         (make-register name))
+                   register-table)))
+        'register-allocated)
+      (define (lookup-register name)
+        (let ((val 
+               (assoc name register-table)))
+          (if val
+              (cadr val)
+              (error "Unknown register:" 
+                     name))))
+      (define (execute)
+        (let ((insts (get-contents pc)))
+          (if (null? insts)
+              'done
+              (begin
+                ((instruction-execution-proc 
+                  (car insts)))
+                (execute)))))
+      (define (dispatch message)
+        (cond ((eq? message 'start)
+               (set-contents! 
+                pc
+                the-instruction-sequence)
+               (execute))
+              ((eq? 
+                message 
+                'install-instruction-sequence)
+               (lambda (seq) 
+                 (set! 
+                  the-instruction-sequence 
+                  seq)))
+              ((eq? message 
+                    'allocate-register) 
+               allocate-register)
+              ((eq? message 'get-register) 
+               lookup-register)
+              ((eq? message 
+                    'install-operations)
+               (lambda (ops) 
+                 (set! the-ops 
+                       (append the-ops ops))))
+              ((eq? message 'stack) stack)
+              ((eq? message 'operations) 
+               the-ops)
+              (else (error "Unknown request: 
+                            MACHINE"
+                           message))))
+      dispatch)))
+@end lisp
+
+The @code{flag} register is used to control branching in the simulated machine.
+@code{Test} instructions set the contents of @code{flag} to the result of the
+test (true or false).  @code{Branch} instructions decide whether or not to
+branch by examining the contents of @code{flag}.
+
+The @code{pc} register determines the sequencing of instructions as the machine
+runs.  This sequencing is implemented by the internal procedure @code{execute}.
+In the simulation model, each machine instruction is a data structure that
+includes a procedure of no arguments, called the @newterm{instruction execution procedure}, 
+such that calling this procedure simulates executing the
+instruction.  As the simulation runs, @code{pc} points to the place in the
+instruction sequence beginning with the next instruction to be executed.
+@code{Execute} gets that instruction, executes it by calling the instruction
+execution procedure, and repeats this cycle until there are no more
+instructions to execute (i.e., until @code{pc} points to the end of the
+instruction sequence).
+
+@noindent
+As part of its operation, each instruction execution procedure modifies
+@code{pc} to indicate the next instruction to be executed.  @code{Branch} and
+@code{goto} instructions change @code{pc} to point to the new destination.  All
+other instructions simply advance @code{pc}, making it point to the next
+instruction in the sequence.  Observe that each call to @code{execute} calls
+@code{execute} again, but this does not produce an infinite loop because
+running the instruction execution procedure changes the contents of @code{pc}.
+
+@code{Make-new-machine} returns a @code{dispatch} procedure that implements
+message-passing access to the internal state.  Notice that starting the machine

@@ -1,0 +1,100 @@
+case of a deeply nested combination, would otherwise be viewed as a rather
+complicated process.  For example, evaluating
+
+@lisp
+(* (+ 2 (* 4 6)) (+ 3 5 7))
+@end lisp
+
+@noindent
+requires that the evaluation rule be applied to four different combinations.
+We can obtain a picture of this process by representing the combination in the
+form of a tree, as shown in @ref{Figure 1.1}.  Each combination is represented
+by a node with branches corresponding to the operator and the operands of the
+combination stemming from it.  The terminal nodes (that is, nodes with no
+branches stemming from them) represent either operators or numbers.  Viewing
+evaluation in terms of the tree, we can imagine that the values of the operands
+percolate upward, starting from the terminal nodes and then combining at higher
+and higher levels.  In general, we shall see that recursion is a very powerful
+technique for dealing with hierarchical, treelike objects.  In fact, the
+``percolate values upward'' form of the evaluation rule is an example of a
+general kind of process known as @newterm{tree accumulation}.
+
+@float
+@anchor{Figure 1.1}
+@ifinfo
+@strong{Figure 1.1:} Tree representation, showing the value of each subcombination.
+
+@example
+   390
+   /|\____________
+  / |             \
+ *  26            15
+    /|\           /|\
+   / | \         // \\
+  +  2  24      / | | \
+        /|\    +  3 5  7
+       / | \
+      *  4  6
+@end example
+@end ifinfo
+@iftex
+@image{fig/chap1/Fig1.1g,,58mm,,.std.svg}
+@caption{@strong{Figure 1.1:} Tree representation, showing the value of each subcombination.}
+@end iftex
+@end float
+
+@noindent
+Next, observe that the repeated application of the first step brings us to the
+point where we need to evaluate, not combinations, but primitive expressions
+such as numerals, built-in operators, or other names.  We take care of the
+primitive cases by stipulating that
+
+@itemize @bullet
+
+@item
+the values of numerals are the numbers that they name,
+
+@item
+the values of built-in operators are the machine instruction sequences that
+carry out the corresponding operations, and
+
+@item
+the values of other names are the objects associated with those names in the
+environment.
+
+@end itemize
+
+@noindent
+We may regard the second rule as a special case of the third one by stipulating
+that symbols such as @code{+} and @code{*} are also included in the global
+environment, and are associated with the sequences of machine instructions that
+are their ``values.''  The key point to notice is the role of the environment
+in determining the meaning of the symbols in expressions.  In an interactive
+language such as Lisp, it is meaningless to speak of the value of an expression
+such as @code{(+ x 1)} without specifying any information about the environment
+that would provide a meaning for the symbol @code{x} (or even for the symbol
+@code{+}).  As we shall see in @ref{Chapter 3}, the general notion of the
+environment as providing a context in which evaluation takes place will play an
+important role in our understanding of program execution.
+
+Notice that the evaluation rule given above does not handle definitions.  For
+instance, evaluating @code{(define x 3)} does not apply @code{define} to two
+arguments, one of which is the value of the symbol @code{x} and the other of
+which is 3, since the purpose of the @code{define} is precisely to associate
+@code{x} with a value.  (That is, @code{(define x 3)} is not a combination.)
+
+Such exceptions to the general evaluation rule are called @newterm{special forms}.  
+@code{Define} is the only example of a special form that we have seen
+so far, but we will meet others shortly.  Each special form has its own
+evaluation rule. The various kinds of expressions (each with its associated
+evaluation rule) constitute the syntax of the programming language.  In
+comparison with most other programming languages, Lisp has a very simple
+syntax; that is, the evaluation rule for expressions can be described by a
+simple general rule together with specialized rules for a small number of
+special forms.@footnote{Special syntactic forms that are simply convenient
+alternative surface structures for things that can be written in more uniform
+ways are sometimes called @newterm{syntactic sugar}, to use a phrase coined by
+Peter Landin.  In comparison with users of other languages, Lisp programmers,
+as a rule, are less concerned with matters of syntax.  (By contrast, examine
+any Pascal manual and notice how much of it is devoted to descriptions of
+syntax.)  This disdain for syntax is due partly to the flexibility of Lisp,

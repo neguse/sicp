@@ -1,0 +1,100 @@
+@end lisp
+
+@noindent
+Now we can implement the actual queue operations.  We will consider a queue to
+be empty if its front pointer is the empty list:
+
+@lisp
+(define (empty-queue? queue) 
+  (null? (front-ptr queue)))
+@end lisp
+
+@noindent
+The @code{make-queue} constructor returns, as an initially empty queue, a pair
+whose @code{car} and @code{cdr} are both the empty list:
+
+@lisp
+(define (make-queue) (cons '() '()))
+@end lisp
+
+@noindent
+To select the item at the front of the queue, we return the @code{car} of the
+pair indicated by the front pointer:
+
+@lisp
+(define (front-queue queue)
+  (if (empty-queue? queue)
+      (error "FRONT called with an 
+              empty queue" queue)
+      (car (front-ptr queue))))
+@end lisp
+
+@noindent
+To insert an item in a queue, we follow the method whose result is indicated in
+@ref{Figure 3.20}.  We first create a new pair whose @code{car} is the item to
+be inserted and whose @code{cdr} is the empty list.  If the queue was initially
+empty, we set the front and rear pointers of the queue to this new pair.
+Otherwise, we modify the final pair in the queue to point to the new pair, and
+also set the rear pointer to the new pair.
+
+@float
+@anchor{Figure 3.20}
+@ifinfo
+@strong{Figure 3.20:} Result of using @code{(insert-queue! q 'd)} on the queue of @ref{Figure 3.19}.
+
+@example
+       +---+---+
+  q -->| * | *-+--------------------------------+
+       +-|-+---+                                |
+         |                                      |
+         | front-ptr                            | rear-ptr
+         V                                      V
+     +---+---+    +---+---+    +---+---+    +---+---+
+     | * | *-+--->| * | *-+--->| * | *-+--->| * | / |
+     +-|-+---+    +-|-+---+    +-|-+---+    +-|-+---+
+       V            V            V            V
+     +---+        +---+        +---+        +---+
+     | a |        | b |        | c |        | d |
+     +---+        +---+        +---+        +---+
+@end example
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.20c,141mm,,,.std.svg}
+@caption{@strong{Figure 3.20:} Result of using @code{(insert-queue! q 'd)} on the queue of @ref{Figure 3.19}.}
+@end iftex
+@end float
+
+@lisp
+(define (insert-queue! queue item)
+  (let ((new-pair (cons item '())))
+    (cond ((empty-queue? queue)
+           (set-front-ptr! queue new-pair)
+           (set-rear-ptr! queue new-pair)
+           queue)
+          (else (set-cdr! (rear-ptr queue) 
+                          new-pair)
+                (set-rear-ptr! queue new-pair)
+                queue))))
+@end lisp
+
+@noindent
+To delete the item at the front of the queue, we merely modify the front
+pointer so that it now points at the second item in the queue, which can be
+found by following the @code{cdr} pointer of the first item (see 
+@ref{Figure 3.21}):@footnote{If the first item is the final item in the queue, the front
+pointer will be the empty list after the deletion, which will mark the queue as
+empty; we needn't worry about updating the rear pointer, which will still point
+to the deleted item, because @code{empty-queue?} looks only at the front
+pointer.}
+
+@lisp
+(define (delete-queue! queue)
+  (cond ((empty-queue? queue)
+         (error "DELETE! called with 
+                 an empty queue" queue))
+        (else (set-front-ptr! 
+               queue 
+               (cdr (front-ptr queue)))
+              queue)))
+@end lisp
+

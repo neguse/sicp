@@ -1,0 +1,100 @@
+@lisp
+(define count 0)
+(let ((x (an-element-of '(a b c)))
+      (y (an-element-of '(a b c))))
+  (permanent-set! count (+ count 1))
+  (require (not (eq? x y)))
+  (list x y count))
+
+@i{;;; Starting a new problem}
+@i{;;; Amb-Eval value:}
+@i{(a b 2)}
+
+@i{;;; Amb-Eval input:}
+try-again
+
+@i{;;; Amb-Eval value:}
+@i{(a c 3)}
+@end lisp
+
+What values would have been displayed if we had used @code{set!} here
+rather than @code{permanent-set!}?
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.52}Exercise 4.52:} Implement a new construct called
+@code{if-fail} that permits the user to catch the failure of an expression.
+@code{If-fail} takes two expressions.  It evaluates the first expression as
+usual and returns as usual if the evaluation succeeds.  If the evaluation
+fails, however, the value of the second expression is returned, as in the
+following example:
+
+@lisp
+@i{;;; Amb-Eval input:}
+(if-fail 
+ (let ((x (an-element-of '(1 3 5))))
+   (require (even? x))
+   x)
+ 'all-odd)
+
+@i{;;; Starting a new problem}
+@i{;;; Amb-Eval value:}
+@i{all-odd}
+
+@i{;;; Amb-Eval input:}
+(if-fail
+ (let ((x (an-element-of '(1 3 5 8))))
+   (require (even? x))
+   x)
+ 'all-odd)
+
+@i{;;; Starting a new problem}
+@i{;;; Amb-Eval value:}
+@i{8}
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.53}Exercise 4.53:} With @code{permanent-set!} as
+described in @ref{Exercise 4.51} and @code{if-fail} as in @ref{Exercise 4.52},
+what will be the result of evaluating
+
+@lisp
+(let ((pairs '()))
+  (if-fail 
+   (let ((p (prime-sum-pair 
+             '(1 3 5 8) 
+             '(20 35 110))))
+     (permanent-set! pairs 
+                     (cons p pairs))
+     (amb))
+   pairs))
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.54}Exercise 4.54:} If we had not realized that
+@code{require} could be implemented as an ordinary procedure that uses
+@code{amb}, to be defined by the user as part of a nondeterministic program, we
+would have had to implement it as a special form.  This would require syntax
+procedures
+
+@lisp
+(define (require? exp) 
+  (tagged-list? exp 'require))
+
+(define (require-predicate exp) 
+  (cadr exp))
+@end lisp
+
+@noindent
+and a new clause in the dispatch in @code{analyze}
+
+@lisp
+((require? exp) (analyze-require exp))
+@end lisp
+
+@noindent
+as well the procedure @code{analyze-require} that handles @code{require}
+expressions.  Complete the following definition of @code{analyze-require}.
+

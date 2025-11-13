@@ -1,0 +1,100 @@
+@code{Eval-if} evaluates the predicate part of an @code{if} expression in the
+given environment.  If the result is true, @code{eval-if} evaluates the
+consequent, otherwise it evaluates the alternative:
+
+@lisp
+(define (eval-if exp env)
+  (if (true? (eval (if-predicate exp) env))
+      (eval (if-consequent exp) env)
+      (eval (if-alternative exp) env)))
+@end lisp
+
+@noindent
+The use of @code{true?} in @code{eval-if} highlights the issue of the
+connection between an implemented language and an implementation language.  The
+@code{if-predicate} is evaluated in the language being implemented and thus
+yields a value in that language.  The interpreter predicate @code{true?}
+translates that value into a value that can be tested by the @code{if} in the
+implementation language: The metacircular representation of truth might not be
+the same as that of the underlying Scheme.@footnote{In this case, the language
+being implemented and the implementation language are the same.  Contemplation
+of the meaning of @code{true?} here yields expansion of consciousness without
+the abuse of substance.}
+
+@subsubheading Sequences
+
+@code{Eval-sequence} is used by @code{apply} to evaluate the sequence of
+expressions in a procedure body and by @code{eval} to evaluate the sequence of
+expressions in a @code{begin} expression.  It takes as arguments a sequence of
+expressions and an environment, and evaluates the expressions in the order in
+which they occur.  The value returned is the value of the final expression.
+
+@lisp
+(define (eval-sequence exps env)
+  (cond ((last-exp? exps) 
+         (eval (first-exp exps) env))
+        (else 
+         (eval (first-exp exps) env)
+         (eval-sequence (rest-exps exps) 
+                        env))))
+@end lisp
+
+@subsubheading Assignments and definitions
+
+The following procedure handles assignments to variables.  It calls @code{eval}
+to find the value to be assigned and transmits the variable and the resulting
+value to @code{set-variable-value!} to be installed in the designated
+environment.
+
+@lisp
+(define (eval-assignment exp env)
+  (set-variable-value! 
+   (assignment-variable exp)
+   (eval (assignment-value exp) env)
+   env)
+  'ok)
+@end lisp
+
+@noindent
+Definitions of variables are handled in a similar manner.@footnote{This
+implementation of @code{define} ignores a subtle issue in the handling of
+internal definitions, although it works correctly in most cases.  We will see
+what the problem is and how to solve it in @ref{4.1.6}.}
+
+@lisp
+(define (eval-definition exp env)
+  (define-variable! 
+    (definition-variable exp)
+    (eval (definition-value exp) env)
+    env)
+  'ok)
+@end lisp
+
+@noindent
+We have chosen here to return the symbol @code{ok} as the value of an
+assignment or a definition.@footnote{As we said when we introduced
+@code{define} and @code{set!}, these values are implementation-dependent in
+Scheme---that is, the implementor can choose what value to return.}
+
+@quotation
+@strong{@anchor{Exercise 4.1}Exercise 4.1:} Notice that we cannot tell whether
+the metacircular evaluator evaluates operands from left to right or from right
+to left.  Its evaluation order is inherited from the underlying Lisp: If the
+arguments to @code{cons} in @code{list-of-values} are evaluated from left to
+right, then @code{list-of-values} will evaluate operands from left to right;
+and if the arguments to @code{cons} are evaluated from right to left, then
+@code{list-of-values} will evaluate operands from right to left.
+
+Write a version of @code{list-of-values} that evaluates operands from left to
+right regardless of the order of evaluation in the underlying Lisp.  Also write
+a version of @code{list-of-values} that evaluates operands from right to left.
+@end quotation
+
+@node	4.1.2, 4.1.3, 4.1.1, 4.1
+@subsection Representing Expressions
+
+The evaluator is reminiscent of the symbolic differentiation program discussed
+in @ref{2.3.2}.  Both programs operate on symbolic expressions.  In
+both programs, the result of operating on a compound expression is determined
+by operating recursively on the pieces of the expression and combining the
+results in a way that depends on the type of the expression.  In both programs

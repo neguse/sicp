@@ -1,0 +1,100 @@
+         exp target linkage)
+  (let ((proc-code 
+         (compile (operator exp) 'proc 'next))
+        (operand-codes
+         (map (lambda (operand)
+                (compile operand 'val 'next))
+              (operands exp))))
+    (preserving 
+     '(env continue)
+     proc-code
+     (preserving 
+      '(proc continue)
+      (construct-arglist operand-codes)
+      (compile-procedure-call 
+       target
+       linkage)))))
+@end lisp
+
+@noindent
+The code to construct the argument list will evaluate each operand into
+@code{val} and then @code{cons} that value onto the argument list being
+accumulated in @code{argl}.  Since we @code{cons} the arguments onto
+@code{argl} in sequence, we must start with the last argument and end with the
+first, so that the arguments will appear in order from first to last in the
+resulting list.  Rather than waste an instruction by initializing @code{argl}
+to the empty list to set up for this sequence of evaluations, we make the first
+code sequence construct the initial @code{argl}.  The general form of the
+argument-list construction is thus as follows:
+
+@lisp
+⟨@emph{compilation of last operand, targeted to @code{val}}⟩
+(assign argl (op list) (reg val))
+⟨@emph{compilation of next operand, targeted to @code{val}}⟩
+(assign argl (op cons) (reg val) (reg argl))
+@r{…}
+⟨@emph{compilation of first operand, targeted to @code{val}}⟩
+(assign argl (op cons) (reg val) (reg argl))
+@end lisp
+
+@noindent
+@code{Argl} must be preserved around each operand evaluation except the first
+(so that arguments accumulated so far won't be lost), and @code{env} must be
+preserved around each operand evaluation except the last (for use by subsequent
+operand evaluations).
+
+Compiling this argument code is a bit tricky, because of the special treatment
+of the first operand to be evaluated and the need to preserve @code{argl} and
+@code{env} in different places.  The @code{construct-arglist} procedure takes
+as arguments the code that evaluates the individual operands.  If there are no
+operands at all, it simply emits the instruction
+
+@lisp
+(assign argl (const ()))
+@end lisp
+
+@noindent
+Otherwise, @code{construct-arglist} creates code that initializes @code{argl}
+with the last argument, and appends code that evaluates the rest of the
+arguments and adjoins them to @code{argl} in succession.  In order to process
+the arguments from last to first, we must reverse the list of operand code
+sequences from the order supplied by @code{compile-application}.
+
+@lisp
+(define (construct-arglist operand-codes)
+  (let ((operand-codes 
+         (reverse operand-codes)))
+    (if (null? operand-codes)
+        (make-instruction-sequence 
+         '() 
+         '(argl)
+         '((assign argl (const ()))))
+        (let ((code-to-get-last-arg
+               (append-instruction-sequences
+                (car operand-codes)
+                (make-instruction-sequence 
+                 '(val)
+                 '(argl)
+                 '((assign argl
+                           (op list)
+                           (reg val)))))))
+          (if (null? (cdr operand-codes))
+              code-to-get-last-arg
+              (preserving 
+               '(env)
+               code-to-get-last-arg
+               (code-to-get-rest-args
+                (cdr operand-codes))))))))
+
+(define (code-to-get-rest-args operand-codes)
+  (let ((code-for-next-arg
+         (preserving 
+          '(argl)
+          (car operand-codes)
+          (make-instruction-sequence 
+           '(val argl)
+           '(argl)
+           '((assign argl
+                     (op cons)
+                     (reg val)
+                     (reg argl)))))))

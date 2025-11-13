@@ -1,0 +1,100 @@
+\input texinfo
+@comment  To crop page margins:
+@comment  @input marginless
+@comment
+@comment             **********************************************************
+@setfilename         html
+@settitle            Structure and Interpretation of Computer Programs, 2e
+@comment             Unofficial Texinfo Format
+@comment
+@set utfversion      2.andresraba6.6
+@set utfversiondate  September 16, 2015
+@comment
+@comment             This file is licensed under a Creative Commons
+@comment             Attribution-ShareAlike 4.0 International License
+@comment             http://creativecommons.org/licenses/by-sa/4.0/
+@comment             
+@comment             This is a Texinfo file.  To convert it to Info hypertext
+@comment             format, you will need the `makeinfo' program from the GNU
+@comment             Texinfo package.  To produce a PDF, use texi2pdf.
+@comment             For more information about this file,
+@comment             see the text under `@node UTF' below.
+@comment             
+@comment             Various versions of sicp.texi and preformatted sicp.info
+@comment             can be found at the following Web pages:
+@comment             
+@comment                 http://www.neilvandyke.org/sicp-texi/
+@comment                 http://sicpebook.wordpress.com/
+@comment                 [add your own here]
+@comment             
+@comment             **********************************************************
+
+@comment HISTORY:
+@comment
+@comment * Version 1 (April, 2001) by Lytha Ayth.
+@comment
+@comment * Version 2 (April 20, 2001) by Lytha Ayth.
+@comment
+@comment * Version 2.nwv1 (March 11, 2002) by Neil W. Van Dyke.
+@comment   Cosmetic change to heading in Info format, and comment changes.
+@comment 
+@comment * Version 2.neilvandyke1 (February 10, 2003) by Neil W. Van Dyke
+@comment   Correction to Exercise 1.39 formula, spotted by Steve VanDevender.
+@comment   Added URL of Abelson and Sussman video lectures.
+@comment
+@comment * Version 2.neilvandyke2 (unreleased)
+@comment
+@comment * Version 2.neilvandyke3 (April 20, 2006) by Neil W. Van Dyke
+@comment   Pedro Kr@"oger patch to add missing Lisp example.
+@comment
+@comment * Version 2.neilvandyke4 (January 10, 2007) by Neil W. Van Dyke
+@comment   Brad Walker patch to add @code{@@dircategory} and @code{@@direntry}.
+@comment
+@comment * Version 2.andresraba1 (May 23, 2011) by Andres Raba.
+@comment   Mathematics typeset in TeX, figures redrawn in vector graphics,
+@comment   typeface changed, cross-references improved, hyperlinks added,
+@comment   known errors and typos corrected.
+@comment
+@comment * Version 2.andresraba2 (November 21, 2011) by Andres Raba.
+@comment   Minor change to the appearance of diagrams. Adjusted page layout.
+@comment   Fixed some typos. License changed from CC BY-NC to CC BY-SA.
+@comment
+@comment * Version 2.gavrie1 (November 21, 2011) by Gavrie Philipson.
+@comment   Added @kindle (defined in texinfo.tex), and removed page numbers.
+@comment   Page layout and text size adapted to Kindle-like devices.
+@comment
+@comment * Version 2.araba1p-a2.1 (March 19, 2012) by Andres Raba.
+@comment   Two chapters reformatted to pocket format. Page geometry
+@comment   defined by @pocket (previously @kindle) in texinfo.tex.
+@comment
+@comment * Version 2.andresraba4 (November 23, 2012) by Andres Raba.
+@comment   Conversion to pocket format completed. The whole book 
+@comment   is now typeset to be read on 6-inch e-reader screen (PDF).
+@comment
+@comment * (Version 2.andresraba5 is the LaTeX version, described in
+@comment   sicp-pdf repository.)
+@comment
+@comment * Version 2.andresraba6 (January 7, 2014) by Andres Raba.
+@comment   Book converted to HTML5 and EPUB3. Mathematics is typeset 
+@comment   with MathML and MathJax.
+@comment
+@comment * Version 2.andresraba6.1 (February 15, 2014) by Andres Raba.
+@comment   Raised the splitting threshold from subsection to section.
+@comment
+@comment * Version 2.andresraba6.2 (February 23, 2014) by Andres Raba.
+@comment   Fixed the SVG files to pass epubcheck validation.
+@comment
+@comment * Version 2.andresraba6.3 (June 9, 2014) by Andres Raba.
+@comment   Improved the pretty-printing of some Scheme code.
+@comment   Decreased the default font size of epub from 170% to 100%.
+@comment
+@comment * Version 2.andresraba6.4 (June 24, 2014) by Andres Raba.
+@comment   Switched on hyphenation for all viewports, made text column
+@comment   wider, re-arranged some Scheme code, changed Mathjax
+@comment   protocol from http to https.
+@comment
+@comment * Version 2.andresraba6.5 (January 29, 2015) by Andres Raba.
+@comment   Added noncommercial clause to license, fixed broken links,
+@comment   added more fulltext links, replaced monospace with roman in
+@comment   MathML (Android rendering bug), adjusted math typography.
+@comment

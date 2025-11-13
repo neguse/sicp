@@ -1,0 +1,100 @@
+Robinson, J. A. 1965.  A machine-oriented logic based on the resolution
+principle.  @cite{Journal of the @abbr{ACM}} 12(1): 23.
+
+@anchor{Robinson 1983}
+Robinson, J. A. 1983.  Logic programming---Past, present, and future.
+@cite{New Generation Computing} 1: 107-124.
+
+@anchor{Spafford 1989}
+Spafford, Eugene H.  1989.  The Internet Worm: Crisis and aftermath.
+@cite{Communications of the @abbr{ACM}} 32(6): 678-688.
+@url{http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.123.8503&rep=rep1&type=pdf, –›}
+
+@anchor{Steele 1977}
+Steele, Guy Lewis, Jr.  1977.  Debunking the ``expensive procedure call'' myth.
+In @cite{Proceedings of the National Conference of the @abbr{ACM}},
+pp. 153-62.
+@url{http://dspace.mit.edu/handle/1721.1/5753, –›}
+
+@anchor{Steele 1982}
+Steele, Guy Lewis, Jr.  1982.  An overview of Common Lisp.  In
+@cite{Proceedings of the @abbr{ACM} Symposium on Lisp and Functional
+Programming}, pp. 98-107.
+
+@anchor{Steele 1990}
+Steele, Guy Lewis, Jr.  1990.  @cite{Common Lisp: The Language}. 2nd edition.
+Digital Press.
+@url{http://www.cs.cmu.edu/Groups/AI/html/cltl/cltl2.html, –›}
+
+@anchor{Steele and Sussman 1975}
+Steele, Guy Lewis, Jr., and Gerald Jay Sussman.  1975.  Scheme: An interpreter
+for the extended lambda calculus.  Memo 349, @abbr{MIT} Artificial
+Intelligence Laboratory.
+@url{http://dspace.mit.edu/handle/1721.1/5794, –›}
+
+@anchor{Steele et al. 1983}
+Steele, Guy Lewis, Jr., Donald R. Woods, Raphael A. Finkel, Mark R.  Crispin,
+Richard M. Stallman, and Geoffrey S. Goodfellow.  1983.  @cite{The Hacker's
+Dictionary}. New York: Harper & Row.
+@url{http://www.dourish.com/goodies/jargon.html, –›}
+
+@anchor{Stoy 1977}
+Stoy, Joseph E.  1977.  @cite{Denotational Semantics}. Cambridge, @abbr{MA}:
+@abbr{MIT} Press.
+
+@anchor{Sussman and Stallman 1975}
+Sussman, Gerald Jay, and Richard M. Stallman.  1975.  Heuristic techniques in
+computer-aided circuit analysis.  @cite{@abbr{IEEE} Transactions on Circuits
+and Systems} @abbr{CAS}-22(11): 857-865.
+@url{http://dspace.mit.edu/handle/1721.1/5803, –›}
+
+@anchor{Sussman and Steele 1980}
+Sussman, Gerald Jay, and Guy Lewis Steele Jr.  1980.  Constraints---A language
+for expressing almost-hierachical descriptions.  @cite{AI Journal} 14: 1-39.
+@url{http://dspace.mit.edu/handle/1721.1/6312, –›}
+
+@anchor{Sussman and Wisdom 1992}
+Sussman, Gerald Jay, and Jack Wisdom.  1992. Chaotic evolution of the solar
+system.  @cite{Science} 257: 256-262.
+@url{http://groups.csail.mit.edu/mac/users/wisdom/ss-chaos.pdf, –›}
+
+@anchor{Sussman et al. (1971)}
+Sussman, Gerald Jay, Terry Winograd, and Eugene Charniak.  1971.  Microplanner
+reference manual.  Memo 203@abbr{A}, @abbr{MIT} Artificial Intelligence Laboratory.
+@url{http://dspace.mit.edu/handle/1721.1/6184, –›}
+
+@anchor{Sutherland (1963)}
+Sutherland, Ivan E.  1963.  @abbr{SKETCHPAD}: A man-machine graphical
+com@-mu@-ni@-cation system.  Technical report 296, @abbr{MIT} Lincoln Laboratory.
+@url{https://www.cl.cam.ac.uk/techreports/UCAM-CL-TR-574.pdf, –›}
+
+@anchor{Teitelman 1974}
+Teitelman, Warren.  1974.  Interlisp reference manual.  Technical report, Xerox
+Palo Alto Research Center.
+@url{http://www.softwarepreservation.org/projects/LISP/interlisp/Interlisp-Oct_1974.pdf/view, –›}
+
+@anchor{Thatcher et al. 1978}
+Thatcher, James W., Eric G. Wagner, and Jesse B. Wright. 1978.  Data type
+specification: Parameterization and the power of specification techniques. In
+@cite{Conference Record of the Tenth Annual @abbr{ACM} Symposium on Theory
+of Computing}, pp. 119-132.
+
+@anchor{Turner 1981}
+Turner, David.  1981.  The future of applicative languages.  In
+@cite{Proceedings of the 3rd European Conference on Informatics}, Lecture Notes
+in Computer Science, volume 123. New York: Springer-Verlag, pp.  334-348.
+
+@anchor{Wand 1980}
+Wand, Mitchell.  1980.  Continuation-based program transformation strategies.
+@cite{Journal of the @abbr{ACM}} 27(1): 164-180.
+@url{http://www.diku.dk/OLD/undervisning/2005e/224/papers/Wand80.pdf, –›}
+
+@anchor{Waters (1979)}
+Waters, Richard C.  1979.  A method for analyzing loop programs.
+@cite{@abbr{IEEE} Transactions on Software Engineering} 5(3): 237-247.
+
+Winograd, Terry.  1971.  Procedures as a representation for data in a computer
+program for understanding natural language.  Technical report @abbr{AI TR}-17,
+@abbr{MIT} Artificial Intelligence Laboratory.
+@url{http://dspace.mit.edu/handle/1721.1/7095, –›}
+

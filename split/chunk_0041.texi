@@ -1,0 +1,100 @@
+you should expect it to run about twice as fast.  Is this expectation
+confirmed?  If not, what is the observed ratio of the speeds of the two
+algorithms, and how do you explain the fact that it is different from 2?
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.24}Exercise 1.24:} Modify the
+@code{timed-prime-test} procedure of @ref{Exercise 1.22} to use
+@code{fast-prime?} (the Fermat method), and test each of the 12 primes you
+found in that exercise.  Since the Fermat test has @math{{\Theta(\log n)}}
+growth, how would you expect the time to test primes near 1,000,000 to
+compare with the time needed to test primes near 1000?  Do your data bear this
+out?  Can you explain any discrepancy you find?
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.25}Exercise 1.25:} Alyssa P. Hacker complains that
+we went to a lot of extra work in writing @code{expmod}.  After all, she says,
+since we already know how to compute exponentials, we could have simply written
+
+@lisp
+(define (expmod base exp m)
+  (remainder (fast-expt base exp) m))
+@end lisp
+
+Is she correct?  Would this procedure serve as well for our fast prime tester?
+Explain.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.26}Exercise 1.26:} Louis Reasoner is having great
+difficulty doing @ref{Exercise 1.24}.  His @code{fast-prime?} test seems to run
+more slowly than his @code{prime?} test.  Louis calls his friend Eva Lu Ator
+over to help.  When they examine Louis's code, they find that he has rewritten
+the @code{expmod} procedure to use an explicit multiplication, rather than
+calling @code{square}:
+
+@lisp
+(define (expmod base exp m)
+  (cond ((= exp 0) 1)
+        ((even? exp)
+         (remainder 
+          (* (expmod base (/ exp 2) m)
+             (expmod base (/ exp 2) m))
+          m))
+        (else
+         (remainder 
+          (* base 
+             (expmod base (- exp 1) m))
+          m))))
+@end lisp
+
+``I don't see what difference that could make,'' says Louis.  @w{``I do.''}  says
+Eva.  ``By writing the procedure like that, you have transformed the
+@math{{\Theta(\log n)}} process into a @math{{\Theta(n)}} process.''
+Explain.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.27}Exercise 1.27:} Demonstrate that the Carmichael
+numbers listed in @ref{Footnote 47} really do fool the Fermat test.  That is,
+write a procedure that takes an integer @math{n} and tests whether @math{a^n} is
+congruent to @math{a} modulo @math{n} for every @math{{a < n}}, and try your procedure
+on the given Carmichael numbers.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.28}Exercise 1.28:} One variant of the Fermat test
+that cannot be fooled is called the @newterm{Miller-Rabin test} (@ref{Miller 1976};
+@ref{Rabin 1980}).  This starts from an alternate form of Fermat's Little Theorem,
+which states that if @math{n} is a prime number and @math{a} is any positive integer
+less than @math{n}, then @math{a} raised to the @math{{(n-1)}}-st power is congruent to 1
+modulo @math{n}.  To test the primality of a number @math{n} by the Miller-Rabin
+test, we pick a random number @math{{a < n}} and raise @math{a} to the @math{{(n-1)}}-st
+power modulo @math{n} using the @code{expmod} procedure.  However, whenever we
+perform the squaring step in @code{expmod}, we check to see if we have
+discovered a ``nontrivial square root of 1 modulo @math{n},'' that is, a number
+not equal to 1 or @math{{n-1}} whose square is equal to 1 modulo @math{n}.  It is
+possible to prove that if such a nontrivial square root of 1 exists, then @math{n}
+is not prime.  It is also possible to prove that if @math{n} is an odd number that
+is not prime, then, for at least half the numbers @math{{a < n}}, computing
+@math{a^{n-1}} in this way will reveal a nontrivial square root of 1 modulo
+@math{n}.  (This is why the Miller-Rabin test cannot be fooled.)  Modify the
+@code{expmod} procedure to signal if it discovers a nontrivial square root of
+1, and use this to implement the Miller-Rabin test with a procedure analogous
+to @code{fermat-test}.  Check your procedure by testing various known primes
+and non-primes.  Hint: One convenient way to make @code{expmod} signal is to
+have it return 0.
+@end quotation
+
+@node	1.3, Chapter 2, 1.2, Chapter 1
+@section Formulating Abstractions with Higher-Order Procedures
+
+We have seen that procedures are, in effect, abstractions that describe
+compound operations on numbers independent of the particular numbers.  For
+example, when we
+
+@lisp
+(define (cube x) (* x x x))
+@end lisp

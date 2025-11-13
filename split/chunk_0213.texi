@@ -1,0 +1,100 @@
+@noindent
+Our problem, then, is to produce the stream @code{int-pairs}.  More generally,
+suppose we have two streams @math{{S = (S_i)}} and @math{{T = (T_j)}},
+and imagine the infinite rectangular array
+@ifinfo
+
+@example
+(S_0, T_0)  (S_0, T_1)  (S_0, T_2)  ...
+(S_1, T_0)  (S_1, T_1)  (S_1, T_2)  ...
+(S_2, T_0)  (S_2, T_1)  (S_2, T_2)  ...
+   ...
+@end example
+
+@end ifinfo
+@tex
+\[ % :70:
+
+\begin{array}{cccc}
+	 (S_0, T_0)  &  (S_0, T_1)  &  (S_0, T_2)  &  \dots  \\
+	 (S_1, T_0)  &  (S_1, T_1)  &  (S_1, T_2)  &  \dots  \\
+	 (S_2, T_0)  &  (S_2, T_1)  &  (S_2, T_2)  &  \dots  \\
+	 \dots  & & & 
+\end{array}
+\]
+@end tex
+We wish to generate a stream that contains all the pairs in the array that lie
+on or above the diagonal, i.e., the pairs
+@ifinfo
+
+@example
+(S_0, T_0)  (S_0, T_1)  (S_0, T_2)  ...
+            (S_1, T_1)  (S_1, T_2)  ...
+                        (S_2, T_2)  ...
+                                    ...
+@end example
+
+@end ifinfo
+@tex
+\[ % :71:
+
+\begin{array}{cccc}
+ (S_0, T_0)  	&  (S_0, T_1)  	&  (S_0, T_2)  	&  \dots  \\
+		&  (S_1, T_1)  	&  (S_1, T_2)  	&  \dots  \\
+		& 		&  (S_2, T_2)  	&  \dots  \\
+		& 		& 		&  \dots 
+\end{array}
+\]
+@end tex
+@noindent
+(If we take both @math{S} and @math{T} to be the stream of integers, then this will
+be our desired stream @code{int-pairs}.)
+
+Call the general stream of pairs @code{(pairs S T)}, and consider it to be
+composed of three parts: the pair @math{{(S_0, T_0)}}, the rest of the pairs in
+the first row, and the remaining pairs:@footnote{See @ref{Exercise 3.68} for
+some insight into why we chose this decomposition.}
+@ifinfo
+
+@example
+(S_0, T_0) | (S_0, T_1)  (S_0, T_2)  ...
+-----------+-----------------------------
+           | (S_1, T_1)  (S_1, T_2)  ...
+           |             (S_2, T_2)  ...
+           |                         ...
+@end example
+
+@end ifinfo
+@tex
+\[ % :72:
+
+\begin{array}{c|ccc}
+ (S_0, T_0)  	&  (S_0, T_1)  	&  (S_0, T_2)  	&  \dots  \\
+\hline
+		&  (S_1, T_1)  	&  (S_1, T_2)  	&  \dots  \\
+		& 		&  (S_2, T_2)  	&  \dots  \\
+		& 		& 		&  \dots  
+\end{array}
+\]
+@end tex
+Observe that the third piece in this decomposition (pairs that are not in the
+first row) is (recursively) the pairs formed from @code{(stream-cdr S)} and
+@code{(stream-cdr T)}.  Also note that the second piece (the rest of the first
+row) is
+
+@lisp
+(stream-map (lambda (x) 
+              (list (stream-car s) x))
+            (stream-cdr t))
+@end lisp
+
+@noindent
+Thus we can form our stream of pairs as follows:
+
+@lisp
+(define (pairs s t)
+  (cons-stream
+   (list (stream-car s) (stream-car t))
+   (⟨@var{combine-in-some-way}⟩
+    (stream-map (lambda (x) 
+                  (list (stream-car s) x))

@@ -1,0 +1,100 @@
+at the University of California at Berkeley, and Dan Huttenlocher at Cornell.
+
+Al Moy@'e arranged for us to teach this material to engineers at
+Hewlett-Packard and for the production of videotapes of these lectures.  We
+would like to thank the talented instructors---in particular Jim Miller, Bill
+Siebert, and Mike Eisenberg---who have designed continuing education courses
+incorporating these tapes and taught them at universities and industry all over
+the world.
+
+Many educators in other countries have put in significant work translating the
+first edition.  Michel Briand, Pierre Chamard, and Andr@'e Pic produced a
+French edition; Susanne Daniels-Herold produced a German edition; and Fumio
+Motoyoshi produced a Japanese edition.  We do not know who produced the Chinese
+edition, but we consider it an honor to have been selected as the subject of an
+``unauthorized'' translation.
+
+It is hard to enumerate all the people who have made technical contributions to
+the development of the Scheme systems we use for instructional purposes.  In
+addition to Guy Steele, principal wizards have included Chris Hanson, Joe
+Bowbeer, Jim Miller, Guillermo Rozas, and Stephen Adams.  Others who have put
+in significant time are Richard Stallman, Alan Bawden, Kent Pitman, Jon Taft,
+Neil Mayle, John Lamping, Gwyn Osnos, Tracy Larrabee, George Carrette, Soma
+Chaudhuri, Bill Chiarchiaro, Steven Kirsch, Leigh Klotz, Wayne Noss, Todd Cass,
+Patrick O'Donnell, Kevin Theobald, Daniel Weise, Kenneth Sinclair, Anthony
+Courtemanche, Henry M. Wu, Andrew Berlin, and Ruth Shyu.
+
+Beyond the @abbr{MIT} implementation, we would like to thank the many people
+who worked on the @abbr{IEEE} Scheme standard, including William Clinger and
+Jonathan Rees, who edited the R⁴RS, and Chris Haynes, David Bartley,
+Chris Hanson, and Jim Miller, who prepared the @abbr{IEEE} standard.
+
+Dan Friedman has been a long-time leader of the Scheme community.  The
+community's broader work goes beyond issues of language design to encompass
+significant educational innovations, such as the high-school curriculum based
+on EdScheme by Schemer's Inc., and the wonderful books by Mike Eisenberg and by
+Brian Harvey and Matthew Wright.
+
+We appreciate the work of those who contributed to making this a real book,
+especially Terry Ehling, Larry Cohen, and Paul Bethge at the @abbr{MIT}
+Press.  Ella Mazel found the wonderful cover image.  For the second edition we
+are particularly grateful to Bernard and Ella Mazel for help with the book
+design, and to David Jones, @TeX{} wizard extraordinaire.  We also are indebted
+to those readers who made penetrating comments on the new draft: Jacob
+Katzenelson, Hardy Mayer, Jim Miller, and especially Brian Harvey, who did unto
+this book as Julie did unto his book @cite{Simply Scheme}.
+
+Finally, we would like to acknowledge the support of the organizations that
+have encouraged this work over the years, including support from
+Hewlett-Packard, made possible by Ira Goldstein and Joel Birnbaum, and support
+from @abbr{DARPA}, made possible by Bob Kahn.
+
+@node    Chapter 1, 1.1, Acknowledgments, Top
+@chapter Building Abstractions with Procedures
+
+@quotation
+The acts of the mind, wherein it exerts its power over simple ideas, are
+chiefly these three: @w{1. Combining} several simple ideas into one compound one,
+and thus all complex ideas are made.  @w{2. The second} is bringing two ideas,
+whether simple or complex, together, and setting them by one another so as to
+take a view of them at once, without uniting them into one, by which it gets
+all its ideas of relations.  @w{3. The third} is separating them from all other
+ideas that accompany them in their real existence: this is called abstraction,
+and thus all its general ideas are made.
+
+---John Locke, @cite{An Essay Concerning Human Understanding} (1690)
+@end quotation
+
+
+@noindent
+We are about to study the idea of a @newterm{computational process}.
+Computational processes are abstract beings that inhabit computers.  As they
+evolve, processes manipulate other abstract things called @newterm{data}.  The
+evolution of a process is directed by a pattern of rules called a
+@newterm{program}.  People create programs to direct processes.  In effect, we
+conjure the spirits of the computer with our spells.
+
+A computational process is indeed much like a sorcerer's idea of a spirit.  It
+cannot be seen or touched.  It is not composed of matter at all.  However, it
+is very real.  It can perform intellectual work.  It can answer questions.  It
+can affect the world by disbursing money at a bank or by controlling a robot
+arm in a factory.  The programs we use to conjure processes are like a
+sorcerer's spells.  They are carefully composed from symbolic expressions in
+arcane and esoteric @newterm{programming languages} that prescribe the tasks we
+want our processes to perform.
+
+A computational process, in a correctly working computer, executes programs
+precisely and accurately.  Thus, like the sorcerer's apprentice, novice
+programmers must learn to understand and to anticipate the consequences of
+their conjuring.  Even small errors (usually called @newterm{bugs} or
+@newterm{glitches}) in programs can have complex and unanticipated
+consequences.
+
+Fortunately, learning to program is considerably less dangerous than learning
+sorcery, because the spirits we deal with are conveniently contained in a
+secure way.  Real-world programming, however, requires care, expertise, and
+wisdom.  A small bug in a computer-aided design program, for example, can lead
+to the catastrophic collapse of an airplane or a dam or the self-destruction of
+an industrial robot.
+
+Master software engineers have the ability to organize programs so that they

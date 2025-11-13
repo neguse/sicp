@@ -1,0 +1,100 @@
+
+(define (definition-value exp)
+  (if (symbol? (cadr exp))
+      (caddr exp)
+      (make-lambda 
+       (cdadr exp)   @r{; formal parameters}
+       (cddr exp)))) @r{; body}
+@end lisp
+
+@item
+@code{Lambda} expressions are lists that begin with the symbol @code{lambda}:
+
+@lisp
+(define (lambda? exp) 
+  (tagged-list? exp 'lambda))
+(define (lambda-parameters exp) (cadr exp))
+(define (lambda-body exp) (cddr exp))
+@end lisp
+
+We also provide a constructor for @code{lambda} expressions, which is used by
+@code{definition-value}, above:
+
+@lisp
+(define (make-lambda parameters body)
+  (cons 'lambda (cons parameters body)))
+@end lisp
+
+@item
+Conditionals begin with @code{if} and have a predicate, a consequent, and an
+(optional) alternative.  If the expression has no alternative part, we provide
+@code{false} as the alternative.@footnote{The value of an @code{if} expression
+when the predicate is false and there is no alternative is unspecified in
+Scheme; we have chosen here to make it false.  We will support the use of the
+variables @code{true} and @code{false} in expressions to be evaluated by
+binding them in the global environment.  See @ref{4.1.4}.}
+
+@lisp
+(define (if? exp) (tagged-list? exp 'if))
+(define (if-predicate exp) (cadr exp))
+(define (if-consequent exp) (caddr exp))
+(define (if-alternative exp)
+  (if (not (null? (cdddr exp)))
+      (cadddr exp)
+      'false))
+@end lisp
+
+We also provide a constructor for @code{if} expressions, to be used by
+@code{cond->if} to transform @code{cond} expressions into @code{if}
+expressions:
+
+@lisp
+(define (make-if predicate 
+                 consequent 
+                 alternative)
+  (list 'if 
+        predicate 
+        consequent 
+        alternative))
+@end lisp
+
+@item
+@code{Begin} packages a sequence of expressions into a single expression.  We
+include syntax operations on @code{begin} expressions to extract the actual
+sequence from the @code{begin} expression, as well as selectors that return the
+first expression and the rest of the expressions in the
+sequence.@footnote{These selectors for a list of expressions---and the
+corresponding ones for a list of operands---are not intended as a data
+abstraction.  They are introduced as mnemonic names for the basic list
+operations in order to make it easier to understand the explicit-control
+evaluator in @ref{5.4}.}
+
+@lisp
+(define (begin? exp) 
+  (tagged-list? exp 'begin))
+(define (begin-actions exp) (cdr exp))
+(define (last-exp? seq) (null? (cdr seq)))
+(define (first-exp seq) (car seq))
+(define (rest-exps seq) (cdr seq))
+@end lisp
+
+We also include a constructor @code{sequence->exp} (for use by @code{cond->if})
+that transforms a sequence into a single expression, using @code{begin} if
+necessary:
+
+@lisp
+(define (sequence->exp seq)
+  (cond ((null? seq) seq)
+        ((last-exp? seq) (first-exp seq))
+        (else (make-begin seq))))
+
+(define (make-begin seq) (cons 'begin seq))
+@end lisp
+
+@item
+A procedure application is any compound expression that is not one of the above
+expression types.  The @code{car} of the expression is the operator, and the
+@code{cdr} is the list of operands:
+
+@lisp
+(define (application? exp) (pair? exp))

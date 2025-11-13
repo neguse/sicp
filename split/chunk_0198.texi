@@ -1,0 +1,100 @@
+achieve this control through judicious use of serializers.  But the problems of
+concurrency lie deeper than this, because, from a fundamental point of view,
+it's not always clear what is meant by ``shared state.''
+
+Mechanisms such as @code{test-and-set!} require processes to examine a global
+shared flag at arbitrary times.  This is problematic and inefficient to
+implement in modern high-speed processors, where due to optimization techniques
+such as pipelining and cached memory, the contents of memory may not be in a
+consistent state at every instant.  In contemporary multiprocessing systems,
+therefore, the serializer paradigm is being supplanted by new approaches to
+concurrency control.@footnote{One such alternative to serialization is called
+@newterm{barrier synchronization}.  The programmer permits concurrent processes
+to execute as they please, but establishes certain synchronization points
+(``barriers'') through which no process can proceed until all the processes
+have reached the barrier.  Modern processors provide machine instructions that
+permit programmers to establish synchronization points at places where
+consistency is required.  The @abbr{PowerPC}, for example, includes for
+this purpose two instructions called @abbr{SYNC} and @abbr{EIEIO} 
+(Enforced In-order Execution of Input/Output).}
+
+The problematic aspects of shared state also arise in large, distributed
+systems.  For instance, imagine a distributed banking system where individual
+branch banks maintain local values for bank balances and periodically compare
+these with values maintained by other branches.  In such a system the value of
+``the account balance'' would be undetermined, except right after
+synchronization.  If Peter deposits money in an account he holds jointly with
+Paul, when should we say that the account balance has changed---when the
+balance in the local branch changes, or not until after the synchronization?
+And if Paul accesses the account from a different branch, what are the
+reasonable constraints to place on the banking system such that the behavior is
+``correct''?  The only thing that might matter for correctness is the behavior
+observed by Peter and Paul individually and the ``state'' of the account
+immediately after synchronization.  Questions about the ``real'' account
+balance or the order of events between synchronizations may be irrelevant or
+meaningless.@footnote{This may seem like a strange point of view, but there are
+systems that work this way.  International charges to credit-card accounts, for
+example, are normally cleared on a per-country basis, and the charges made in
+different countries are periodically reconciled.  Thus the account balance may
+be different in different countries.}
+
+The basic phenomenon here is that synchronizing different processes,
+establishing shared state, or imposing an order on events requires
+communication among the processes.  In essence, any notion of time in
+concurrency control must be intimately tied to communication.@footnote{For
+distributed systems, this perspective was pursued by @ref{Lamport (1978)}, who showed
+how to use communication to establish ``global clocks'' that can be used to
+establish orderings on events in distributed systems.}  It is intriguing that a
+similar connection between time and communication also arises in the Theory of
+Relativity, where the speed of light (the fastest signal that can be used to
+synchronize events) is a fundamental constant relating time and space.  The
+complexities we encounter in dealing with time and state in our computational
+models may in fact mirror a fundamental complexity of the physical universe.
+
+@node 3.5, Chapter 4, 3.4, Chapter 3
+@section Streams
+
+We've gained a good understanding of assignment as a tool in modeling, as well
+as an appreciation of the complex problems that assignment raises. It is time
+to ask whether we could have gone about things in a different way, so as to
+avoid some of these problems.  In this section, we explore an alternative
+approach to modeling state, based on data structures called @newterm{streams}.
+As we shall see, streams can mitigate some of the complexity of modeling state.
+
+Let's step back and review where this complexity comes from.  In an attempt to
+model real-world phenomena, we made some apparently reasonable decisions: We
+modeled real-world objects with local state by computational objects with local
+variables.  We identified time variation in the real world with time variation
+in the computer.  We implemented the time variation of the states of the model
+objects in the computer with assignments to the local variables of the model
+objects.
+
+Is there another approach?  Can we avoid identifying time in the computer with
+time in the modeled world?  Must we make the model change with time in order to
+model phenomena in a changing world?  Think about the issue in terms of
+mathematical functions.  We can describe the time-varying behavior of a
+quantity @math{x} as a function of time @math{{x(t)}}.  If we concentrate on @math{x}
+instant by instant, we think of it as a changing quantity.  Yet if we
+concentrate on the entire time history of values, we do not emphasize
+change---the function itself does not change.@footnote{Physicists sometimes
+adopt this view by introducing the ``world lines'' of particles as a device for
+reasoning about motion.  We've also already mentioned (@ref{2.2.3})
+that this is the natural way to think about signal-processing systems.  We will
+explore applications of streams to signal processing in @ref{3.5.3}.}
+
+If time is measured in discrete steps, then we can model a time function as a
+(possibly infinite) sequence.  In this section, we will see how to model change
+in terms of sequences that represent the time histories of the systems being
+modeled.  To accomplish this, we introduce new data structures called
+@newterm{streams}.  From an abstract point of view, a stream is simply a
+sequence.  However, we will find that the straightforward implementation of
+streams as lists (as in @ref{2.2.1}) doesn't fully reveal the power of
+stream processing.  As an alternative, we introduce the technique of
+@newterm{delayed evaluation}, which enables us to represent very large (even
+infinite) sequences as streams.
+
+Stream processing lets us model systems that have state without ever using
+assignment or mutable data.  This has important implications, both theoretical
+and practical, because we can build models that avoid the drawbacks inherent in
+introducing assignment.  On the other hand, the stream framework raises
+difficulties of its own, and the question of which modeling technique leads to

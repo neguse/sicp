@@ -1,0 +1,100 @@
+something different from the pieces of which it is composed.  A bank account is
+still ``the same'' bank account even if we change the balance by making a
+withdrawal; conversely, we could have two different bank accounts with the same
+state information.  This complication is a consequence, not of our programming
+language, but of our perception of a bank account as an object.  We do not, for
+example, ordinarily regard a rational number as a changeable object with
+identity, such that we could change the numerator and still have ``the same''
+rational number.
+
+@subsubheading Pitfalls of imperative programming
+
+In contrast to functional programming, programming that makes extensive use of
+assignment is known as @newterm{imperative programming}.  In addition to
+raising complications about computational models, programs written in
+imperative style are susceptible to bugs that cannot occur in functional
+programs.  For example, recall the iterative factorial program from 
+@ref{1.2.1}:
+
+@lisp
+(define (factorial n)
+  (define (iter product counter)
+    (if (> counter n)
+        product
+        (iter (* counter product)
+              (+ counter 1))))
+  (iter 1 1))
+@end lisp
+
+@noindent
+Instead of passing arguments in the internal iterative loop, we could adopt a
+more imperative style by using explicit assignment to update the values of the
+variables @code{product} and @code{counter}:
+
+@lisp
+(define (factorial n)
+  (let ((product 1)
+        (counter 1))
+    (define (iter)
+      (if (> counter n)
+          product
+          (begin (set! product (* counter 
+                                  product))
+                 (set! counter (+ counter 1))
+                 (iter))))
+    (iter)))
+@end lisp
+
+@noindent
+This does not change the results produced by the program, but it does introduce
+a subtle trap.  How do we decide the order of the assignments?  As it happens,
+the program is correct as written.  But writing the assignments in the opposite
+order
+
+@lisp
+(set! counter (+ counter 1))
+(set! product (* counter product))
+@end lisp
+
+@noindent
+would have produced a different, incorrect result.  In general, programming
+with assignment forces us to carefully consider the relative orders of the
+assignments to make sure that each statement is using the correct version of
+the variables that have been changed.  This issue simply does not arise in
+functional programs.@footnote{In view of this, it is ironic that introductory
+programming is most often taught in a highly imperative style.  This may be a
+vestige of a belief, common throughout the 1960s and 1970s, that programs that
+call procedures must inherently be less efficient than programs that perform
+assignments.  (@ref{Steele 1977} debunks this argument.)  Alternatively it may
+reflect a view that step-by-step assignment is easier for beginners to
+visualize than procedure call.  Whatever the reason, it often saddles beginning
+programmers with ``should I set this variable before or after that one''
+concerns that can complicate programming and obscure the important ideas.}
+
+The complexity of imperative programs becomes even worse if we consider
+applications in which several processes execute concurrently.  We will return
+to this in @ref{3.4}.  First, however, we will address the issue of
+providing a computational model for expressions that involve assignment, and
+explore the uses of objects with local state in designing simulations.
+
+@quotation
+@strong{@anchor{Exercise 3.7}Exercise 3.7:} Consider the bank account objects
+created by @code{make-account}, with the password modification described in
+@ref{Exercise 3.3}.  Suppose that our banking system requires the ability to
+make joint accounts.  Define a procedure @code{make-joint} that accomplishes
+this.  @code{Make-joint} should take three arguments.  The first is a
+password-protected account.  The second argument must match the password with
+which the account was defined in order for the @code{make-joint} operation to
+proceed.  The third argument is a new password.  @code{Make-joint} is to create
+an additional access to the original account using the new password.  For
+example, if @code{peter-acc} is a bank account with password
+@code{open-sesame}, then
+
+@lisp
+(define paul-acc
+  (make-joint peter-acc 
+              'open-sesame 
+              'rosebud))
+@end lisp
+
+@noindent

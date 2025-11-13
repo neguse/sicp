@@ -1,0 +1,100 @@
+          (reg exp))
+  (save unev)   @r{; save variable for later}
+  (assign exp
+          (op assignment-value)
+          (reg exp))
+  (save env)
+  (save continue)
+  (assign continue
+          (label ev-assignment-1))
+  @r{; evaluate the assignment value:}
+  (goto (label eval-dispatch))  
+ev-assignment-1
+  (restore continue)
+  (restore env)
+  (restore unev)
+  (perform (op set-variable-value!)
+           (reg unev)
+           (reg val)
+           (reg env))
+  (assign val
+          (const ok))
+  (goto (reg continue))
+@end lisp
+
+@noindent
+Definitions are handled in a similar way:
+
+@lisp
+ev-definition
+  (assign unev 
+          (op definition-variable)
+          (reg exp))
+  (save unev)   @r{; save variable for later}
+  (assign exp 
+          (op definition-value)
+          (reg exp))
+  (save env)
+  (save continue)
+  (assign continue (label ev-definition-1))
+  @r{; evaluate the definition value:}
+  (goto (label eval-dispatch))  
+ev-definition-1
+  (restore continue)
+  (restore env)
+  (restore unev)
+  (perform (op define-variable!)
+           (reg unev)
+           (reg val)
+           (reg env))
+  (assign val (const ok))
+  (goto (reg continue))
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 5.23}Exercise 5.23:} Extend the evaluator to handle
+derived expressions such as @code{cond}, @code{let}, and so on 
+(@ref{4.1.2}).  You may ``cheat'' and assume that the syntax transformers such
+as @code{cond->if} are available as machine operations.@footnote{This isn't
+really cheating.  In an actual implementation built from scratch, we would use
+our explicit-control evaluator to interpret a Scheme program that performs
+source-level transformations like @code{cond->if} in a syntax phase that runs
+before execution.}
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.24}Exercise 5.24:} Implement @code{cond} as a new
+basic special form without reducing it to @code{if}.  You will have to
+construct a loop that tests the predicates of successive @code{cond} clauses
+until you find one that is true, and then use @code{ev-sequence} to evaluate
+the actions of the clause.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.25}Exercise 5.25:} Modify the evaluator so that it
+uses normal-order evaluation, based on the lazy evaluator of @ref{4.2}.
+@end quotation
+
+@node	5.4.4, 5.5, 5.3, 5.4
+@subsection Running the Evaluator
+
+With the implementation of the explicit-control evaluator we come to the end of
+a development, begun in @ref{Chapter 1}, in which we have explored successively
+more precise models of the evaluation process.  We started with the relatively
+informal substitution model, then extended this in @ref{Chapter 3} to the
+environment model, which enabled us to deal with state and change.  In the
+metacircular evaluator of @ref{Chapter 4}, we used Scheme itself as a language
+for making more explicit the environment structure constructed during
+evaluation of an expression.  Now, with register machines, we have taken a
+close look at the evaluator's mechanisms for storage management, argument
+passing, and control.  At each new level of description, we have had to raise
+issues and resolve ambiguities that were not apparent at the previous, less
+precise treatment of evaluation.  To understand the behavior of the
+explicit-control evaluator, we can simulate it and monitor its performance.
+
+We will install a driver loop in our evaluator machine.  This plays the role of
+the @code{driver-loop} procedure of @ref{4.1.4}.  The evaluator will
+repeatedly print a prompt, read an expression, evaluate the expression by going
+to @code{eval-dispatch}, and print the result.  The following instructions form
+the beginning of the explicit-control evaluator's controller
+sequence:@footnote{We assume here that @code{read} and the various printing

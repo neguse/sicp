@@ -1,0 +1,100 @@
+(such as @code{add-terms}) that use @code{adjoin-term} always call it with a
+higher-order term than appears in the list.  If we did not want to make such a
+guarantee, we could have implemented @code{adjoin-term} to be similar to the
+@code{adjoin-set} constructor for the ordered-list representation of sets
+(@ref{Exercise 2.61}).}
+
+@lisp
+(define (adjoin-term term term-list)
+  (if (=zero? (coeff term))
+      term-list
+      (cons term term-list)))
+(define (the-empty-termlist) '())
+(define (first-term term-list) (car term-list))
+(define (rest-terms term-list) (cdr term-list))
+(define (empty-termlist? term-list) 
+  (null? term-list))
+(define (make-term order coeff) 
+  (list order coeff))
+(define (order term) (car term))
+(define (coeff term) (cadr term))
+@end lisp
+
+@noindent
+where @code{=zero?} is as defined in @ref{Exercise 2.80}.  (See also
+@ref{Exercise 2.87} below.)
+
+Users of the polynomial package will create (tagged) polynomials by means of
+the procedure:
+
+@lisp
+(define (make-polynomial var terms)
+  ((get 'make 'polynomial) var terms))
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 2.87}Exercise 2.87:} Install @code{=zero?} for
+polynomials in the generic arithmetic package.  This will allow
+@code{adjoin-term} to work for polynomials with coefficients that are
+themselves polynomials.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.88}Exercise 2.88:} Extend the polynomial system to
+include subtraction of polynomials.  (Hint: You may find it helpful to define a
+generic negation operation.)
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.89}Exercise 2.89:} Define procedures that implement
+the term-list representation described above as appropriate for dense
+polynomials.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.90}Exercise 2.90:} Suppose we want to have a
+polynomial system that is efficient for both sparse and dense polynomials.  One
+way to do this is to allow both kinds of term-list representations in our
+system.  The situation is analogous to the complex-number example of 
+@ref{2.4}, where we allowed both rectangular and polar representations.  To do
+this we must distinguish different types of term lists and make the operations
+on term lists generic.  Redesign the polynomial system to implement this
+generalization.  This is a major effort, not a local change.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.91}Exercise 2.91:} A univariate polynomial can be
+divided by another one to produce a polynomial quotient and a polynomial
+remainder.  For example,
+@ifinfo
+
+@example
+x^5 - 1
+------- = x^3 + x, remainder x - 1
+x^2 - 1
+@end example
+
+@end ifinfo
+@tex
+\[ % :57:
+  {x^5 - 1 \over x^2 - 1} \,=\, {x^3 + x,} \text{  remainder  } {x - 1.}  \]
+@end tex
+Division can be performed via long division.  That is, divide the highest-order
+term of the dividend by the highest-order term of the divisor.  The result is
+the first term of the quotient.  Next, multiply the result by the divisor,
+subtract that from the dividend, and produce the rest of the answer by
+recursively dividing the difference by the divisor.  Stop when the order of the
+divisor exceeds the order of the dividend and declare the dividend to be the
+remainder.  Also, if the dividend ever becomes zero, return zero as both
+quotient and remainder.
+
+We can design a @code{div-poly} procedure on the model of @code{add-poly} and
+@code{mul-poly}. The procedure checks to see if the two polys have the same
+variable.  If so, @code{div-poly} strips off the variable and passes the
+problem to @code{div-terms}, which performs the division operation on term
+lists. @code{Div-poly} finally reattaches the variable to the result supplied
+by @code{div-terms}.  It is convenient to design @code{div-terms} to compute
+both the quotient and the remainder of a division.  @code{Div-terms} can take
+two term lists as arguments and return a list of the quotient term list and the
+remainder term list.
+

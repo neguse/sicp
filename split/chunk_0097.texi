@@ -1,0 +1,100 @@
+@i{(a 2)}
+@end lisp
+
+@noindent
+Quotation also allows us to type in compound objects, using the conventional
+printed representation for lists:@footnote{Strictly, our use of the quotation
+mark violates the general rule that all compound expressions in our language
+should be delimited by parentheses and look like lists.  We can recover this
+consistency by introducing a special form @code{quote}, which serves the same
+purpose as the quotation mark.  Thus, we would type @code{(quote a)} instead of
+@code{'a}, and we would type @code{(quote (a b c))} instead of @code{'(a b c)}.
+This is precisely how the interpreter works.  The quotation mark is just a
+single-character abbreviation for wrapping the next complete expression with
+@code{quote} to form @code{(quote ⟨@var{expression}⟩)}.  This is
+important because it maintains the principle that any expression seen by the
+interpreter can be manipulated as a data object.  For instance, we could
+construct the expression @code{(car '(a b c))}, which is the same as @code{(car
+(quote (a b c)))}, by evaluating @code{(list 'car (list 'quote '(a b c)))}.}
+
+@lisp
+(car '(a b c))
+@i{a}
+
+(cdr '(a b c))
+@i{(b c)}
+@end lisp
+
+@noindent
+In keeping with this, we can obtain the empty list by evaluating @code{'()},
+and thus dispense with the variable @code{nil}.
+
+One additional primitive used in manipulating symbols is @code{eq?}, which
+takes two symbols as arguments and tests whether they are the same.@footnote{We
+can consider two symbols to be ``the same'' if they consist of the same
+characters in the same order.  Such a definition skirts a deep issue that we
+are not yet ready to address: the meaning of ``sameness'' in a programming
+language.  We will return to this in @ref{Chapter 3} (@ref{3.1.3}).}
+Using @code{eq?}, we can implement a useful procedure called @code{memq}.  This
+takes two arguments, a symbol and a list.  If the symbol is not contained in
+the list (i.e., is not @code{eq?} to any item in the list), then @code{memq}
+returns false.  Otherwise, it returns the sublist of the list beginning with
+the first occurrence of the symbol:
+
+@lisp
+(define (memq item x)
+  (cond ((null? x) false)
+        ((eq? item (car x)) x)
+        (else (memq item (cdr x)))))
+@end lisp
+
+@noindent
+For example, the value of
+
+@lisp
+(memq 'apple '(pear banana prune))
+@end lisp
+
+@noindent
+is false, whereas the value of
+
+@lisp
+(memq 'apple '(x (apple sauce) y apple pear))
+@end lisp
+
+@noindent
+is @code{(apple pear)}.
+
+@quotation
+@strong{@anchor{Exercise 2.53}Exercise 2.53:} What would the interpreter print
+in response to evaluating each of the following expressions?
+
+@lisp
+(list 'a 'b 'c)
+(list (list 'george))
+(cdr '((x1 x2) (y1 y2)))
+(cadr '((x1 x2) (y1 y2)))
+(pair? (car '(a short list)))
+(memq 'red '((red shoes) (blue socks)))
+(memq 'red '(red shoes blue socks))
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.54}Exercise 2.54:} Two lists are said to be
+@code{equal?} if they contain equal elements arranged in the same order.  For
+example,
+
+@lisp
+(equal? '(this is a list) 
+        '(this is a list))
+@end lisp
+
+@noindent
+is true, but
+
+@lisp
+(equal? '(this is a list) 
+        '(this (is a) list))
+@end lisp
+

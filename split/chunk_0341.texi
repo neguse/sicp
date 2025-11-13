@@ -1,0 +1,100 @@
+  (save env)
+  (assign continue
+          (label ev-sequence-continue))
+  (goto (label eval-dispatch))
+ev-sequence-continue
+  (restore env)
+  (restore unev)
+  (assign unev (op rest-exps) (reg unev))
+  (goto (label ev-sequence))
+ev-sequence-end
+  (restore continue)
+  (goto (reg continue))
+@end lisp
+
+@noindent
+This may seem like a minor change to our previous code for evaluation of a
+sequence: The only difference is that we go through the save-restore cycle for
+the last expression in a sequence as well as for the others.  The interpreter
+will still give the same value for any expression.  But this change is fatal to
+the tail-recursive implementation, because we must now return after evaluating
+the final expression in a sequence in order to undo the (useless) register
+saves.  These extra saves will accumulate during a nest of procedure calls.
+Consequently, processes such as @code{sqrt-iter} will require space
+proportional to the number of iterations rather than requiring constant space.
+This difference can be significant.  For example, with tail recursion, an
+infinite loop can be expressed using only the procedure-call mechanism:
+
+@lisp
+(define (count n)
+  (newline)
+  (display n)
+  (count (+ n 1)))
+@end lisp
+
+@noindent
+Without tail recursion, such a procedure would eventually run out of stack
+space, and expressing a true iteration would require some control mechanism
+other than procedure call.
+
+@node	5.4.3, 5.4.4, 5.4.2, 5.4
+@subsection Conditionals, Assignments, and Definitions
+
+As with the metacircular evaluator, special forms are handled by selectively
+evaluating fragments of the expression.  For an @code{if} expression, we must
+evaluate the predicate and decide, based on the value of predicate, whether to
+evaluate the consequent or the alternative.
+
+Before evaluating the predicate, we save the @code{if} expression itself so
+that we can later extract the consequent or alternative.  We also save the
+environment, which we will need later in order to evaluate the consequent or
+the alternative, and we save @code{continue}, which we will need later in order
+to return to the evaluation of the expression that is waiting for the value of
+the @code{if}.
+
+@lisp
+ev-if
+  (save exp)   @r{; save expression for later}
+  (save env)
+  (save continue)
+  (assign continue (label ev-if-decide))
+  (assign exp (op if-predicate) (reg exp))
+  @r{; evaluate the predicate:}
+  (goto (label eval-dispatch))  
+@end lisp
+
+@noindent
+When we return from evaluating the predicate, we test whether it was true or
+false and, depending on the result, place either the consequent or the
+alternative in @code{exp} before going to @code{eval-dispatch}.  Notice that
+restoring @code{env} and @code{continue} here sets up @code{eval-dispatch} to
+have the correct environment and to continue at the right place to receive the
+value of the @code{if} expression.
+
+@lisp
+ev-if-decide
+  (restore continue)
+  (restore env)
+  (restore exp)
+  (test (op true?) (reg val))
+  (branch (label ev-if-consequent))
+ev-if-alternative
+  (assign exp (op if-alternative) (reg exp))
+  (goto (label eval-dispatch))
+ev-if-consequent
+  (assign exp (op if-consequent) (reg exp))
+  (goto (label eval-dispatch))
+@end lisp
+
+@subsubheading Assignments and definitions
+
+Assignments are handled by @code{ev-assignment}, which is reached from
+@code{eval-dispatch} with the assignment expression in @code{exp}.  The code at
+@code{ev-assignment} first evaluates the value part of the expression and then
+installs the new value in the environment.  @code{Set-variable-value!} is
+assumed to be available as a machine operation.
+
+@lisp
+ev-assignment
+  (assign unev 
+          (op assignment-variable)

@@ -1,0 +1,100 @@
+Is this a safe change to make?  In particular, is there any difference in what
+concurrency is allowed by these two versions of @code{make-account}?
+@end quotation
+
+@subsubheading Complexity of using multiple shared resources
+
+Serializers provide a powerful abstraction that helps isolate the complexities
+of concurrent programs so that they can be dealt with carefully and (hopefully)
+correctly.  However, while using serializers is relatively straightforward when
+there is only a single shared resource (such as a single bank account),
+concurrent programming can be treacherously difficult when there are multiple
+shared resources.
+
+To illustrate one of the difficulties that can arise, suppose we wish to swap
+the balances in two bank accounts.  We access each account to find the balance,
+compute the difference between the balances, withdraw this difference from one
+account, and deposit it in the other account.  We could implement this as
+follows:@footnote{We have simplified @code{exchange} by exploiting the fact
+that our @code{deposit} message accepts negative amounts.  (This is a serious
+bug in our banking system!)}
+
+@lisp
+(define (exchange account1 account2)
+  (let ((difference (- (account1 'balance)
+                       (account2 'balance))))
+    ((account1 'withdraw) difference)
+    ((account2 'deposit) difference)))
+@end lisp
+
+@noindent
+This procedure works well when only a single process is trying to do the
+exchange.  Suppose, however, that Peter and Paul both have access to accounts
+@math{{a1}}, @math{{a2}}, and @math{{a3}}, and that Peter exchanges @math{{a1}} and @math{{a2}} while
+Paul concurrently exchanges @math{{a1}} and @math{{a3}}.  Even with account deposits and
+withdrawals serialized for individual accounts (as in the @code{make-account}
+procedure shown above in this section), @code{exchange} can still produce
+incorrect results.  For example, Peter might compute the difference in the
+balances for @math{{a1}} and @math{{a2}}, but then Paul might change the balance in
+@math{{a1}} before Peter is able to complete the exchange.@footnote{If the account
+balances start out as $10, $20, and $30, then after any number of concurrent
+exchanges, the balances should still be $10, $20, and $30 in some order.
+Serializing the deposits to individual accounts is not sufficient to guarantee
+this.  See @ref{Exercise 3.43}.}  For correct behavior, we must arrange for the
+@code{exchange} procedure to lock out any other concurrent accesses to the
+accounts during the entire time of the exchange.
+
+One way we can accomplish this is by using both accounts' serializers to
+serialize the entire @code{exchange} procedure.  To do this, we will arrange
+for access to an account's serializer.  Note that we are deliberately breaking
+the modularity of the bank-account object by exposing the serializer.  The
+following version of @code{make-account} is identical to the original version
+given in @ref{3.1.1}, except that a serializer is provided to protect
+the balance variable, and the serializer is exported via message passing:
+
+@lisp
+(define (make-account-and-serializer balance)
+  (define (withdraw amount)
+    (if (>= balance amount)
+        (begin 
+          (set! balance (- balance amount))
+          balance)
+        "Insufficient funds"))
+  (define (deposit amount)
+    (set! balance (+ balance amount))
+    balance)
+  (let ((balance-serializer 
+         (make-serializer)))
+    (define (dispatch m)
+      (cond ((eq? m 'withdraw) withdraw)
+            ((eq? m 'deposit) deposit)
+            ((eq? m 'balance) balance)
+            ((eq? m 'serializer) 
+             balance-serializer)
+            (else (error "Unknown request: 
+                          MAKE-ACCOUNT"
+                         m))))
+    dispatch))
+@end lisp
+
+@noindent
+We can use this to do serialized deposits and withdrawals.  However, unlike our
+earlier serialized account, it is now the responsibility of each user of
+bank-account objects to explicitly manage the serialization, for example as
+follows:@footnote{@ref{Exercise 3.45} investigates why deposits and withdrawals
+are no longer automatically serialized by the account.}
+
+@lisp
+(define (deposit account amount)
+  (let ((s (account 'serializer))
+        (d (account 'deposit)))
+    ((s d) amount)))
+@end lisp
+
+@noindent
+Exporting the serializer in this way gives us enough flexibility to implement a
+serialized exchange program.  We simply serialize the original @code{exchange}
+procedure with the serializers for both accounts:
+
+@lisp
+(define (serialized-exchange account1 account2)

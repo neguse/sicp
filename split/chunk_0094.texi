@@ -1,0 +1,100 @@
+An operation on painters (such as @code{flip-vert} or @code{beside}) works by
+creating a painter that invokes the original painters with respect to frames
+derived from the argument frame.  Thus, for example, @code{flip-vert} doesn't
+have to know how a painter works in order to flip it---it just has to know how
+to turn a frame upside down: The flipped painter just uses the original
+painter, but in the inverted frame.
+
+Painter operations are based on the procedure @code{transform-painter}, which
+takes as arguments a painter and information on how to transform a frame and
+produces a new painter.  The transformed painter, when called on a frame,
+transforms the frame and calls the original painter on the transformed frame.
+The arguments to @code{transform-painter} are points (represented as vectors)
+that specify the corners of the new frame: When mapped into the frame, the
+first point specifies the new frame's origin and the other two specify the ends
+of its edge vectors.  Thus, arguments within the unit square specify a frame
+contained within the original frame.
+
+@lisp
+(define (transform-painter 
+         painter origin corner1 corner2)
+  (lambda (frame)
+    (let ((m (frame-coord-map frame)))
+      (let ((new-origin (m origin)))
+        (painter (make-frame new-origin
+                  (sub-vect (m corner1) 
+                            new-origin)
+                  (sub-vect (m corner2)
+                            new-origin)))))))
+@end lisp
+
+@noindent
+Here's how to flip painter images vertically:
+
+@lisp
+(define (flip-vert painter)
+  (transform-painter 
+   painter
+   (make-vect 0.0 1.0)   @r{; new @code{origin}}
+   (make-vect 1.0 1.0)   @r{; new end of @code{edge1}}
+   (make-vect 0.0 0.0))) @r{; new end of @code{edge2}}
+@end lisp
+
+@noindent
+Using @code{transform-painter}, we can easily define new transformations.
+For example, we can define a painter that shrinks its image to the
+upper-right quarter of the frame it is given:
+
+@lisp
+(define (shrink-to-upper-right painter)
+  (transform-painter painter
+                     (make-vect 0.5 0.5)
+                     (make-vect 1.0 0.5)
+                     (make-vect 0.5 1.0)))
+@end lisp
+
+@noindent
+Other transformations rotate images counterclockwise by 90
+degrees@footnote{@code{Rotate90} is a pure rotation only for square frames,
+because it also stretches and shrinks the image to fit into the rotated frame.}
+
+@lisp
+(define (rotate90 painter)
+  (transform-painter painter
+                     (make-vect 1.0 0.0)
+                     (make-vect 1.0 1.0)
+                     (make-vect 0.0 0.0)))
+@end lisp
+
+@noindent
+or squash images towards the center of the frame:@footnote{The diamond-shaped
+images in @ref{Figure 2.10} and @ref{Figure 2.11} were created with
+@code{squash-inwards} applied to @code{wave} and @code{rogers}.}
+
+@lisp
+(define (squash-inwards painter)
+  (transform-painter painter
+                     (make-vect 0.0 0.0)
+                     (make-vect 0.65 0.35)
+                     (make-vect 0.35 0.65)))
+@end lisp
+
+@noindent
+Frame transformation is also the key to defining means of combining two or more
+painters.  The @code{beside} procedure, for example, takes two painters,
+transforms them to paint in the left and right halves of an argument frame
+respectively, and produces a new, compound painter.  When the compound painter
+is given a frame, it calls the first transformed painter to paint in the left
+half of the frame and calls the second transformed painter to paint in the
+right half of the frame:
+
+@lisp
+(define (beside painter1 painter2)
+  (let ((split-point (make-vect 0.5 0.0)))
+    (let ((paint-left  (transform-painter 
+                        painter1
+                        (make-vect 0.0 0.0)
+                        split-point
+                        (make-vect 0.0 1.0)))
+          (paint-right (transform-painter
+                        painter2

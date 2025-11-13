@@ -1,0 +1,100 @@
+
+Part of the elegance of this picture language is that there is only one kind of
+element, called a @newterm{painter}.  A painter draws an image that is shifted
+and scaled to fit within a designated parallelogram-shaped frame.  For example,
+there's a primitive painter we'll call @code{wave} that makes a crude line
+drawing, as shown in @ref{Figure 2.10}.  The actual shape of the drawing
+depends on the frame---all four images in figure 2.10 are produced by the
+same @code{wave} painter, but with respect to four different frames.  Painters
+can be more elaborate than this: The primitive painter called @code{rogers}
+paints a picture of @abbr{MIT}'s founder, William Barton Rogers, as shown in
+@ref{Figure 2.11}.@footnote{William Barton Rogers (1804-1882) was the founder
+and first president of @abbr{MIT}.  A geologist and talented teacher, he
+taught at William and Mary College and at the University of Virginia.  In 1859
+he moved to Boston, where he had more time for research, worked on a plan for
+establishing a ``polytechnic institute,'' and served as Massachusetts's first
+State Inspector of Gas Meters.
+
+When @abbr{MIT} was established in 1861, Rogers was elected its first
+president.  Rogers espoused an ideal of ``useful learning'' that was different
+from the university education of the time, with its overemphasis on the
+classics, which, as he wrote, ``stand in the way of the broader, higher and
+more practical instruction and discipline of the natural and social sciences.''
+This education was likewise to be different from narrow trade-school education.
+In Rogers's words:
+
+@quotation
+The world-enforced distinction between the practical and the scientific worker
+is utterly futile, and the whole experience of modern times has demonstrated
+its utter worthlessness.
+@end quotation
+
+Rogers served as president of @abbr{MIT} until 1870, when he resigned due to
+ill health.  In 1878 the second president of @abbr{MIT}, John Runkle,
+resigned under the pressure of a financial crisis brought on by the Panic of
+1873 and strain of fighting off attempts by Harvard to take over @abbr{MIT}.
+Rogers returned to hold the office of president until 1881.
+
+Rogers collapsed and died while addressing @abbr{MIT}'s graduating class at
+the com@-men@-ce@-ment exercises of 1882.  Runkle quoted Rogers's last words in a
+me@-mo@-rial address delivered that same year:
+
+@quotation
+``As I stand here today and see what the Institute is, @dots{} I call to mind
+the beginnings of science.  I remember one hundred and fifty years ago Stephen
+Hales published a pamphlet on the subject of illuminating gas, in which he
+stated that his researches had demonstrated that 128 grains of bituminous coal
+-- '' ``Bituminous coal,'' these were his last words on earth.  Here he bent
+forward, as if consulting some notes on the table before him, then slowly
+regaining an erect position, threw up his hands, and was translated from the
+scene of his earthly labors and triumphs to ``the tomorrow of death,'' where
+the mysteries of life are solved, and the disembodied spirit finds unending
+satisfaction in contemplating the new and still unfathomable mysteries of the
+infinite future.
+@end quotation
+
+In the words of Francis A. Walker (@abbr{MIT}'s third president):
+
+@quotation
+All his life he had borne himself most faithfully and heroically, and he died
+as so good a knight would surely have wished, in harness, at his post, and in
+the very part and act of public duty.
+@end quotation
+} The four images in figure 2.11 are drawn with respect to the same four
+frames as the @code{wave} images in figure 2.10.
+
+@float
+@anchor{Figure 2.10}
+@ifinfo
+@quotation
+@strong{Figure 2.10:} Images produced by the @code{wave}
+painter, with respect to four different frames.  The frames, shown with dotted
+lines, are not part of the images.
+
+[four graphic images not included]
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap2/Fig2.10,58mm,,,.std.svg}
+@caption{@strong{Figure 2.10:} Images produced by the @code{wave} painter, with respect to four different frames.  The frames, shown with dotted lines, are not part of the images.}
+@end iftex
+@end float
+
+@float
+@anchor{Figure 2.11}
+@ifinfo
+@quotation
+@strong{Figure 2.11:} Images of William Barton Rogers,
+founder and first president of @abbr{MIT}, painted with respect to the same
+four frames as in @ref{Figure 2.10} (original image reprinted with the
+permission of the @abbr{MIT} Museum).
+
+[four graphic images not included]
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap2/Fig2.11,58mm,,,.std.svg}
+@caption{@strong{Figure 2.11:} Images of William Barton Rogers, founder and first president of @abbr{MIT}, painted with respect to the same four frames as in @ref{Figure 2.10} (original image from Wikimedia Commons).}
+@end iftex
+@end float
+

@@ -1,0 +1,100 @@
+
+@lisp
+(define (enumerate-tree tree)
+  (cond ((null? tree) nil)
+        ((not (pair? tree)) (list tree))
+        (else (append 
+               (enumerate-tree (car tree))
+               (enumerate-tree (cdr tree))))))
+
+(enumerate-tree (list 1 (list 2 (list 3 4)) 5))
+@i{(1 2 3 4 5)}
+@end lisp
+
+@noindent
+Now we can reformulate @code{sum-odd-squares} and @code{even-fibs} as in the
+signal-flow diagrams.  For @code{sum-odd-squares}, we enumerate the sequence of
+leaves of the tree, filter this to keep only the odd numbers in the sequence,
+square each element, and sum the results:
+
+@lisp
+(define (sum-odd-squares tree)
+  (accumulate 
+   +
+   0
+   (map square
+        (filter odd?
+                (enumerate-tree tree)))))
+@end lisp
+
+@noindent
+For @code{even-fibs}, we enumerate the integers from 0 to @math{n}, generate the
+Fibonacci number for each of these integers, filter the resulting sequence to
+keep only the even elements, and accumulate the results into a list:
+
+@lisp
+(define (even-fibs n)
+  (accumulate 
+   cons
+   nil
+   (filter even?
+           (map fib
+                (enumerate-interval 0 n)))))
+@end lisp
+
+@noindent
+The value of expressing programs as sequence operations is that this helps us
+make program designs that are modular, that is, designs that are constructed by
+combining relatively independent pieces.  We can encourage modular design by
+providing a library of standard components together with a conventional
+interface for connecting the components in flexible ways.
+
+Modular construction is a powerful strategy for controlling complexity in
+engineering design.  In real signal-processing applications, for example,
+designers regularly build systems by cascading elements selected from
+standardized families of filters and transducers.  Similarly, sequence
+operations provide a library of standard program elements that we can mix and
+match.  For instance, we can reuse pieces from the @code{sum-odd-squares} and
+@code{even-fibs} procedures in a program that constructs a list of the squares
+of the first @math{{n + 1}} Fibonacci numbers:
+
+@lisp
+(define (list-fib-squares n)
+  (accumulate 
+   cons
+   nil
+   (map square
+        (map fib
+             (enumerate-interval 0 n)))))
+
+(list-fib-squares 10)
+@i{(0 1 1 4 9 25 64 169 441 1156 3025)}
+@end lisp
+
+@noindent
+We can rearrange the pieces and use them in computing the product of the squares of the odd
+integers in a sequence:
+
+@lisp
+(define 
+  (product-of-squares-of-odd-elements
+   sequence)
+  (accumulate 
+   *
+   1
+   (map square (filter odd? sequence))))
+
+(product-of-squares-of-odd-elements 
+ (list 1 2 3 4 5))
+@i{225}
+@end lisp
+
+@noindent
+We can also formulate conventional data-processing applications in terms of
+sequence operations.  Suppose we have a sequence of personnel records and we
+want to find the salary of the highest-paid programmer.  Assume that we have a
+selector @code{salary} that returns the salary of a record, and a predicate
+@code{programmer?} that tests if a record is for a programmer.  Then we can
+write
+
+@lisp

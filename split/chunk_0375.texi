@@ -1,0 +1,100 @@
+14(4): 636-644.
+@url{http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.332.36, –›}
+
+@anchor{Forbus and deKleer 1993}
+Forbus, Kenneth D., and Johan deKleer.  1993. @cite{Building Problem
+Solvers}. Cambridge, @abbr{MA}: @abbr{MIT} Press.
+
+@anchor{Friedman and Wise (1976)}
+Friedman, Daniel P., and David S. Wise.  1976.  @abbr{CONS} should not
+evaluate its arguments. In @cite{Automata, Languages, and Programming: Third
+International Colloquium}, edited by S. Michaelson and R.  Milner, pp. 257-284.
+@url{https://www.cs.indiana.edu/cgi-bin/techreports/TRNNN.cgi?trnum=TR44, –›}
+
+@anchor{Friedman et al. 1992}
+Friedman, Daniel P., Mitchell Wand, and Christopher T. Haynes. 1992.
+@cite{Essentials of Programming Languages}.  Cambridge, @abbr{MA}: @abbr{MIT}
+Press/McGraw-Hill.
+
+@anchor{Gabriel 1988}
+Gabriel, Richard P. 1988.  The Why of @emph{Y}.  @cite{Lisp Pointers}
+2(2): 15-25.
+@url{http://www.dreamsongs.com/Files/WhyOfY.pdf, –›}
+
+Goldberg, Adele, and David Robson.  1983.  @cite{Smalltalk-80: The Language and
+Its Implementation}. Reading, @abbr{MA}: Addison-Wesley.
+@url{http://stephane.ducasse.free.fr/FreeBooks/BlueBook/Bluebook.pdf, –›}
+
+@anchor{Gordon et al. 1979}
+Gordon, Michael, Robin Milner, and Christopher Wadsworth.  1979.
+@cite{Edinburgh @abbr{LCF}}. Lecture Notes in Computer Science, volume 78. New York:
+Springer-Verlag.
+
+@anchor{Gray and Reuter 1993}
+Gray, Jim, and Andreas Reuter. 1993. @cite{Transaction Processing: Concepts and
+Models}. San Mateo, @abbr{CA}: Morgan-Kaufman.
+
+@anchor{Green 1969}
+Green, Cordell.  1969.  Application of theorem proving to problem solving.  In
+@cite{Proceedings of the International Joint Conference on Artificial
+Intelligence}, pp. 219-240.
+@url{http://citeseer.ist.psu.edu/viewdoc/summary?doi=10.1.1.81.9820, –›}
+
+@anchor{Green and Raphael (1968)}
+Green, Cordell, and Bertram Raphael.  1968.  The use of theorem-proving
+techniques in question-answering systems.  In @cite{Proceedings of the
+@abbr{ACM} National Conference}, pp. 169-181.
+@url{http://www.kestrel.edu/home/people/green/publications/green-raphael.pdf, –›}
+
+@anchor{Griss 1981}
+Griss, Martin L.  1981.  Portable Standard Lisp, a brief overview.  Utah
+Symbolic Computation Group Operating Note 58, University of Utah.
+
+@anchor{Guttag 1977}
+Guttag, John V.  1977.  Abstract data types and the development of data
+structures.  @cite{Communications of the @abbr{ACM}} 20(6): 396-404.
+@url{http://www.unc.edu/~stotts/comp723/guttagADT77.pdf, –›}
+
+@anchor{Hamming 1980}
+Hamming, Richard W.  1980.  @cite{Coding and Information Theory}.  Englewood
+Cliffs, N.J.: Prentice-Hall.
+
+@anchor{Hanson 1990}
+Hanson, Christopher P.  1990.  Efficient stack allocation for tail-recursive
+languages.  In @cite{Proceedings of @abbr{ACM} Conference on Lisp and
+Functional Programming}, pp. 106-118.
+@url{https://groups.csail.mit.edu/mac/ftpdir/users/cph/links.ps.gz, –›}
+
+@anchor{Hanson 1991}
+Hanson, Christopher P.  1991.  A syntactic closures macro facility.  @cite{Lisp
+Pointers}, 4(3).
+@url{http://groups.csail.mit.edu/mac/ftpdir/scheme-reports/synclo.ps, –›}
+
+@anchor{Hardy 1921}
+Hardy, Godfrey H.  1921.  Srinivasa Ramanujan.  @cite{Proceedings of the London
+Mathematical Society} @abbr{XIX}(2).
+
+@anchor{Hardy and Wright 1960}
+Hardy, Godfrey H., and E. M. Wright.  1960.  @cite{An Introduction to the
+Theory of Numbers}.  4th edition.  New York: Oxford University Press.
+@url{https://archive.org/details/AnIntroductionToTheTheoryOfNumbers-4thEd-G.h.HardyE.m.Wright, –›}
+
+@anchor{Havender (1968)}
+Havender, J. 1968. Avoiding deadlocks in multi-tasking systems. @cite{IBM
+Systems Journal} 7(2): 74-84.
+
+@anchor{Hearn 1969}
+Hearn, Anthony C.  1969.  Standard Lisp.  Technical report @abbr{AIM}-90,
+Artificial Intelligence Project, Stanford University.
+@url{http://www.softwarepreservation.org/projects/LISP/stanford/Hearn-StandardLisp-AIM-90.pdf, –›}
+
+@anchor{Henderson 1980}
+Henderson, Peter. 1980.  @cite{Functional Programming: Application and
+Implementation}. Englewood Cliffs, N.J.: Prentice-Hall.
+
+@anchor{Henderson 1982}
+Henderson. Peter. 1982. Functional Geometry. In @cite{Conference Record of the
+1982 @abbr{ACM} Symposium on Lisp and Functional Programming}, pp. 179-187.
+@url{http://pmh-systems.co.uk/phAcademic/papers/funcgeo.pdf, –›},
+@url{http://eprints.soton.ac.uk/257577/1/funcgeo2.pdf, 2002 version –›}
+

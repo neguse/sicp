@@ -1,0 +1,100 @@
+takes a list of numbers as argument and returns a list of the squares of those
+numbers.
+
+@lisp
+(square-list (list 1 2 3 4))
+@i{(1 4 9 16)}
+@end lisp
+
+Here are two different definitions of @code{square-list}.  Complete both of
+them by filling in the missing expressions:
+
+@lisp
+(define (square-list items)
+  (if (null? items)
+      nil
+      (cons ⟨??⟩ ⟨??⟩)))
+
+(define (square-list items)
+  (map ⟨??⟩ ⟨??⟩))
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.22}Exercise 2.22:} Louis Reasoner tries to rewrite
+the first @code{square-list} procedure of @ref{Exercise 2.21} so that it
+evolves an iterative process:
+
+@lisp
+(define (square-list items)
+  (define (iter things answer)
+    (if (null? things)
+        answer
+        (iter (cdr things)
+              (cons (square (car things))
+                    answer))))
+  (iter items nil))
+@end lisp
+
+Unfortunately, defining @code{square-list} this way produces the answer list in
+the reverse order of the one desired.  Why?
+
+Louis then tries to fix his bug by interchanging the arguments to @code{cons}:
+
+@lisp
+(define (square-list items)
+  (define (iter things answer)
+    (if (null? things)
+        answer
+        (iter (cdr things)
+              (cons answer
+                    (square 
+                     (car things))))))
+  (iter items nil))
+@end lisp
+
+This doesn't work either.  Explain.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.23}Exercise 2.23:} The procedure @code{for-each} is
+similar to @code{map}.  It takes as arguments a procedure and a list of
+elements.  However, rather than forming a list of the results, @code{for-each}
+just applies the procedure to each of the elements in turn, from left to right.
+The values returned by applying the procedure to the elements are not used at
+all---@code{for-each} is used with procedures that perform an action, such as
+printing.  For example,
+
+@lisp
+(for-each 
+ (lambda (x) (newline) (display x))
+ (list 57 321 88))
+
+@i{57}
+@i{321}
+@i{88}
+@end lisp
+
+The value returned by the call to @code{for-each} (not illustrated above) can
+be something arbitrary, such as true.  Give an implementation of
+@code{for-each}.
+@end quotation
+
+@node	2.2.2, 2.2.3, 2.2.1, 2.2
+@subsection Hierarchical Structures
+
+The representation of sequences in terms of lists generalizes naturally to
+represent sequences whose elements may themselves be sequences.  For example,
+we can regard the object @code{((1 2) 3 4)} constructed by
+
+@lisp
+(cons (list 1 2) (list 3 4))
+@end lisp
+
+@noindent
+as a list of three items, the first of which is itself a list, @code{(1 2)}.
+Indeed, this is suggested by the form in which the result is printed by the
+interpreter.  @ref{Figure 2.5} shows the representation of
+this structure in terms of pairs.
+
+@float

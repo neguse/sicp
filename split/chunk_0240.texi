@@ -1,0 +1,100 @@
+(define the-global-environment 
+  (setup-environment))
+
+(driver-loop)
+
+@i{;;; M-Eval input:}
+(define (append x y)
+  (if (null? x)
+      y
+      (cons (car x) (append (cdr x) y))))
+
+@i{;;; M-Eval value:}
+@i{ok}
+
+@i{;;; M-Eval input:}
+(append '(a b c) '(d e f))
+
+@i{;;; M-Eval value:}
+@i{(a b c d e f)}
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 4.14}Exercise 4.14:} Eva Lu Ator and Louis Reasoner
+are each experimenting with the metacircular evaluator.  Eva types in the
+definition of @code{map}, and runs some test programs that use it.  They work
+fine.  Louis, in contrast, has installed the system version of @code{map} as a
+primitive for the metacircular evaluator.  When he tries it, things go terribly
+wrong.  Explain why Louis's @code{map} fails even though Eva's works.
+@end quotation
+
+@node	4.1.5, 4.1.6, 4.1.4, 4.1
+@subsection Data as Programs
+
+In thinking about a Lisp program that evaluates Lisp expressions, an analogy
+might be helpful.  One operational view of the meaning of a program is that a
+program is a description of an abstract (perhaps infinitely large) machine.
+For example, consider the familiar program to compute factorials:
+
+@lisp
+(define (factorial n)
+  (if (= n 1)
+      1
+      (* (factorial (- n 1)) n)))
+@end lisp
+
+@noindent
+We may regard this program as the description of a machine containing parts
+that decrement, multiply, and test for equality, together with a two-position
+switch and another factorial machine. (The factorial machine is infinite
+because it contains another factorial machine within it.)  @ref{Figure 4.2} is
+a flow diagram for the factorial machine, showing how the parts are wired
+together.
+
+@float
+@anchor{Figure 4.2}
+@ifinfo
+@strong{Figure 4.2:} The factorial program, viewed as an abstract machine.
+
+@example
+    +-----------------------------------+
+    | factorial                   |1    |
+    |              |1             V     |
+    |              |           +-----+  |
+    |              V           | #   |  |
+    |           +-----+        |     |  |
+6 --------*-----|  =  |------->|   #-+-----> 720
+    |     |     +-----+        |  /  |  |
+    |     |                    | #   |  |
+    |     |                    +-----+  |
+    |     |                       ^     |
+    |     |                       |     |
+    |     |                    +--+--+  |
+    |     *------------------->|  *  |  |
+    |     |                    +-----+  |
+    |     V                       ^     |
+    |  +-----+    +-----------+   |     |
+    |  |  -  +--->| factorial +---+     |
+    |  +-----+    +-----------+         |
+    |     ^                             |
+    |     |1                            |
+    +-----------------------------------+
+@end example
+@end ifinfo
+@iftex
+@image{fig/chap4/Fig4.2a,143mm,,,.std.svg}
+@caption{@strong{Figure 4.2:} The factorial program, viewed as an abstract machine.}
+@end iftex
+@end float
+
+In a similar way, we can regard the evaluator as a very special machine that
+takes as input a description of a machine.  Given this input, the evaluator
+configures itself to emulate the machine described.  For example, if we feed
+our evaluator the definition of @code{factorial}, as shown in @ref{Figure 4.3},
+the evaluator will be able to compute factorials.
+
+@float
+@anchor{Figure 4.3}
+@ifinfo
+@strong{Figure 4.3:} The evaluator emulating a factorial machine.
+

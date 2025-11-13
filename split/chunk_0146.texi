@@ -1,0 +1,100 @@
+opposite corners at (2, 4) and (8, 10) contains the circle above.  The desired
+integral is the area of that portion of the rectangle that lies in the region.
+We can estimate the integral by picking, at random, points @math{{(x, y)}} that
+lie in the rectangle, and testing @math{{P(x, y)}} for each point to
+determine whether the point lies in the region.  If we try this with many
+points, then the fraction of points that fall in the region should give an
+estimate of the proportion of the rectangle that lies in the region.  Hence,
+multiplying this fraction by the area of the entire rectangle should produce an
+estimate of the integral.
+
+Implement Monte Carlo integration as a procedure @code{estimate-integral} that
+takes as arguments a predicate @code{P}, upper and lower bounds @code{x1},
+@code{x2}, @code{y1}, and @code{y2} for the rectangle, and the number of trials
+to perform in order to produce the estimate.  Your procedure should use the
+same @code{monte-carlo} procedure that was used above to estimate @math{\pi}.
+Use your @code{estimate-integral} to produce an estimate of @math{\pi} by
+measuring the area of a unit circle.
+
+You will find it useful to have a procedure that returns a number chosen at
+random from a given range.  The following @code{random-in-range} procedure
+implements this in terms of the @code{random} procedure used in 
+@ref{1.2.6}, which returns a nonnegative number less than its
+input.@footnote{@abbr{MIT} Scheme provides such a procedure.  If
+@code{random} is given an exact integer (as in @ref{1.2.6}) it returns
+an exact integer, but if it is given a decimal value (as in this exercise) it
+returns a decimal value.}
+
+@lisp
+(define (random-in-range low high)
+  (let ((range (- high low)))
+    (+ low (random range))))
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.6}Exercise 3.6:} It is useful to be able to reset a
+random-number generator to produce a sequence starting from a given value.
+Design a new @code{rand} procedure that is called with an argument that is
+either the symbol @code{generate} or the symbol @code{reset} and behaves as
+follows: @code{(rand 'generate)} produces a new random number; @code{((rand
+'reset) ⟨@var{new-value}⟩)} resets the internal state variable to the
+designated @code{⟨}@var{new-value}@code{⟩}.  Thus, by resetting the state, one can generate
+repeatable sequences.  These are very handy to have when testing and debugging
+programs that use random numbers.
+@end quotation
+
+@node	3.1.3, 3.2, Chapter 3, 3.1
+@subsection The Costs of Introducing Assignment
+
+As we have seen, the @code{set!} operation enables us to model objects that
+have local state.  However, this advantage comes at a price.  Our programming
+language can no longer be interpreted in terms of the substitution model of
+procedure application that we introduced in @ref{1.1.5}.  Moreover, no
+simple model with ``nice'' mathematical properties can be an adequate framework
+for dealing with objects and assignment in programming languages.
+
+So long as we do not use assignments, two evaluations of the same procedure
+with the same arguments will produce the same result, so that procedures can be
+viewed as computing mathematical functions.  Programming without any use of
+assignments, as we did throughout the first two chapters of this book, is
+accordingly known as @newterm{functional programming}.
+
+To understand how assignment complicates matters, consider a simplified version
+of the @code{make-withdraw} procedure of @ref{3.1.1} that does not
+bother to check for an insufficient amount:
+
+@lisp
+(define (make-simplified-withdraw balance)
+  (lambda (amount)
+    (set! balance (- balance amount))
+    balance))
+
+(define W (make-simplified-withdraw 25))
+
+(W 20)
+@i{5}
+
+(W 10)
+@i{-5}
+@end lisp
+
+@noindent
+Compare this procedure with the following @code{make-decrementer} procedure,
+which does not use @code{set!}:
+
+@lisp
+(define (make-decrementer balance)
+  (lambda (amount)
+    (- balance amount)))
+@end lisp
+
+@noindent
+@code{Make-decrementer} returns a procedure that subtracts its input from a
+designated amount @code{balance}, but there is no accumulated effect over
+successive calls, as with @code{make-simplified-withdraw}:
+
+@lisp
+(define D (make-decrementer 25))
+
+(D 20)

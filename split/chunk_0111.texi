@@ -1,0 +1,100 @@
+@lisp
+(define (make-leaf-set pairs)
+  (if (null? pairs)
+      '()
+      (let ((pair (car pairs)))
+        (adjoin-set 
+         (make-leaf (car pair)    @r{; symbol}
+                    (cadr pair))  @r{; frequency}
+         (make-leaf-set (cdr pairs))))))
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 2.67}Exercise 2.67:} Define an encoding tree and a
+sample message:
+
+@lisp
+(define sample-tree
+  (make-code-tree 
+   (make-leaf 'A 4)
+   (make-code-tree
+    (make-leaf 'B 2)
+    (make-code-tree 
+     (make-leaf 'D 1)
+     (make-leaf 'C 1)))))
+
+(define sample-message 
+  '(0 1 1 0 0 1 0 1 0 1 1 1 0))
+@end lisp
+
+Use the @code{decode} procedure to decode the message, and give the result.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.68}Exercise 2.68:} The @code{encode} procedure takes
+as arguments a message and a tree and produces the list of bits that gives the
+encoded message.
+
+@lisp
+(define (encode message tree)
+  (if (null? message)
+      '()
+      (append 
+       (encode-symbol (car message) 
+                      tree)
+       (encode (cdr message) tree))))
+@end lisp
+
+@code{Encode-symbol} is a procedure, which you must write, that returns the
+list of bits that encodes a given symbol according to a given tree.  You should
+design @code{encode-symbol} so that it signals an error if the symbol is not in
+the tree at all.  Test your procedure by encoding the result you obtained in
+@ref{Exercise 2.67} with the sample tree and seeing whether it is the same as
+the original sample message.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.69}Exercise 2.69:} The following procedure takes as
+its argument a list of symbol-frequency pairs (where no symbol appears in more
+than one pair) and generates a Huffman encoding tree according to the Huffman
+algorithm.
+
+@lisp
+(define (generate-huffman-tree pairs)
+  (successive-merge 
+   (make-leaf-set pairs)))
+@end lisp
+
+@code{Make-leaf-set} is the procedure given above that transforms the list of
+pairs into an ordered set of leaves.  @code{Successive-merge} is the procedure
+you must write, using @code{make-code-tree} to successively merge the
+smallest-weight elements of the set until there is only one element left, which
+is the desired Huffman tree.  (This procedure is slightly tricky, but not
+really complicated.  If you find yourself designing a complex procedure, then
+you are almost certainly doing something wrong.  You can take significant
+advantage of the fact that we are using an ordered set representation.)
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.70}Exercise 2.70:} The following eight-symbol
+alphabet with as@-so@-ci@-ated relative frequencies was designed to efficiently
+encode the lyr@-ics of 1950s rock songs.  (Note that the ``symbols'' of an
+``alphabet'' need not be individual letters.)
+
+@example
+
+A    2    NA  16
+BOOM 1    SHA  3
+GET  2    YIP  9
+JOB  2    WAH  1
+@end example
+
+Use @code{generate-huffman-tree} (@ref{Exercise 2.69}) to generate a
+corresponding Huffman tree, and use @code{encode} (@ref{Exercise 2.68}) to
+encode the following message:
+
+@example
+Get a job
+Sha na na na na na na na na
+
+Get a job

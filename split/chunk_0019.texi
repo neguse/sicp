@@ -1,0 +1,100 @@
+as well as for expressions that evaluate to true or false.  The absolute-value
+procedure @code{abs} makes use of the primitive predicates @code{>}, @code{<},
+and @code{=}.@footnote{@code{Abs} also uses the ``minus'' operator @code{-},
+which, when used with a single operand, as in @code{(- x)}, indicates
+negation.} These take two numbers as arguments and test whether the first
+number is, respectively, greater than, less than, or equal to the second
+number, returning true or false accordingly.
+
+Another way to write the absolute-value procedure is
+
+@lisp
+(define (abs x)
+  (cond ((< x 0) (- x))
+        (else x)))
+@end lisp
+
+@noindent
+which could be expressed in English as ``If @math{x} is less than zero return 
+@math{{-x}}; otherwise return @math{x}.''  @code{Else} is a special symbol that can be
+used in place of the @math{{⟨p⟩}} in the final clause of a @code{cond}.  This
+causes the @code{cond} to return as its value the value of the corresponding
+@math{{⟨e⟩}} whenever all previous clauses have been bypassed.  In fact, any
+expression that always evaluates to a true value could be used as the @math{{⟨p⟩}}
+here.
+
+Here is yet another way to write the absolute-value procedure:
+
+@lisp
+(define (abs x)
+  (if (< x 0)
+      (- x)
+      x))
+@end lisp
+
+@noindent
+This uses the special form @code{if}, a restricted type of conditional that can
+be used when there are precisely two cases in the case analysis.  The general
+form of an @code{if} expression is
+
+@lisp
+(if ⟨@var{predicate}⟩ ⟨@var{consequent}⟩ ⟨@var{alternative}⟩)
+@end lisp
+
+@noindent
+To evaluate an @code{if} expression, the interpreter starts by evaluating the
+@code{⟨}@var{predicate}@code{⟩} part of the expression.  If the @code{⟨}@var{predicate}@code{⟩} evaluates
+to a true value, the interpreter then evaluates the @code{⟨}@var{consequent}@code{⟩} and
+returns its value.  Otherwise it evaluates the @code{⟨}@var{alternative}@code{⟩} and returns
+its value.@footnote{A minor difference between @code{if} and @code{cond} is
+that the @code{⟨}@var{e}@code{⟩} part of each @code{cond} clause may be a sequence of
+expressions.  If the corresponding @code{⟨}@var{p}@code{⟩} is found to be true, the
+expressions @code{⟨}@var{e}@code{⟩} are evaluated in sequence and the value of the final
+expression in the sequence is returned as the value of the @code{cond}.  In an
+@code{if} expression, however, the @code{⟨}@var{consequent}@code{⟩} and @code{⟨}@var{alternative}@code{⟩}
+must be single expressions.}
+
+In addition to primitive predicates such as @code{<}, @code{=}, and @code{>},
+there are logical composition operations, which enable us to construct compound
+predicates.  The three most frequently used are these:
+
+@itemize @bullet
+
+@item
+@code{(and ⟨@var{e₁}⟩ @r{…} ⟨@var{eₙ}⟩)}
+
+The interpreter evaluates the expressions @code{⟨}@var{e}@code{⟩} one at a time, in
+left-to-right order.  If any @code{⟨}@var{e}@code{⟩} evaluates to false, the value of the
+@code{and} expression is false, and the rest of the @code{⟨}@var{e}@code{⟩}'s are not
+evaluated.  If all @code{⟨}@var{e}@code{⟩}'s evaluate to true values, the value of the
+@code{and} expression is the value of the last one.
+
+@item
+@code{(or ⟨@var{e₁}⟩ @r{…} ⟨@var{eₙ}⟩)}
+
+The interpreter evaluates the expressions @code{⟨}@var{e}@code{⟩} one at a time, in
+left-to-right order.  If any @code{⟨}@var{e}@code{⟩} evaluates to a true value, that value is
+returned as the value of the @code{or} expression, and the rest of the
+@code{⟨}@var{e}@code{⟩}'s are not evaluated.  If all @code{⟨}@var{e}@code{⟩}'s evaluate to false, the value
+of the @code{or} expression is false.
+
+@item
+@code{(not ⟨@var{e}⟩)}
+
+The value of a @code{not} expression is true when the expression @code{⟨}@var{e}@code{⟩}
+evaluates to false, and false otherwise.
+
+@end itemize
+
+@noindent
+Notice that @code{and} and @code{or} are special forms, not procedures, because
+the subexpressions are not necessarily all evaluated.  @code{Not} is an
+ordinary procedure.
+
+As an example of how these are used, the condition that a number @math{x} be in
+the range @math{5 < x < 10} may be expressed as
+
+@lisp
+(and (> x 5) (< x 10))
+@end lisp
+

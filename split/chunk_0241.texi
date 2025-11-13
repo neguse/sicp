@@ -1,0 +1,100 @@
+@example
+                   +--------+
+            6 ---->|  eval  |----> 720
+                   +--------+
+                       /
+             . . .    /  . . .
+       . . .       ../. .      .
+     .                           ..
+    .   (define (factorial n)      . . .
+   .      (if (= n 1)                   . .
+    .         1                            .
+    .         (* (factorial (- n 1)) n)))   .
+      . .                       . .        .
+          . .  . .      . . . .     . . . .
+                   . ..
+@end example
+@end ifinfo
+@iftex
+@image{fig/chap4/Fig4.3,117mm,,,.std.svg}
+@caption{@strong{Figure 4.3:} The evaluator emulating a factorial machine.}
+@end iftex
+@end float
+
+From this perspective, our evaluator is seen to be a @newterm{universal machine}.  
+It mimics other machines when these are described as Lisp
+programs.@footnote{The fact that the machines are described in Lisp is
+inessential.  If we give our evaluator a Lisp program that behaves as an
+evaluator for some other language, say C, the Lisp evaluator will emulate the C
+evaluator, which in turn can emulate any machine described as a C program.
+Similarly, writing a Lisp evaluator in C produces a C program that can execute
+any Lisp program.  The deep idea here is that any evaluator can emulate any
+other.  Thus, the notion of ``what can in principle be computed'' (ignoring
+practicalities of time and memory required) is independent of the language or
+the computer, and instead reflects an underlying notion of
+@newterm{computability}.  This was first demonstrated in a clear way by Alan
+M. Turing (1912-1954), whose 1936 paper laid the foundations for theoretical
+computer science.  In the paper, Turing presented a simple computational
+model---now known as a @newterm{Turing machine}---and argued that any
+``effective process'' can be formulated as a program for such a machine.  (This
+argument is known as the @newterm{Church-Turing thesis}.)  Turing then
+implemented a universal machine, i.e., a Turing machine that behaves as an
+evaluator for Turing-machine programs.  He used this framework to demonstrate
+that there are well-posed problems that cannot be computed by Turing machines
+(see @ref{Exercise 4.15}), and so by implication cannot be formulated as
+``effective processes.''  Turing went on to make fundamental contributions to
+practical computer science as well.  For example, he invented the idea of
+structuring programs using general-purpose subroutines.  See @ref{Hodges 1983} for a
+biography of Turing.} This is striking. Try to imagine an analogous evaluator
+for electrical circuits.  This would be a circuit that takes as input a signal
+encoding the plans for some other circuit, such as a filter.  Given this input,
+the circuit evaluator would then behave like a filter with the same
+description.  Such a universal electrical circuit is almost unimaginably
+complex.  It is remarkable that the program evaluator is a rather simple
+program.@footnote{Some people find it counterintuitive that an evaluator, which
+is implemented by a relatively simple procedure, can emulate programs that are
+more complex than the evaluator itself.  The existence of a universal evaluator
+machine is a deep and wonderful property of computation.  @newterm{Recursion theory}, 
+a branch of mathematical logic, is concerned with logical limits of
+computation.  Douglas Hofstadter's beautiful book @cite{G@"odel, Escher, Bach}
+explores some of these ideas (@ref{Hofstadter 1979}).}
+
+@noindent
+Another striking aspect of the evaluator is that it acts as a bridge between
+the data objects that are manipulated by our programming language and the
+programming language itself.  Imagine that the evaluator program (implemented
+in Lisp) is running, and that a user is typing expressions to the evaluator and
+observing the results.  From the perspective of the user, an input expression
+such as @code{(* x x)} is an expression in the programming language, which the
+evaluator should execute.  From the perspective of the evaluator, however, the
+expression is simply a list (in this case, a list of three symbols: @code{*},
+@code{x}, and @code{x}) that is to be manipulated according to a well-defined
+set of rules.
+
+That the user's programs are the evaluator's data need not be a source of
+confusion.  In fact, it is sometimes convenient to ignore this distinction, and
+to give the user the ability to explicitly evaluate a data object as a Lisp
+expression, by making @code{eval} available for use in programs.  Many Lisp
+dialects provide a primitive @code{eval} procedure that takes as arguments an
+expression and an environment and evaluates the expression relative to the
+environment.@footnote{Warning: This @code{eval} primitive is not identical to
+the @code{eval} procedure we implemented in @ref{4.1.1}, because it
+uses @emph{actual} Scheme environments rather than the sample environment
+structures we built in @ref{4.1.3}.  These actual environments cannot
+be manipulated by the user as ordinary lists; they must be accessed via
+@code{eval} or other special operations.  Similarly, the @code{apply} primitive
+we saw earlier is not identical to the metacircular @code{apply}, because it
+uses actual Scheme procedures rather than the procedure objects we constructed
+in @ref{4.1.3} and @ref{4.1.4}.} Thus,
+
+@lisp
+(eval '(* 5 5) user-initial-environment)
+@end lisp
+
+@noindent
+and
+
+@lisp
+(eval (cons '* (list 5 5)) 
+      user-initial-environment)
+@end lisp

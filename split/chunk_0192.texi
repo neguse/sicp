@@ -1,0 +1,100 @@
+                  (lambda () (set! x (+ x 1))))
+@end lisp
+
+@noindent
+This creates two concurrent processes---@math{P_1}, which sets @code{x} to
+@code{x} times @code{x}, and @math{P_2}, which increments @code{x}.  After
+execution is complete, @code{x} will be left with one of five possible values,
+depending on the interleaving of the events of @math{P_1} and @math{P_2}:
+
+@example
+101: @math{P_1} sets @code{x} to 100 and then @math{P_2} increments
+     @code{x} to 101.
+121: @math{P_2} increments @code{x} to 11 and then @math{P_1} sets
+     @code{x} to @code{x} times @code{x}.
+110: @math{P_2} changes @code{x} from 10 to 11 between the 
+     two times that @math{P_1} accesses the value of 
+     @code{x} during the evaluation of @code{(* x x)}.
+ 11: @math{P_2} accesses @code{x}, then @math{P_1} sets @code{x} to 100, 
+     then @math{P_2} sets @code{x}.
+100: @math{P_1} accesses @code{x} (twice), then @math{P_2} sets
+     @code{x} to 11, then @math{P_1} sets @code{x}.
+@end example
+
+@noindent
+We can constrain the concurrency by using serialized procedures, which are
+created by @newterm{serializers}. Serializers are constructed by
+@code{make-serializer}, whose implementation is given below.  A serializer
+takes a procedure as argument and returns a serialized procedure that behaves
+like the original procedure.  All calls to a given serializer return serialized
+procedures in the same set.
+
+Thus, in contrast to the example above, executing
+
+@lisp
+(define x 10)
+(define s (make-serializer))
+(parallel-execute 
+ (s (lambda () (set! x (* x x))))
+ (s (lambda () (set! x (+ x 1)))))
+@end lisp
+
+@noindent
+can produce only two possible values for @code{x}, 101 or 121.  The other
+possibilities are eliminated, because the execution of @math{P_1} and @math{P_2}
+cannot be interleaved.
+
+Here is a version of the @code{make-account} procedure from 
+@ref{3.1.1}, where the deposits and withdrawals have been serialized:
+
+@lisp
+(define (make-account balance)
+  (define (withdraw amount)
+    (if (>= balance amount)
+        (begin (set! balance 
+                     (- balance amount))
+               balance)
+        "Insufficient funds"))
+  (define (deposit amount)
+    (set! balance (+ balance amount))
+    balance)
+  (let ((protected (make-serializer)))
+    (define (dispatch m)
+      (cond ((eq? m 'withdraw) 
+             (protected withdraw))
+            ((eq? m 'deposit) 
+             (protected deposit))
+            ((eq? m 'balance) 
+             balance)
+            (else (error "Unknown request: 
+                          MAKE-ACCOUNT"
+                         m))))
+    dispatch))
+@end lisp
+
+@noindent
+With this implementation, two processes cannot be withdrawing from or
+depositing into a single account concurrently.  This eliminates the source of
+the error illustrated in @ref{Figure 3.29}, where Peter changes the account
+balance between the times when Paul accesses the balance to compute the new
+value and when Paul actually performs the assignment.  On the other hand, each
+account has its own serializer, so that deposits and withdrawals for different
+accounts can proceed concurrently.
+
+@quotation
+@strong{@anchor{Exercise 3.39}Exercise 3.39:} Which of the five possibilities
+in the parallel execution shown above remain if we instead serialize execution
+as follows:
+
+@lisp
+(define x 10)
+(define s (make-serializer))
+(parallel-execute 
+  (lambda () 
+    (set! x ((s (lambda () (* x x))))))
+  (s (lambda () (set! x (+ x 1)))))
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.40}Exercise 3.40:} Give all possible values of

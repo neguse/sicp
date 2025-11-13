@@ -1,0 +1,100 @@
+@end lisp
+
+@noindent
+resulting in a frame specifying that @code{?person-2} is bound to @code{(Hacker
+Alyssa P)} and that @code{?x} should be bound to (have the same value as)
+@code{?person-1}.  Now, relative to this frame, we evaluate the compound query
+given by the body of the rule.  Successful matches will extend this frame by
+providing a binding for @code{?person-1}, and consequently a value for
+@code{?x}, which we can use to instantiate the original query pattern.
+
+In general, the query evaluator uses the following method to apply a rule when
+trying to establish a query pattern in a frame that specifies bindings for some
+of the pattern variables:
+
+@itemize @bullet
+
+@item
+Unify the query with the conclusion of the rule to form, if successful, an
+extension of the original frame.
+
+@item
+Relative to the extended frame, evaluate the query formed by the body of the
+rule.
+
+@end itemize
+
+@noindent
+Notice how similar this is to the method for applying a procedure in the
+@code{eval}/@code{apply} evaluator for Lisp:
+
+@itemize @bullet
+
+@item
+Bind the procedure's parameters to its arguments to form a frame that extends
+the original procedure environment.
+
+@item
+Relative to the extended environment, evaluate the expression formed by the
+body of the procedure.
+
+@end itemize
+
+@noindent
+The similarity between the two evaluators should come as no surprise.  Just as
+procedure definitions are the means of abstraction in Lisp, rule definitions
+are the means of abstraction in the query language.  In each case, we unwind
+the abstraction by creating appropriate bindings and evaluating the rule or
+procedure body relative to these.
+
+@subsubheading Simple queries
+
+We saw earlier in this section how to evaluate simple queries in the absence of
+rules.  Now that we have seen how to apply rules, we can describe how to
+evaluate simple queries by using both rules and assertions.
+
+Given the query pattern and a stream of frames, we produce, for each frame in
+the input stream, two streams:
+
+@itemize @bullet
+
+@item
+a stream of extended frames obtained by matching the pattern against all
+assertions in the data base (using the pattern matcher), and
+
+@item
+a stream of extended frames obtained by applying all possible rules (using the
+unifier).@footnote{Since unification is a generalization of matching, we could
+simplify the system by using the unifier to produce both streams.  Treating the
+easy case with the simple matcher, however, illustrates how matching (as
+opposed to full-blown unification) can be useful in its own right.}
+
+@end itemize
+
+@noindent
+Appending these two streams produces a stream that consists of all the ways
+that the given pattern can be satisfied consistent with the original frame.
+These streams (one for each frame in the input stream) are now all combined to
+form one large stream, which therefore consists of all the ways that any of the
+frames in the original input stream can be extended to produce a match with the
+given pattern.
+
+@subsubheading The query evaluator and the driver loop
+
+Despite the complexity of the underlying matching operations, the system is
+organized much like an evaluator for any language.  The procedure that
+coordinates the matching operations is called @code{qeval}, and it plays a role
+analogous to that of the @code{eval} procedure for Lisp.  @code{Qeval} takes as
+inputs a query and a stream of frames.  Its output is a stream of frames,
+corresponding to successful matches to the query pattern, that extend some
+frame in the input stream, as indicated in @ref{Figure 4.4}.  Like @code{eval},
+@code{qeval} classifies the different types of expressions (queries) and
+dispatches to an appropriate procedure for each.  There is a procedure for each
+special form (@code{and}, @code{or}, @code{not}, and @code{lisp-value}) and one
+for simple queries.
+
+The driver loop, which is analogous to the @code{driver-loop} procedure for the
+other evaluators in this chapter, reads queries from the terminal.  For each
+query, it calls @code{qeval} with the query and a stream that consists of a
+single empty frame.  This will produce the stream of all possible matches (all
+possible extensions to the empty frame).  For each frame in the resulting

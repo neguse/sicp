@@ -1,0 +1,100 @@
+then filters the resulting frames by removing the ones in which the value of
+@code{?x} satisfies @code{(job ?x (computer programmer))}.  The second query
+begins by filtering the incoming frames to remove those that can satisfy
+@code{(job ?x (computer programmer))}.  Since the only incoming frame is empty,
+it checks the data base to see if there are any patterns that satisfy
+@code{(job ?x (computer programmer))}.  Since there generally are entries of
+this form, the @code{not} clause filters out the empty frame and returns an
+empty stream of frames.  Consequently, the entire compound query returns an
+empty stream.
+
+The trouble is that our implementation of @code{not} really is meant to serve
+as a filter on values for the variables.  If a @code{not} clause is processed
+with a frame in which some of the variables remain unbound (as does @code{?x}
+in the example above), the system will produce unexpected results. Similar
+problems occur with the use of @code{lisp-value}---the Lisp predicate can't
+work if some of its arguments are unbound.  See @ref{Exercise 4.77}.
+
+There is also a much more serious way in which the @code{not} of the query
+language differs from the @code{not} of mathematical logic.  In logic, we
+interpret the statement ``not @math{P}'' to mean that @math{P} is not true.  In the
+query system, however, ``not @math{P}'' means that @math{P} is not deducible from the
+knowledge in the data base.  For example, given the personnel data base of
+@ref{4.4.1}, the system would happily deduce all sorts of @code{not}
+statements, such as that Ben Bitdiddle is not a baseball fan, that it is not
+raining outside, and that 2 + 2 is not 4.@footnote{Consider the query
+@code{(not (baseball-fan (Bitdiddle Ben)))}.  The system finds that
+@code{(baseball-fan (Bitdiddle Ben))} is not in the data base, so the empty
+frame does not satisfy the pattern and is not filtered out of the initial
+stream of frames.  The result of the query is thus the empty frame, which is
+used to instantiate the input query to produce @code{(not (baseball-fan
+(Bitdiddle Ben)))}.} In other words, the @code{not} of logic programming
+languages reflects the so-called @newterm{closed world assumption} that all
+relevant information has been included in the data base.@footnote{A discussion
+and justification of this treatment of @code{not} can be found in the article
+by @ref{Clark (1978)}.}
+
+@quotation
+@strong{@anchor{Exercise 4.64}Exercise 4.64:} Louis Reasoner mistakenly deletes
+the @code{outranked-by} rule (@ref{4.4.1}) from the data base.  When he
+realizes this, he quickly reinstalls it.  Unfortunately, he makes a slight
+change in the rule, and types it in as
+
+@lisp
+(rule (outranked-by ?staff-person ?boss)
+  (or (supervisor ?staff-person ?boss)
+      (and (outranked-by ?middle-manager
+                         ?boss)
+           (supervisor ?staff-person 
+                       ?middle-manager))))
+@end lisp
+
+Just after Louis types this information into the system, DeWitt Aull comes by
+to find out who outranks Ben Bitdiddle. He issues the query
+
+@lisp
+(outranked-by (Bitdiddle Ben) ?who)
+@end lisp
+
+After answering, the system goes into an infinite loop.  Explain why.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.65}Exercise 4.65:} Cy D. Fect, looking forward to
+the day when he will rise in the organization, gives a query to find all the
+wheels (using the @code{wheel} rule of @ref{4.4.1}):
+
+@lisp
+(wheel ?who)
+@end lisp
+
+To his surprise, the system responds
+
+@lisp
+@i{;;; Query results:}
+(wheel (Warbucks Oliver))
+(wheel (Bitdiddle Ben))
+(wheel (Warbucks Oliver))
+(wheel (Warbucks Oliver))
+(wheel (Warbucks Oliver))
+@end lisp
+
+Why is Oliver Warbucks listed four times?
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.66}Exercise 4.66:} Ben has been generalizing the
+query system to provide statistics about the company.  For example, to find the
+total salaries of all the computer programmers one will be able to say
+
+@lisp
+(sum ?amount
+     (and (job ?x (computer programmer))
+          (salary ?x ?amount)))
+@end lisp
+
+In general, Ben's new system allows expressions of the form
+
+@lisp
+(accumulation-function ⟨@var{variable}⟩
+                       ⟨@var{query pattern}⟩)

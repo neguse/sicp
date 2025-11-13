@@ -1,0 +1,100 @@
+It is the job of the failure continuation to try another branch of the
+nondeterministic process.  The essence of the nondeterministic language is in
+the fact that expressions may represent choices among alternatives.  The
+evaluation of such an expression must proceed with one of the indicated
+alternative choices, even though it is not known in advance which choices will
+lead to acceptable results.  To deal with this, the evaluator picks one of the
+alternatives and passes this value to the success continuation.  Together with
+this value, the evaluator constructs and passes along a failure continuation
+that can be called later to choose a different alternative.
+
+A failure is triggered during evaluation (that is, a failure continuation is
+called) when a user program explicitly rejects the current line of attack (for
+example, a call to @code{require} may result in execution of @code{(amb)}, an
+expression that always fails---see @ref{4.3.1}).  The failure
+continuation in hand at that point will cause the most recent choice point to
+choose another alternative.  If there are no more alternatives to be considered
+at that choice point, a failure at an earlier choice point is triggered, and so
+on.  Failure continuations are also invoked by the driver loop in response to a
+@code{try-again} request, to find another value of the expression.
+
+In addition, if a side-effect operation (such as assignment to a variable)
+occurs on a branch of the process resulting from a choice, it may be necessary,
+when the process finds a dead end, to undo the side effect before making a new
+choice.  This is accomplished by having the side-effect operation produce a
+failure continuation that undoes the side effect and propagates the failure.
+
+In summary, failure continuations are constructed by
+
+@itemize @bullet
+
+@item
+@code{amb} expressions---to provide a mechanism to make alternative choices if
+the current choice made by the @code{amb} expression leads to a dead end;
+
+@item
+the top-level driver---to provide a mechanism to report failure when the
+choices are exhausted;
+
+@item
+assignments---to intercept failures and undo assignments during backtracking.
+
+@end itemize
+
+@noindent
+Failures are initiated only when a dead end is encountered.  This occurs
+
+@itemize @bullet
+
+@item
+if the user program executes @code{(amb)};
+
+@item
+if the user types @code{try-again} at the top-level driver.
+
+@end itemize
+
+@noindent
+Failure continuations are also called during processing of a failure:
+
+@itemize @bullet
+
+@item
+When the failure continuation created by an assignment finishes undoing a side
+effect, it calls the failure continuation it intercepted, in order to propagate
+the failure back to the choice point that led to this assignment or to the top
+level.
+
+@item
+When the failure continuation for an @code{amb} runs out of choices, it calls
+the failure continuation that was originally given to the @code{amb}, in order
+to propagate the failure back to the previous choice point or to the top level.
+
+@end itemize
+
+@subsubheading Structure of the evaluator
+
+The syntax- and data-representation procedures for the @code{amb} evaluator,
+and also the basic @code{analyze} procedure, are identical to those in the
+evaluator of @ref{4.1.7}, except for the fact that we need additional
+syntax procedures to recognize the @code{amb} special form:@footnote{We assume
+that the evaluator supports @code{let} (see @ref{Exercise 4.22}), which we have
+used in our nondeterministic programs.}
+
+@lisp
+(define (amb? exp) (tagged-list? exp 'amb))
+(define (amb-choices exp) (cdr exp))
+@end lisp
+
+@noindent
+We must also add to the dispatch in @code{analyze} a clause that will recognize
+this special form and generate an appropriate execution procedure:
+
+@lisp
+((amb? exp) (analyze-amb exp))
+@end lisp
+
+@noindent
+The top-level procedure @code{ambeval} (similar to the version of @code{eval}
+given in @ref{4.1.7}) analyzes the given expression and applies the
+resulting execution procedure to the given environment, together with two given

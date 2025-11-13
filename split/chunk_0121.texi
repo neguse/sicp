@@ -1,0 +1,100 @@
+  ((get 'make-from-mag-ang 
+        'polar) 
+   r a))
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 2.73}Exercise 2.73:} @ref{2.3.2} described a
+program that performs symbolic differentiation:
+
+@lisp
+(define (deriv exp var)
+  (cond ((number? exp) 0)
+        ((variable? exp) 
+         (if (same-variable? exp var) 1 0))
+        ((sum? exp)
+         (make-sum (deriv (addend exp) var)
+                   (deriv (augend exp) var)))
+        ((product? exp)
+         (make-sum
+           (make-product 
+            (multiplier exp)
+            (deriv (multiplicand exp) var))
+           (make-product 
+            (deriv (multiplier exp) var)
+            (multiplicand exp))))
+        ⟨@var{more rules can be added here}⟩
+        (else (error "unknown expression type:
+                      DERIV" exp))))
+@end lisp
+
+We can regard this program as performing a dispatch on the type of the
+expression to be differentiated.  In this situation the ``type tag'' of the
+datum is the algebraic operator symbol (such as @code{+}) and the operation
+being performed is @code{deriv}.  We can transform this program into
+data-directed style by rewriting the basic derivative procedure as
+
+@lisp
+(define (deriv exp var)
+   (cond ((number? exp) 0)
+         ((variable? exp) 
+           (if (same-variable? exp var) 
+               1 
+               0))
+         (else ((get 'deriv (operator exp)) 
+                (operands exp) 
+                var))))
+
+(define (operator exp) (car exp))
+(define (operands exp) (cdr exp))
+@end lisp
+
+@enumerate a
+
+@item
+Explain what was done above.  Why can't we assimilate the predicates
+@code{number?} and @code{variable?} into the data-directed dispatch?
+
+@item
+Write the procedures for derivatives of sums and products, and the auxiliary
+code required to install them in the table used by the program above.
+
+@item
+Choose any additional differentiation rule that you like, such as the one for
+exponents (@ref{Exercise 2.56}), and install it in this data-directed
+system.
+
+@item
+In this simple algebraic manipulator the type of an expression is the algebraic
+operator that binds it together.  Suppose, however, we indexed the procedures
+in the opposite way, so that the dispatch line in @code{deriv} looked like
+
+@lisp
+((get (operator exp) 'deriv) 
+ (operands exp) var)
+@end lisp
+
+@noindent
+What corresponding changes to the derivative system are required?
+
+@end enumerate
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.74}Exercise 2.74:} Insatiable Enterprises, Inc., is
+a highly decentralized conglomerate company consisting of a large number of
+independent divisions located all over the world.  The company's computer
+facilities have just been interconnected by means of a clever
+network-interfacing scheme that makes the entire network appear to any user to
+be a single computer.  Insatiable's president, in her first attempt to exploit
+the ability of the network to extract administrative information from division
+files, is dismayed to discover that, although all the division files have been
+implemented as data structures in Scheme, the particular data structure used
+varies from division to division.  A meeting of division managers is hastily
+called to search for a strategy to integrate the files that will satisfy
+headquarters' needs while preserving the existing autonomy of the divisions.
+
+Show how such a strategy can be implemented with data-directed programming.  As
+an example, suppose that each division's personnel records consist of a single
+file, which contains a set of records keyed on employees' names.  The structure
+of the set varies from division to division.  Furthermore, each employee's

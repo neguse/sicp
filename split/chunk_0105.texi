@@ -1,0 +1,100 @@
+(define (right-branch tree) (caddr tree))
+(define (make-tree entry left right)
+  (list entry left right))
+@end lisp
+
+@noindent
+Now we can write the @code{element-of-set?} procedure using the strategy
+described above:
+
+@lisp
+(define (element-of-set? x set)
+  (cond ((null? set) false)
+        ((= x (entry set)) true)
+        ((< x (entry set))
+         (element-of-set? 
+          x 
+          (left-branch set)))
+        ((> x (entry set))
+         (element-of-set? 
+          x 
+          (right-branch set)))))
+@end lisp
+
+@noindent
+Adjoining an item to a set is implemented similarly and also requires
+@math{{\Theta(\log n)}} steps.  To adjoin an item @code{x}, we compare
+@code{x} with the node entry to determine whether @code{x} should be added to
+the right or to the left branch, and having adjoined @code{x} to the
+appropriate branch we piece this newly constructed branch together with the
+original entry and the other branch.  If @code{x} is equal to the entry, we
+just return the node.  If we are asked to adjoin @code{x} to an empty tree, we
+generate a tree that has @code{x} as the entry and empty right and left
+branches.  Here is the procedure:
+
+@lisp
+(define (adjoin-set x set)
+  (cond ((null? set) (make-tree x '() '()))
+        ((= x (entry set)) set)
+        ((< x (entry set))
+         (make-tree 
+          (entry set)
+          (adjoin-set x (left-branch set))
+          (right-branch set)))
+        ((> x (entry set))
+         (make-tree
+          (entry set)
+          (left-branch set)
+          (adjoin-set x (right-branch set))))))
+@end lisp
+
+@noindent
+The above claim that searching the tree can be performed in a logarithmic
+number of steps rests on the assumption that the tree is ``balanced,'' i.e.,
+that the left and the right subtree of every tree have approximately the same
+number of elements, so that each subtree contains about half the elements of
+its parent.  But how can we be certain that the trees we construct will be
+balanced?  Even if we start with a balanced tree, adding elements with
+@code{adjoin-set} may produce an unbalanced result.  Since the position of a
+newly adjoined element depends on how the element compares with the items
+already in the set, we can expect that if we add elements ``randomly'' the tree
+will tend to be balanced on the average.  But this is not a guarantee.  For
+example, if we start with an empty set and adjoin the numbers 1 through 7 in
+sequence we end up with the highly unbalanced tree shown in @ref{Figure 2.17}.
+In this tree all the left subtrees are empty, so it has no advantage over a
+simple ordered list.  One way to solve this problem is to define an operation
+that transforms an arbitrary tree into a balanced tree with the same elements.
+Then we can perform this transformation after every few @code{adjoin-set}
+operations to keep our set in balance.  There are also other ways to solve this
+problem, most of which involve designing new data structures for which
+searching and insertion both can be done in @math{{\Theta(\log n)}}
+steps.@footnote{Examples of such structures include @newterm{B-trees} and
+@newterm{red-black trees}.  There is a large literature on data structures
+devoted to this problem.  See @ref{Cormen et al. 1990}.}
+
+@float
+@anchor{Figure 2.17}
+@ifinfo
+@quotation
+@strong{Figure 2.17:} Unbalanced tree produced by adjoining 1 through 7 in sequence.
+
+@example
+1
+ \
+  2
+   \
+    4
+     \
+      5
+       \
+        6
+         \
+          7
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap2/Fig2.17a,68mm,,,.std.svg}
+@caption{@strong{Figure 2.17:} Unbalanced tree produced by adjoining 1 through 7 in sequence.}
+@end iftex
+@end float

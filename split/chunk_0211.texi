@@ -1,0 +1,100 @@
+
+@example
+             (S_(n+1) - S_n)^2
+S_(n+1) - ------------------------
+          S_(n-1) - 2S_n + S_(n+1)
+@end example
+
+@end ifinfo
+@tex
+\[ % :67:
+  S_{n+1} - {{(S_{n+1} - S_n)^2 \over S_{n-1} - 2S_n + S_{n+1}}.}  \]
+@end tex
+Thus, if the original sequence is represented as a stream of values, the
+transformed sequence is given by
+
+@lisp
+(define (euler-transform s)
+  (let ((s0 (stream-ref s 0))     ; @var{Sₙ}₋₁
+        (s1 (stream-ref s 1))     ; @var{Sₙ}
+        (s2 (stream-ref s 2)))    ; @var{Sₙ}₊₁
+    (cons-stream 
+     (- s2 (/ (square (- s2 s1))
+              (+ s0 (* -2 s1) s2)))
+     (euler-transform (stream-cdr s)))))
+@end lisp
+
+@noindent
+We can demonstrate Euler acceleration with our sequence of approximations to
+@math{\pi}:
+
+@lisp
+(display-stream 
+ (euler-transform pi-stream))
+@i{3.166666666666667}
+@i{3.1333333333333337}
+@i{3.1452380952380956}
+@i{3.13968253968254}
+@i{3.1427128427128435}
+@i{3.1408813408813416}
+@i{3.142071817071818}
+@i{3.1412548236077655}
+@r{…}
+@end lisp
+
+@noindent
+Even better, we can accelerate the accelerated sequence, and recursively
+accelerate that, and so on.  Namely, we create a stream of streams (a structure
+we'll call a @newterm{tableau}) in which each stream is the transform of the
+preceding one:
+
+@lisp
+(define (make-tableau transform s)
+  (cons-stream 
+   s
+   (make-tableau
+    transform
+    (transform s))))
+@end lisp
+
+@noindent
+The tableau has the form
+@ifinfo
+
+@example
+s_00   s_01   s_02   s_03   s_04   ...
+       s_10   s_11   s_12   s_13   ...
+              s_20   s_21   s_22   ...
+                            ...
+@end example
+
+@end ifinfo
+@tex
+\[ % :68:
+
+\begin{array}{cccccc}
+ s_{00} 	&   s_{01}  	&   s_{02}  	&   s_{03}  	&   s_{04}  	&   \dots  \\
+		&   s_{10}  	&   s_{11}  	&   s_{12}  	&   s_{13}  	&   \dots  \\
+		& 		&   s_{20}  	&   s_{21}  	&   s_{22}  	&   \dots  \\
+		& 		& 		&   \dots  	& 		&   
+\end{array}
+\]
+@end tex
+Finally, we form a sequence by taking the first term in each row of the
+tableau:
+
+@lisp
+(define (accelerated-sequence transform s)
+  (stream-map stream-car
+              (make-tableau transform s)))
+@end lisp
+
+@noindent
+We can demonstrate this kind of ``super-acceleration'' of the @math{\pi}
+sequence:
+
+@lisp
+(display-stream 
+ (accelerated-sequence euler-transform
+                       pi-stream))
+@i{4.}

@@ -1,0 +1,100 @@
+metacircular @code{apply}, there are two cases to consider.  Either the
+procedure to be applied is a primitive or it is a compound procedure.
+
+@lisp
+apply-dispatch
+  (test (op primitive-procedure?) (reg proc))
+  (branch (label primitive-apply))
+  (test (op compound-procedure?) (reg proc))
+  (branch (label compound-apply))
+  (goto (label unknown-procedure-type))
+@end lisp
+
+@noindent
+We assume that each primitive is implemented so as to obtain its arguments from
+@code{argl} and place its result in @code{val}.  To specify how the machine
+handles primitives, we would have to provide a sequence of controller
+instructions to implement each primitive and arrange for @code{primitive-apply}
+to dispatch to the instructions for the primitive identified by the contents of
+@code{proc}.  Since we are interested in the structure of the evaluation
+process rather than the details of the primitives, we will instead just use an
+@code{apply-primitive-procedure} operation that applies the procedure in
+@code{proc} to the arguments in @code{argl}.  For the purpose of simulating the
+evaluator with the simulator of @ref{5.2} we use the procedure
+@code{apply-primitive-procedure}, which calls on the underlying Scheme system
+to perform the application, just as we did for the metacircular evaluator in
+@ref{4.1.4}.  After computing the value of the primitive application,
+we restore @code{continue} and go to the designated entry point.
+
+@lisp
+primitive-apply
+  (assign val (op apply-primitive-procedure)
+              (reg proc)
+              (reg argl))
+  (restore continue)
+  (goto (reg continue))
+@end lisp
+
+@noindent
+To apply a compound procedure, we proceed just as with the metacircular
+evaluator.  We construct a frame that binds the procedure's parameters to the
+arguments, use this frame to extend the environment carried by the procedure,
+and evaluate in this extended environment the sequence of expressions that
+forms the body of the procedure.  @code{Ev-sequence}, described below in
+@ref{5.4.2}, handles the evaluation of the sequence.
+
+@lisp
+compound-apply
+  (assign unev 
+          (op procedure-parameters)
+          (reg proc))
+  (assign env
+          (op procedure-environment)
+          (reg proc))
+  (assign env
+          (op extend-environment)
+          (reg unev)
+          (reg argl)
+          (reg env))
+  (assign unev
+          (op procedure-body)
+          (reg proc))
+  (goto (label ev-sequence))
+@end lisp
+
+@noindent
+@code{Compound-apply} is the only place in the interpreter where the @code{env}
+register is ever assigned a new value.  Just as in the metacircular evaluator,
+the new environment is constructed from the environment carried by the
+procedure, together with the argument list and the corresponding list of
+variables to be bound.
+
+@node	5.4.2, 5.4.3, 5.4.1, 5.4
+@subsection Sequence Evaluation and Tail Recursion
+
+The portion of the explicit-control evaluator at @code{ev-sequence} is
+analogous to the metacircular evaluator's @code{eval-sequence} procedure.  It
+handles sequences of expressions in procedure bodies or in explicit
+@code{begin} expressions.
+
+Explicit @code{begin} expressions are evaluated by placing the sequence of
+expressions to be evaluated in @code{unev}, saving @code{continue} on the
+stack, and jumping to @code{ev-sequence}.
+
+@lisp
+ev-begin
+  (assign unev
+          (op begin-actions)
+          (reg exp))
+  (save continue)
+  (goto (label ev-sequence))
+@end lisp
+
+@noindent
+The implicit sequences in procedure bodies are handled by jumping to
+@code{ev-sequence} from @code{compound-apply}, at which point @code{continue}
+is already on the stack, having been saved at @code{ev-application}.
+
+The entries at @code{ev-sequence} and @code{ev-sequence-continue} form a loop
+that successively evaluates each expression in a sequence.  The list of
+unevaluated expressions is kept in @code{unev}.  Before evaluating each

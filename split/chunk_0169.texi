@@ -1,0 +1,100 @@
+@float
+@anchor{Figure 3.21}
+@ifinfo
+@strong{Figure 3.21:} Result of using @code{(delete-queue!  q)} on the queue of @ref{Figure 3.20}.
+
+@example
+       +---+---+
+  q -->| * | *-+--------------------------------+
+       +-|-+---+                                |
+         +------------+                         |
+            front-ptr |                         | rear-ptr
+                      V                         V
+     +---+---+    +---+---+    +---+---+    +---+---+
+     | * | *-+--->| * | *-+--->| * | *-+--->| * | / |
+     +-|-+---+    +-|-+---+    +-|-+---+    +-|-+---+
+       V            V            V            V
+     +---+        +---+        +---+        +---+
+     | a |        | b |        | c |        | d |
+     +---+        +---+        +---+        +---+
+@end example
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.21c,141mm,,,.std.svg}
+@caption{@strong{Figure 3.21:} Result of using @code{(delete-queue!  q)} on the queue of @ref{Figure 3.20}.}
+@end iftex
+@end float
+
+@quotation
+@strong{@anchor{Exercise 3.21}Exercise 3.21:} Ben Bitdiddle decides to test the
+queue implementation described above.  He types in the procedures to the Lisp
+interpreter and proceeds to try them out:
+
+@lisp
+(define q1 (make-queue))
+
+(insert-queue! q1 'a)
+@i{((a) a)}
+
+(insert-queue! q1 'b)
+@i{((a b) b)}
+
+(delete-queue! q1)
+@i{((b) b)}
+
+(delete-queue! q1)
+@i{(() b)}
+@end lisp
+
+``It's all wrong!'' he complains.  ``The interpreter's response shows that the
+last item is inserted into the queue twice.  And when I delete both items, the
+second @code{b} is still there, so the queue isn't empty, even though it's
+supposed to be.''  Eva Lu Ator suggests that Ben has misunderstood what is
+happening.  ``It's not that the items are going into the queue twice,'' she
+explains.  ``It's just that the standard Lisp printer doesn't know how to make
+sense of the queue representation.  If you want to see the queue printed
+correctly, you'll have to define your own print procedure for queues.'' Explain
+what Eva Lu is talking about.  In particular, show why Ben's examples produce
+the printed results that they do.  Define a procedure @code{print-queue} that
+takes a queue as input and prints the sequence of items in the queue.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.22}Exercise 3.22:} Instead of representing a queue
+as a pair of pointers, we can build a queue as a procedure with local state.
+The local state will consist of pointers to the beginning and the end of an
+ordinary list.  Thus, the @code{make-queue} procedure will have the form
+
+@lisp
+(define (make-queue)
+  (let ((front-ptr @r{…} )
+        (rear-ptr @r{…} ))
+    ⟨@var{definitions of internal procedures}⟩
+    (define (dispatch m) @r{…})
+    dispatch))
+@end lisp
+
+Complete the definition of @code{make-queue} and provide implementations of the
+queue operations using this representation.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.23}Exercise 3.23:} A @newterm{deque} (``double-ended
+                                                                 queue'') is a sequence in which items can be inserted and deleted at either the
+front or the rear.  Operations on deques are the constructor @code{make-deque},
+the predicate @code{empty-deque?}, selectors @code{front-deque} and
+@code{rear-deque}, and mutators @code{front-insert-deque!},
+@code{rear-insert-deque!}, @code{front-delete-deque!}, 
+@code{rear-delete-deque!}.  Show how to represent deques using pairs, and give
+implementations of the operations.@footnote{Be careful not to make the
+interpreter try to print a structure that contains cycles.  (See @ref{Exercise 3.13}.)}  
+All operations should be accomplished in @math{{\Theta(1)}} steps.
+@end quotation
+
+@node	3.3.3, 3.3.4, 3.3.2, 3.3
+@subsection Representing Tables
+
+When we studied various ways of representing sets in @ref{Chapter 2}, we
+mentioned in @ref{2.3.3} the task of maintaining a table of records
+indexed by identifying keys.  In the implementation of data-directed
+programming in @ref{2.4.3}, we made extensive use of two-dimensional

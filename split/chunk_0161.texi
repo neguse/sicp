@@ -1,0 +1,100 @@
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.12b,123mm,,,.std.svg}
+@caption{@strong{Figure 3.12:} Lists @code{x}: @code{((a b) c d)} and @code{y}: @code{(e f)}.}
+@end iftex
+@end float
+
+@float
+@anchor{Figure 3.13}
+@ifinfo
+@quotation
+@strong{Figure 3.13:} Effect of @code{(set-car! x y)} on the lists in @ref{Figure 3.12}.
+
+@example
+     +---+---+     +---+---+     +---+---+
+x -->| * | *-+---->| * | *-+---->| * | / |
+     +-|-+---+     +-|-+---+     +-|-+---+
+       |             V             V
+       |           +---+         +---+
+       |           | c |         | d |
+       |           +---+         +---+
+       |           +---+---+     +---+---+
+       |           | * | *-+---->| * | / |
+       |           +-|-+---+     +-|-+---+
+       |             V             V
+       |           +---+         +---+
+       |           | a |         | b |
+       |           +---+         +---+
+       +---------->+---+---+     +---+---+
+                   | * | *-+---->| * | / |
+              y -->+-|-+---+     +-|-+---+
+                     V             V
+                   +---+         +---+
+                   | e |         | f |
+                   +---+         +---+
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.13b,123mm,,,.std.svg}
+@caption{@strong{Figure 3.13:} Effect of @code{(set-car! x y)} on the lists in @ref{Figure 3.12}.}
+@end iftex
+@end float
+
+Compare @ref{Figure 3.13} with @ref{Figure 3.14}, which illustrates the result
+of executing @code{(define z (cons y (cdr x)))} with @code{x} and @code{y}
+bound to the original lists of @ref{Figure 3.12}.  The variable @code{z} is now
+bound to a new pair created by the @code{cons} operation; the list to which
+@code{x} is bound is unchanged.
+
+@float
+@anchor{Figure 3.14}
+@ifinfo
+@quotation
+@strong{Figure 3.14:} Effect of @code{(define z (cons y (cdr x)))} on the lists in @ref{Figure 3.12}.
+
+@example
+     +---+---+     +---+---+     +---+---+
+x -->| * | *-+---->| * | *-+---->| * | / |
+     +-|-+---+ +-->+-|-+---+     +-|-+---+
+       |       |     V             V
+       |       |   +---+         +---+
+       |       |   | c |         | d |
+       |       |   +---+         +---+
+       |       |   +---+---+     +---+---+
+       +-------+-->| * | *-+---->| * | / |
+               |   +-|-+---+     +-|-+---+
+     +---+---+ |     V             V
+z -->| * | *-+-+   +---+         +---+
+     +-|-+---+     | a |         | b |
+       |           +---+         +---+
+       +---------->+---+---+     +---+---+
+                   | * | *-+---->| * | / |
+              y -->+-|-+---+     +-|-+---+
+                     V             V
+                   +---+         +---+
+                   | e |         | f |
+                   +---+         +---+
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.14b,123mm,,,.std.svg}
+@caption{@strong{Figure 3.14:} Effect of @code{(define z (cons y (cdr x)))} on the lists in @ref{Figure 3.12}.}
+@end iftex
+@end float
+
+The @code{set-cdr!} operation is similar to @code{set-car!}.  The only
+difference is that the @code{cdr} pointer of the pair, rather than the
+@code{car} pointer, is replaced.  The effect of executing @code{(set-cdr! x y)}
+on the lists of @ref{Figure 3.12} is shown in @ref{Figure 3.15}.  Here the
+@code{cdr} pointer of @code{x} has been replaced by the pointer to @code{(e
+f)}.  Also, the list @code{(c d)}, which used to be the @code{cdr} of @code{x},
+is now detached from the structure.
+
+@float
+@anchor{Figure 3.15}
+@ifinfo
+@quotation
+@strong{Figure 3.15:} Effect of @code{(set-cdr! x y)} on the lists in @ref{Figure 3.12}.

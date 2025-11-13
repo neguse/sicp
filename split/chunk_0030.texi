@@ -1,0 +1,100 @@
+@tex
+
+\[ % :7:
+  
+\text{Fib}(n) \; = \;
+  \left\{ 
+    \begin{array}{ll}	 	 
+      0 & \;\text{if} \;\; n = 0, \\
+      1 & \;\text{if} \;\; n = 1, \\
+      \text{Fib}(n-1) + \text{Fib}(n-2) & \;\text{otherwise}. 
+    \end{array} 
+  \right. 
+\]
+
+@end tex
+We can immediately translate this definition into a recursive procedure for
+computing Fibonacci numbers:
+
+@lisp
+(define (fib n)
+  (cond ((= n 0) 0)
+        ((= n 1) 1)
+        (else (+ (fib (- n 1))
+                 (fib (- n 2))))))
+@end lisp
+
+@noindent
+Consider the pattern of this computation.  To compute @code{(fib 5)}, we
+compute @code{(fib 4)} and @code{(fib 3)}.  To compute @code{(fib 4)}, we
+compute @code{(fib 3)} and @code{(fib 2)}.  In general, the evolved process
+looks like a tree, as shown in @ref{Figure 1.5}.  Notice that the branches
+split into two at each level (except at the bottom); this reflects the fact
+that the @code{fib} procedure calls itself twice each time it is invoked.
+
+@float
+@anchor{Figure 1.5}
+@ifinfo
+@strong{Figure 1.5:} The tree-recursive process generated in computing @code{(fib 5)}.
+
+@example
+
+                   ..<............ fib5   <.......... 
+                ...     ___________/  \___________   .  
+             ...       /       . .....            \    . 
+           ..       fib4     .        . . . .     fib3  .  
+         ..     ____/. \____  ..             .  __/  \__  .  
+       ..      /  . .  ..   \    .        ..   /  . .   \   . 
+     ..     fib3 .       .  fib2 .        . fib2 .   .  fib1 .
+   ..      / . \  .     .   /  \  .      .  /  \ ...  .  |  .
+ ..       / . . \   .  .   /  . \   .  .   / .  \   .  . 1 .
+.      fib2 . . fib1.  .fib1 .  fib0 . .fib1. . fib0 .  .  .
+.      /  \  . . |  .  . |  .  . |   . . |   . . |   .   .>
+V     /  . \   . 1  .  . 1  .  . 0  .  . 1  .  . 0  ..
+.  fib1 .. fib0..  .   .   .   .   .   V   .   ..  . 
+.   |  .  . |  . .>     .>.     . .    ..>.      .>
+.   1 .   . 0  .      
+ .   .     .  .       
+  .>.       ..        
+
+@end example
+@end ifinfo
+@iftex
+@image{fig/chap1/Fig1.5d,147mm,,,.std.svg}
+@caption{@strong{Figure 1.5:} The tree-recursive process generated in computing @code{(fib 5)}.}
+@end iftex
+@end float
+
+@noindent
+This procedure is instructive as a prototypical tree recursion, but it is a
+terrible way to compute Fibonacci numbers because it does so much redundant
+computation.  Notice in @ref{Figure 1.5} that the entire computation of
+@code{(fib 3)}---almost half the work---is duplicated.  In fact, it is not hard
+to show that the number of times the procedure will compute @code{(fib 1)} or
+@code{(fib 0)} (the number of leaves in the above tree, in general) is
+precisely @math{{\text{Fib}(n+1)}}.  To get an idea of how bad this is, one can
+show that the value of @math{{\text{Fib}(n)}} grows exponentially with @math{n}.  More
+precisely (see @ref{Exercise 1.13}), @math{{\text{Fib}(n)}} is the closest integer
+to @math{{\varphi^n / \sqrt{5}}}, where
+@ifinfo
+
+@example
+[phi] = (1 + [sqrt]5)/2 ~= 1.6180
+@end example
+
+@end ifinfo
+@tex
+
+\[ % :8:
+
+\varphi \,=\, \frac{1 + \sqrt{5}}{2} \,\approx\, 1.6180
+\]
+
+@end tex
+@noindent
+is the @newterm{golden ratio}, which satisfies the equation
+@ifinfo
+
+@example
+[phi]^2 = [phi] + 1
+@end example

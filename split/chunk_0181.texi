@@ -1,0 +1,100 @@
+        (front-queue 
+         (segment-queue first-seg)))))
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 3.32}Exercise 3.32:} The procedures to be run during
+each time segment of the agenda are kept in a queue.  Thus, the procedures for
+each segment are called in the order in which they were added to the agenda
+(first in, first out).  Explain why this order must be used.  In particular,
+trace the behavior of an and-gate whose inputs change from 0, 1 to 1, 0 in the
+same segment and say how the behavior would differ if we stored a segment's
+procedures in an ordinary list, adding and removing procedures only at the
+front (last in, first out).
+@end quotation
+
+
+@node	3.3.5, 3.4, 3.2, 3.3
+@subsection Propagation of Constraints
+
+Computer programs are traditionally organized as one-directional computations,
+which perform operations on prespecified arguments to produce desired outputs.
+On the other hand, we often model systems in terms of relations among
+quantities.  For example, a mathematical model of a mechanical structure might
+include the information that the deflection @math{d} of a metal rod is related to
+the force @math{F} on the rod, the length @math{L} of the rod, the cross-sectional
+area @math{A}, and the elastic modulus @math{E} via the equation
+@ifinfo
+
+@example
+dAE = FL
+@end example
+
+@end ifinfo
+@tex
+\[ % :61:
+  {dAE} \,=\, {FL.}  \]
+@end tex
+Such an equation is not one-directional.  Given any four of the quantities, we
+can use it to compute the fifth.  Yet translating the equation into a
+traditional computer language would force us to choose one of the quantities to
+be computed in terms of the other four.  Thus, a procedure for computing the
+area @math{A} could not be used to compute the deflection @math{d}, even though the
+computations of @math{A} and @math{d} arise from the same
+equation.@footnote{Constraint propagation first appeared in the incredibly
+forward-looking @abbr{SKETCHPAD} system of Ivan @ref{Sutherland (1963)}.  A
+beautiful constraint-propagation system based on the Smalltalk language was
+developed by Alan @ref{Borning (1977)} at Xerox Palo Alto Research Center.  Sussman,
+Stallman, and Steele applied constraint propagation to electrical circuit
+analysis (@ref{Sussman and Stallman 1975}; @ref{Sussman and Steele 1980}). TK!Solver
+(@ref{Konopasek and Jayaraman 1984}) is an extensive modeling environment based on
+constraints.}
+
+In this section, we sketch the design of a language that enables us to work in
+terms of relations themselves.  The primitive elements of the language are
+@newterm{primitive constraints}, which state that certain relations hold
+between quantities.  For example, @code{(adder a b c)} specifies that the
+quantities @math{a}, @math{b}, and @math{c} must be related by the equation 
+@math{{a + b = c}}, @code{(multiplier x y z)} expresses the constraint 
+@math{{xy = z}}, and @code{(constant 3.14 x)} says that the value of @math{x} must be 3.14.
+
+Our language provides a means of combining primitive constraints in order to
+express more complex relations.  We combine constraints by constructing
+@newterm{constraint networks}, in which constraints are joined by
+@newterm{connectors}.  A connector is an object that ``holds'' a value that may
+participate in one or more constraints.  For example, we know that the
+relationship between Fahrenheit and Celsius temperatures is
+@ifinfo
+
+@example
+9C = 5(F - 32)
+@end example
+
+@end ifinfo
+@tex
+\[ % :62:
+  {9C} \,=\, {5(F - 32).}  \]
+@end tex
+Such a constraint can be thought of as a network consisting of primitive adder,
+multiplier, and constant constraints (@ref{Figure 3.28}).  In the figure, we
+see on the left a multiplier box with three terminals, labeled @math{{m1}}, @math{{m2}},
+and @math{p}.  These connect the multiplier to the rest of the network as follows:
+The @math{{m1}} terminal is linked to a connector @math{C}, which will hold the Celsius
+temperature.  The @math{{m2}} terminal is linked to a connector @math{w}, which is also
+linked to a constant box that holds 9.  The @math{p} terminal, which the
+multiplier box constrains to be the product of @math{{m1}} and @math{{m2}}, is linked to
+the @math{p} terminal of another multiplier box, whose @math{{m2}} is connected to a
+constant 5 and whose @math{{m1}} is connected to one of the terms in a sum.
+
+@float
+@anchor{Figure 3.28}
+@ifinfo
+@strong{Figure 3.28:} The relation @math{9C = 5(F - 32)} expressed as a constraint network.
+
+@example
+       +---------+     +---------+   v   +---------+
+C -----+ m1      |  u  |      m1 +-------+ a1      |
+       |    *  p +-----+ p  *    |       |    *  s +---- F
+    +--+ m2      |     |      m2 +--+ +--+ a2      |
+    |  +---------+     +---------+  | |  +---------+
+  w |                              x| |y

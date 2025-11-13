@@ -1,0 +1,100 @@
+prime.  Now we filter the multiples of 3 from the rest of this stream.  This
+leaves a stream beginning with 5, which is the next prime, and so on.  In other
+words, we construct the primes by a sieving process, described as follows: To
+sieve a stream @code{S}, form a stream whose first element is the first element
+of @code{S} and the rest of which is obtained by filtering all multiples of the
+first element of @code{S} out of the rest of @code{S} and sieving the
+result. This process is readily described in terms of stream operations:
+
+@lisp
+(define (sieve stream)
+  (cons-stream
+   (stream-car stream)
+   (sieve (stream-filter
+           (lambda (x)
+             (not (divisible? 
+                   x (stream-car stream))))
+           (stream-cdr stream)))))
+
+(define primes 
+  (sieve (integers-starting-from 2)))
+@end lisp
+
+@noindent
+Now to find a particular prime we need only ask for it:
+
+@lisp
+(stream-ref primes 50)
+@i{233}
+@end lisp
+
+@noindent
+It is interesting to contemplate the signal-processing system set up by
+@code{sieve}, shown in the ``Henderson diagram'' in 
+@ref{Figure 3.31}.@footnote{We have named these figures after Peter Henderson, who was the
+first person to show us diagrams of this sort as a way of thinking about stream
+processing.  Each solid line represents a stream of values being transmitted.
+The dashed line from the @code{car} to the @code{cons} and the @code{filter}
+indicates that this is a single value rather than a stream.}  The input stream
+feeds into an ``un@code{cons}er'' that separates the first element of the
+stream from the rest of the stream.  The first element is used to construct a
+divisibility filter, through which the rest is passed, and the output of the
+filter is fed to another sieve box.  Then the original first element is
+@code{cons}ed onto the output of the internal sieve to form the output stream.
+Thus, not only is the stream infinite, but the signal processor is also
+infinite, because the sieve contains a sieve within it.
+
+@float
+@anchor{Figure 3.31}
+@ifinfo
+@strong{Figure 3.31:} The prime sieve viewed as a signal-processing system.
+
+@example
+  +---------------------------------------------------------------+
+  | sieve                                                         |
+  |                                                               |
+  |        __/|                                        |\__       |
+  |     __/car|........................................|   \__    |
+  |   _/      |           :                            |      \_  |
+----><_       |           V                            |  cons _>---->
+  |    \__    |    +------------+    +------------+    |    __/   |
+  |       \cdr|--->| filter:    |    | sieve      |--->| __/      |
+  |          \|    |            |--->|            |    |/         |
+  |                | not        |    |            |               |
+  |                | divisible? |    |            |               |
+  |                +------------+    +------------+               |
+  +---------------------------------------------------------------+
+@end example
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.31a,132mm,,,.std.svg}
+@caption{@strong{Figure 3.31:} The prime sieve viewed as a signal-processing system.}
+@end iftex
+@end float
+
+@subsubheading Defining streams implicitly
+
+The @code{integers} and @code{fibs} streams above were defined by specifying
+``generating'' procedures that explicitly compute the stream elements one by
+one. An alternative way to specify streams is to take advantage of delayed
+evaluation to define streams implicitly.  For example, the following expression
+defines the stream @code{ones} to be an infinite stream of ones:
+
+@lisp
+(define ones (cons-stream 1 ones))
+@end lisp
+
+@noindent
+This works much like the definition of a recursive procedure: @code{ones} is a
+pair whose @code{car} is 1 and whose @code{cdr} is a promise to evaluate
+@code{ones}.  Evaluating the @code{cdr} gives us again a 1 and a promise to
+evaluate @code{ones}, and so on.
+
+We can do more interesting things by manipulating streams with operations such
+as @code{add-streams}, which produces the elementwise sum of two given
+streams:@footnote{This uses the generalized version of @code{stream-map} from
+@ref{Exercise 3.50}.}
+
+@lisp
+(define (add-streams s1 s2) 
+  (stream-map + s1 s2))

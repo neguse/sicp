@@ -1,0 +1,100 @@
+a register machine with registers @code{n}, @code{val}, and @code{continue}.
+The machine is more complex than the one for factorial, because there are two
+places in the controller sequence where we need to perform recursive
+calls---once to compute @math{{\text{Fib}(n - 1)}} and once to compute @math{{\text{Fib}(n - 2)}}.  To
+set up for each of these calls, we save the registers whose values will be
+needed later, set the @code{n} register to the number whose Fib we need to
+compute recursively (@math{{n - 1}} or @math{{n - 2}}), and assign to @code{continue} the
+entry point in the main sequence to which to return (@code{afterfib-n-1} or
+@code{afterfib-n-2}, respectively).  We then go to @code{fib-loop}.  When we
+return from the recursive call, the answer is in @code{val}.  @ref{Figure 5.12}
+shows the controller sequence for this machine.
+
+@quotation
+@strong{@anchor{Figure 5.12}Figure 5.12:} @math{\downarrow} Controller for a machine to compute
+Fibonacci numbers.
+
+@lisp
+(controller
+   (assign continue (label fib-done))
+ fib-loop
+   (test (op <) (reg n) (const 2))
+   (branch (label immediate-answer))
+   @r{;; set up to compute Fib(@emph{n} − 1)}
+   (save continue)
+   (assign continue (label afterfib-n-1))
+   (save n)           @r{; save old value of @code{n}}
+   (assign n 
+           (op -)
+           (reg n)
+           (const 1)) @r{; clobber @code{n} to @code{n-1}}
+   (goto 
+    (label fib-loop)) @r{; perform recursive call}
+ afterfib-n-1 @r{; upon return, @code{val} contains Fib(@emph{n} − 1)}
+   (restore n)
+   (restore continue)
+   @r{;; set up to compute Fib(@emph{n} − 2)}
+   (assign n (op -) (reg n) (const 2))
+   (save continue)
+   (assign continue (label afterfib-n-2))
+   (save val)         @r{; save Fib(@emph{n} − 1)}
+   (goto (label fib-loop))
+ afterfib-n-2 @r{; upon return, @code{val} contains Fib(@emph{n} − 2)}
+   (assign n 
+           (reg val)) @r{; @code{n} now contains Fib(@emph{n} − 2)}
+   (restore val)      @r{; @code{val} now contains Fib(@emph{n} − 1)}
+   (restore continue)
+   (assign val        @r{; Fib(@emph{n} − 1) + Fib(@emph{n} − 2)}
+           (op +) 
+           (reg val)
+           (reg n))
+   (goto              @r{; return to caller,}
+    (reg continue))   @r{; answer is in @code{val}}
+ immediate-answer
+   (assign val 
+           (reg n))   @r{; base case: Fib(@emph{n}) = @emph{n}}
+   (goto (reg continue))
+ fib-done)
+@end lisp
+
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.4}Exercise 5.4:} Specify register machines that
+implement each of the following procedures.  For each machine, write a
+controller instruction sequence and draw a diagram showing the data paths.
+
+@enumerate a
+
+@item
+Recursive exponentiation:
+
+@lisp
+(define (expt b n)
+  (if (= n 0)
+      1
+      (* b (expt b (- n 1)))))
+@end lisp
+
+@item
+Iterative exponentiation:
+
+@lisp
+(define (expt b n)
+  (define (expt-iter counter product)
+    (if (= counter 0)
+        product
+        (expt-iter (- counter 1)
+                   (* b product))))
+  (expt-iter n 1))
+@end lisp
+
+@end enumerate
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.5}Exercise 5.5:} Hand-simulate the factorial and
+Fibonacci machines, using some nontrivial input (requiring execution of at
+least one recursive call).  Show the contents of the stack at each significant
+point in the execution.
+@end quotation

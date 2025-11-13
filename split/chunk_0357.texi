@@ -1,0 +1,100 @@
+    (if (null? (cdr operand-codes))
+        code-for-next-arg
+        (preserving 
+         '(env)
+         code-for-next-arg
+         (code-to-get-rest-args 
+          (cdr operand-codes))))))
+@end lisp
+
+@subsubheading Applying procedures
+
+After evaluating the elements of a combination, the compiled code must apply
+the procedure in @code{proc} to the arguments in @code{argl}.  The code
+performs essentially the same dispatch as the @code{apply} procedure in the
+metacircular evaluator of @ref{4.1.1} or the @code{apply-dispatch}
+entry point in the explicit-control evaluator of @ref{5.4.1}.  It
+checks whether the procedure to be applied is a primitive procedure or a
+compiled procedure.  For a primitive procedure, it uses
+@code{apply-primitive-procedure}; we will see shortly how it handles compiled
+procedures.  The procedure-application code has the following form:
+
+@lisp
+(test (op primitive-procedure?) (reg proc))
+ (branch (label primitive-branch))
+compiled-branch
+ ⟨@emph{code to apply compiled procedure 
+  with given target and appropriate linkage}⟩
+primitive-branch
+ (assign ⟨@var{target}⟩
+         (op apply-primitive-procedure)
+         (reg proc)
+         (reg argl))
+ ⟨@var{linkage}⟩
+after-call
+@end lisp
+
+@noindent
+Observe that the compiled branch must skip around the primitive branch.
+Therefore, if the linkage for the original procedure call was @code{next}, the
+compound branch must use a linkage that jumps to a label that is inserted after
+the primitive branch.  (This is similar to the linkage used for the true branch
+in @code{compile-if}.)
+
+@lisp
+(define (compile-procedure-call
+         target linkage)
+  (let ((primitive-branch 
+         (make-label 'primitive-branch))
+        (compiled-branch 
+         (make-label 'compiled-branch))
+        (after-call
+         (make-label 'after-call)))
+    (let ((compiled-linkage
+           (if (eq? linkage 'next)
+               after-call
+               linkage)))
+      (append-instruction-sequences
+       (make-instruction-sequence 
+        '(proc)
+        '()
+        `((test 
+           (op primitive-procedure?)
+           (reg proc))
+          (branch 
+           (label ,primitive-branch))))
+       (parallel-instruction-sequences
+        (append-instruction-sequences
+         compiled-branch
+         (compile-proc-appl 
+          target
+          compiled-linkage))
+        (append-instruction-sequences
+         primitive-branch
+         (end-with-linkage
+          linkage
+          (make-instruction-sequence
+           '(proc argl)
+           (list target)
+           `((assign 
+              ,target
+              (op apply-primitive-procedure)
+              (reg proc)
+              (reg argl)))))))
+       after-call))))
+@end lisp
+
+@noindent
+The primitive and compound branches, like the true and false branches in
+@code{compile-if}, are appended using @code{parallel-instruction-sequences}
+rather than the ordinary @code{append-instruction-sequences}, because they will
+not be executed sequentially.
+
+@subsubheading Applying compiled procedures
+
+The code that handles procedure application is the most subtle part of the
+compiler, even though the instruction sequences it generates are very short.  A
+compiled procedure (as constructed by @code{compile-lambda}) has an entry
+point, which is a label that designates where the code for the procedure
+starts.  The code at this entry point computes a result in @code{val} and
+returns by executing the instruction @code{(goto (reg continue))}.  Thus, we

@@ -1,0 +1,100 @@
+them.  Thus, a change made by an interaction with one device will affect all
+the other devices attached to the wire.  The wire communicates the change to
+its neighbors by calling the action procedures provided to it when the
+connections were established.
+
+@subsubheading The agenda
+
+The only thing needed to complete the simulator is @code{after-delay}.  The
+idea here is that we maintain a data structure, called an @newterm{agenda},
+that contains a schedule of things to do.  The following operations are defined
+for agendas:
+
+@itemize @bullet
+
+@item
+@code{(make-agenda)} returns a new empty agenda.
+
+@item
+@code{(empty-agenda? ⟨@var{agenda}⟩)} is true if the specified agenda is
+empty.
+
+@item
+@code{(first-agenda-item ⟨@var{agenda}⟩)} returns the first item on the
+agenda.
+
+@item
+@code{(remove-first-agenda-item! ⟨@var{agenda}⟩)} modifies the agenda by
+removing the first item.
+
+@item
+@code{(add-to-agenda! ⟨@var{time}⟩ ⟨@var{action}⟩ ⟨@var{agenda}⟩)} 
+modifies the agenda by adding the given action procedure to be run at the 
+specified time.
+
+@item
+@code{(current-time ⟨@var{agenda}⟩)} returns the current simulation time.
+
+@end itemize
+
+@noindent
+The particular agenda that we use is denoted by @code{the-agenda}.  The
+procedure @code{after-delay} adds new elements to @code{the-agenda}:
+
+@lisp
+(define (after-delay delay action)
+  (add-to-agenda! 
+   (+ delay (current-time the-agenda))
+   action
+   the-agenda))
+@end lisp
+
+@noindent
+The simulation is driven by the procedure @code{propagate}, which operates on
+@code{the-agenda}, executing each procedure on the agenda in sequence.  In
+general, as the simulation runs, new items will be added to the agenda, and
+@code{propagate} will continue the simulation as long as there are items on the
+agenda:
+
+@lisp
+(define (propagate)
+  (if (empty-agenda? the-agenda)
+      'done
+      (let ((first-item 
+             (first-agenda-item the-agenda)))
+        (first-item)
+        (remove-first-agenda-item! the-agenda)
+        (propagate))))
+@end lisp
+
+@subsubheading A sample simulation
+
+The following procedure, which places a ``probe'' on a wire, shows the
+simulator in action.  The probe tells the wire that, whenever its signal
+changes value, it should print the new signal value, together with the current
+time and a name that identifies the wire:
+
+@lisp
+(define (probe name wire)
+  (add-action! 
+   wire
+   (lambda ()
+     (newline)
+     (display name)
+     (display " ")
+     (display (current-time the-agenda))
+     (display "  New-value = ")
+     (display (get-signal wire)))))
+@end lisp
+
+@noindent
+We begin by initializing the agenda and specifying delays for the primitive
+function boxes:
+
+@lisp
+(define the-agenda (make-agenda))
+(define inverter-delay 2)
+(define and-gate-delay 3)
+(define or-gate-delay 5)
+@end lisp
+

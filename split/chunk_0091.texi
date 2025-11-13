@@ -1,0 +1,100 @@
+and produces a painter operation that transforms a given painter with those
+four operations and arranges the results in a square.  @code{Tl}, @code{tr},
+@code{bl}, and @code{br} are the transformations to apply to the top left copy,
+the top right copy, the bottom left copy, and the bottom right copy,
+respectively.
+
+@lisp
+(define (square-of-four tl tr bl br)
+  (lambda (painter)
+    (let ((top (beside (tl painter) 
+                       (tr painter)))
+          (bottom (beside (bl painter) 
+                          (br painter))))
+      (below bottom top))))
+@end lisp
+
+@noindent
+Then @code{flipped-pairs} can be defined in terms of @code{square-of-four} as
+follows:@footnote{Equivalently, we could write
+
+@lisp
+(define flipped-pairs
+  (square-of-four 
+   identity flip-vert identity flip-vert))
+@end lisp
+}
+
+@lisp
+(define (flipped-pairs painter)
+  (let ((combine4 
+         (square-of-four identity 
+                         flip-vert
+                         identity 
+                         flip-vert)))
+    (combine4 painter)))
+@end lisp
+
+@noindent
+and @code{square-limit} can be expressed as@footnote{@code{Rotate180} rotates a
+painter by 180 degrees (see @ref{Exercise 2.50}).  Instead of @code{rotate180}
+we could say @code{(compose flip-vert flip-horiz)}, using the @code{compose}
+procedure from @ref{Exercise 1.42}.}
+
+@lisp
+(define (square-limit painter n)
+  (let ((combine4 
+         (square-of-four flip-horiz 
+                         identity
+                         rotate180 
+                         flip-vert)))
+    (combine4 (corner-split painter n))))
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 2.45}Exercise 2.45:} @code{Right-split} and
+@code{up-split} can be expressed as instances of a general splitting operation.
+Define a procedure @code{split} with the property that evaluating
+
+@lisp
+(define right-split (split beside below))
+(define up-split (split below beside))
+@end lisp
+
+@noindent
+produces procedures @code{right-split} and @code{up-split} with the same
+behaviors as the ones already defined.
+@end quotation
+
+@subsubheading Frames
+
+Before we can show how to implement painters and their means of combination, we
+must first consider frames.  A frame can be described by three vectors---an
+origin vector and two edge vectors.  The origin vector specifies the offset of
+the frame's origin from some absolute origin in the plane, and the edge vectors
+specify the offsets of the frame's corners from its origin.  If the edges are
+perpendicular, the frame will be rectangular.  Otherwise the frame will be a
+more general parallelogram.
+
+@ref{Figure 2.15} shows a frame and its associated vectors.
+In accordance with data abstraction, we need not be specific yet about how
+frames are represented, other than to say that there is a constructor
+@code{make-frame}, which takes three vectors and produces a frame, and three
+corresponding selectors @code{origin-frame}, @code{edge1-frame}, and
+@code{edge2-frame} (see @ref{Exercise 2.47}).
+
+@float
+@anchor{Figure 2.15}
+@ifinfo
+@quotation
+@strong{Figure 2.15:} A frame is described by three vectors
+-- an origin and two edges.
+
+@example
+                         __
+                     __--  \
+                 __--       \
+      __     __--            \   __
+     |\  __--                 \__-|
+       \-                  __--
+frame   \              __--

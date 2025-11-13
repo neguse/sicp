@@ -1,0 +1,100 @@
+interface implemented in this section is awkward, since the compiler can be
+called only once (when the evaluator machine is started).  Augment the
+compiler-interpreter interface by providing a @code{compile-and-run} primitive
+that can be called from within the explicit-control evaluator as follows:
+
+@lisp
+@i{;;; EC-Eval input:}
+(compile-and-run
+ '(define (factorial n)
+    (if (= n 1)
+        1
+        (* (factorial (- n 1)) n))))
+
+@i{;;; EC-Eval value:}
+@i{ok}
+
+@i{;;; EC-Eval input:}
+(factorial 5)
+
+@i{;;; EC-Eval value:}
+@i{120}
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.49}Exercise 5.49:} As an alternative to using the
+explicit-control evaluator's read-eval-print loop, design a register machine
+that performs a read-compile-execute-print loop.  That is, the machine should
+run a loop that reads an expression, compiles it, assembles and executes the
+resulting code, and prints the result.  This is easy to run in our simulated
+setup, since we can arrange to call the procedures @code{compile} and
+@code{assemble} as ``register-machine operations.''
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.50}Exercise 5.50:} Use the compiler to compile the
+metacircular evaluator of @ref{4.1} and run this program using the
+register-machine simulator.  (To compile more than one definition at a time,
+you can package the definitions in a @code{begin}.)  The resulting interpreter
+will run very slowly because of the multiple levels of interpretation, but
+getting all the details to work is an instructive exercise.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.51}Exercise 5.51:} Develop a rudimentary
+implementation of Scheme in C (or some other low-level language of your choice)
+by translating the explicit-control evaluator of @ref{5.4} into C.  In
+order to run this code you will need to also provide appropriate
+storage-allocation routines and other run-time support.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.52}Exercise 5.52:} As a counterpoint to 
+@ref{Exercise 5.51}, modify the compiler so that it compiles Scheme procedures
+into sequences of C instructions.  Compile the metacircular evaluator of
+@ref{4.1} to produce a Scheme interpreter written in C.
+@end quotation
+
+@node    References, Exercises, 5.5, Top
+@unnumbered References
+
+@anchor{Abelson et al. 1992}
+Abelson, Harold, Andrew Berlin, Jacob Katzenelson, William McAllister,
+Guillermo Rozas, Gerald Jay Sussman, and Jack Wisdom. 1992.  The Super@-com@-pu@-ter
+Tool@-kit: A general framework for special-purpose com@-pu@-ting.
+@cite{In@-ter@-na@-tio@-nal Journal of High-Speed Electronics} 3(3): 337-361.
+@url{http://www.hpl.hp.com/techreports/94/HPL-94-30.html, –›}
+
+@anchor{Allen 1978}
+Allen, John.  1978.  @cite{Anatomy of Lisp}. New York: McGraw-Hill.
+
+@anchor{ANSI 1994}
+@abbr{ANSI} @abbr{X}3.226-1994. @cite{American National Standard for Information
+Systems---Programming Language---Common Lisp}.
+
+@anchor{Appel 1987}
+Appel, Andrew W.  1987.  Garbage collection can be faster than stack
+allocation.  @cite{Information Processing Letters} 25(4): 275-279.
+@url{https://www.cs.princeton.edu/~appel/papers/45.ps, –›}
+
+@anchor{Backus 1978}
+Backus, John.  1978.  Can programming be liberated from the von Neumann style?
+@cite{Communications of the @abbr{ACM}} 21(8): 613-641.
+@url{http://worrydream.com/refs/Backus-CanProgrammingBeLiberated.pdf, –›}
+
+@anchor{Baker (1978)}
+Baker, Henry G., Jr.  1978.  List processing in real time on a serial computer.
+@cite{Communications of the @abbr{ACM}} 21(4): 280-293.
+@url{http://dspace.mit.edu/handle/1721.1/41976, –›}
+
+@anchor{Batali et al. 1982}
+Batali, John, Neil Mayle, Howard Shrobe, Gerald Jay Sussman, and Daniel Weise.
+1982.  The Scheme-81 architecture---System and chip.  In @cite{Proceedings of
+the @abbr{MIT} Conference on Advanced Research in @abbr{VLSI}}, edited by
+Paul Penfield, Jr. Dedham, @abbr{MA}: Artech House.
+
+@anchor{Borning (1977)}
+Borning, Alan.  1977.  ThingLab---An object-oriented system for building
+simulations using constraints. In @cite{Proceedings of the 5th International
+Joint Conference on Artificial Intelligence}.

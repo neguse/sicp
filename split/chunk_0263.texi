@@ -1,0 +1,100 @@
+
+@lisp
+(define (parse-simple-noun-phrase)
+  (list 'simple-noun-phrase
+        (parse-word articles)
+        (parse-word nouns)))
+
+(define (parse-noun-phrase)
+  (define (maybe-extend noun-phrase)
+    (amb 
+     noun-phrase
+     (maybe-extend 
+      (list 'noun-phrase
+            noun-phrase
+            (parse-prepositional-phrase)))))
+  (maybe-extend (parse-simple-noun-phrase)))
+@end lisp
+
+@noindent
+Our new grammar lets us parse more complex sentences.  For example
+
+@lisp
+(parse '(the student with the cat 
+         sleeps in the class))
+@end lisp
+
+@noindent
+produces
+
+@lisp
+(sentence
+ (noun-phrase
+  (simple-noun-phrase (article the) 
+                      (noun student))
+  (prep-phrase (prep with)
+               (simple-noun-phrase
+                (article the)
+                (noun cat))))
+ (verb-phrase
+  (verb sleeps)
+  (prep-phrase (prep in)
+               (simple-noun-phrase
+                (article the)
+                (noun class)))))
+@end lisp
+
+@noindent
+Observe that a given input may have more than one legal parse.  In the sentence
+``The professor lectures to the student with the cat,'' it may be that the
+professor is lecturing with the cat, or that the student has the cat.  Our
+nondeterministic program finds both possibilities:
+
+@lisp
+(parse '(the professor lectures to 
+         the student with the cat))
+@end lisp
+
+@noindent
+produces
+
+@lisp
+(sentence
+ (simple-noun-phrase (article the) 
+                     (noun professor))
+ (verb-phrase
+  (verb-phrase
+   (verb lectures)
+   (prep-phrase (prep to)
+                (simple-noun-phrase
+                 (article the) 
+                 (noun student))))
+  (prep-phrase (prep with)
+               (simple-noun-phrase
+                (article the) 
+                (noun cat)))))
+@end lisp
+
+@noindent
+Asking the evaluator to try again yields
+
+@lisp
+(sentence
+ (simple-noun-phrase (article the) 
+                     (noun professor))
+ (verb-phrase (verb lectures)
+              (prep-phrase 
+               (prep to)
+               (noun-phrase
+                (simple-noun-phrase
+                 (article the) 
+                 (noun student))
+                (prep-phrase 
+                 (prep with)
+                 (simple-noun-phrase
+                  (article the) 
+                  (noun cat)))))))
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 4.45}Exercise 4.45:} With the grammar given above, the

@@ -1,0 +1,100 @@
+operations are available as primitive machine operations, which is useful for
+our simulation, but completely unrealistic in practice.  These are actually
+extremely complex operations.  In practice, they would be implemented using
+low-level input-output operations such as transferring single characters to and
+from a device.
+
+To support the @code{get-global-environment} operation we define
+
+@lisp
+(define the-global-environment
+  (setup-environment))
+
+(define (get-global-environment)
+  the-global-environment)
+@end lisp
+}
+
+@lisp
+read-eval-print-loop
+  (perform (op initialize-stack))
+  (perform (op prompt-for-input)
+           (const ";;; EC-Eval input:"))
+  (assign exp (op read))
+  (assign env (op get-global-environment))
+  (assign continue (label print-result))
+  (goto (label eval-dispatch))
+print-result
+  (perform (op announce-output)
+           (const ";;; EC-Eval value:"))
+  (perform (op user-print) (reg val))
+  (goto (label read-eval-print-loop))
+@end lisp
+
+@noindent
+When we encounter an error in a procedure (such as the ``unknown procedure type
+error'' indicated at @code{apply-dispatch}), we print an error message and
+return to the driver loop.@footnote{There are other errors that we would like
+the interpreter to handle, but these are not so simple.  See @ref{Exercise 5.30}.}
+
+@lisp
+unknown-expression-type
+  (assign 
+   val
+   (const unknown-expression-type-error))
+  (goto (label signal-error))
+unknown-procedure-type
+  @r{; clean up stack (from @code{apply-dispatch}):}
+  (restore continue)    
+  (assign 
+   val
+   (const unknown-procedure-type-error))
+  (goto (label signal-error))
+signal-error
+  (perform (op user-print) (reg val))
+  (goto (label read-eval-print-loop))
+@end lisp
+
+@noindent
+For the purposes of the simulation, we initialize the stack each time through
+the driver loop, since it might not be empty after an error (such as an
+undefined variable) interrupts an evaluation.@footnote{We could perform the
+stack initialization only after errors, but doing it in the driver loop will be
+convenient for monitoring the evaluator's performance, as described below.}
+
+If we combine all the code fragments presented in 
+@ref{5.4.1}--@ref{5.4.4}, we can create an evaluator machine model that we can
+run using the register-machine simulator of @ref{5.2}.
+
+@lisp
+(define eceval
+  (make-machine
+   '(exp env val proc argl continue unev)
+   eceval-operations
+   '(read-eval-print-loop
+     ⟨@emph{entire machine controller} 
+      @emph{as given above}⟩)))
+@end lisp
+
+@noindent
+We must define Scheme procedures to simulate the operations used as primitives
+by the evaluator.  These are the same procedures we used for the metacircular
+evaluator in @ref{4.1}, together with the few additional ones defined
+in footnotes throughout @ref{5.4}.
+
+@lisp
+(define eceval-operations
+  (list (list 'self-evaluating? 
+              self-evaluating)
+        ⟨@emph{complete list of operations} 
+         @emph{for eceval machine}⟩))
+@end lisp
+
+@noindent
+Finally, we can initialize the global environment and run the evaluator:
+
+@lisp
+(define the-global-environment
+  (setup-environment))
+
+(start eceval)

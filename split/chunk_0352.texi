@@ -1,0 +1,100 @@
+@code{continue} and the linkage code needs it, @code{continue} will be saved
+and restored.
+
+@lisp
+(define (end-with-linkage 
+         linkage instruction-sequence)
+  (preserving '(continue)
+   instruction-sequence
+   (compile-linkage linkage)))
+@end lisp
+
+@subsubheading Compiling simple expressions
+
+The code generators for self-evaluating expressions, quotations, and variables
+construct instruction sequences that assign the required value to the target
+register and then proceed as specified by the linkage descriptor.
+
+@lisp
+(define (compile-self-evaluating 
+         exp target linkage)
+  (end-with-linkage
+   linkage (make-instruction-sequence 
+            '()
+            (list target)
+            `((assign ,target (const ,exp))))))
+
+(define (compile-quoted exp target linkage)
+  (end-with-linkage
+   linkage
+   (make-instruction-sequence
+    '()
+    (list target)
+    `((assign 
+       ,target
+       (const ,(text-of-quotation exp)))))))
+
+(define (compile-variable
+         exp target linkage)
+  (end-with-linkage 
+   linkage
+   (make-instruction-sequence 
+    '(env)
+    (list target)
+    `((assign ,target
+              (op lookup-variable-value)
+              (const ,exp)
+              (reg env))))))
+@end lisp
+
+@noindent
+All these assignment instructions modify the target register, and the one that
+looks up a variable needs the @code{env} register.
+
+Assignments and definitions are handled much as they are in the interpreter.
+We recursively generate code that computes the value to be assigned to the
+variable, and append to it a two-instruction sequence that actually sets or
+defines the variable and assigns the value of the whole expression (the symbol
+@code{ok}) to the target register.  The recursive compilation has target
+@code{val} and linkage @code{next} so that the code will put its result into
+@code{val} and continue with the code that is appended after it.  The appending
+is done preserving @code{env}, since the environment is needed for setting or
+defining the variable and the code for the variable value could be the
+compilation of a complex expression that might modify the registers in
+arbitrary ways.
+
+@lisp
+(define (compile-assignment 
+         exp target linkage)
+  (let ((var (assignment-variable exp))
+        (get-value-code
+         (compile (assignment-value exp) 
+                  'val
+                  'next)))
+    (end-with-linkage 
+     linkage
+     (preserving 
+      '(env)
+      get-value-code
+      (make-instruction-sequence
+       '(env val)
+       (list target)
+       `((perform (op set-variable-value!)
+                  (const ,var)
+                  (reg val)
+                  (reg env))
+         (assign ,target (const ok))))))))
+
+(define (compile-definition 
+         exp target linkage)
+  (let ((var (definition-variable exp))
+        (get-value-code
+         (compile (definition-value exp)
+                  'val
+                  'next)))
+    (end-with-linkage
+     linkage
+     (preserving 
+      '(env)
+      get-value-code
+      (make-instruction-sequence

@@ -1,0 +1,100 @@
+@anchor{Hewitt (1969)}
+Hewitt, Carl E.  1969.  @abbr{PLANNER}: A language for proving
+theorems in robots.  In @cite{Proceedings of the International Joint
+Conference on Artificial Intelligence}, pp. 295-301.
+@url{http://dspace.mit.edu/handle/1721.1/6171, –›}
+
+@anchor{Hewitt (1977)}
+Hewitt, Carl E.  1977.  Viewing control structures as patterns of passing
+messages.  @cite{Journal of Artificial Intelligence} 8(3): 323-364.
+@url{http://dspace.mit.edu/handle/1721.1/6272, –›}
+
+@anchor{Hoare (1972)}
+Hoare, C. A. R. 1972.  Proof of correctness of data representations.
+@cite{Acta Informatica} 1(1).
+
+@anchor{Hodges 1983}
+Hodges, Andrew. 1983.  @cite{Alan Turing: The Enigma}. New York: Simon and
+Schuster.
+
+@anchor{Hofstadter 1979}
+Hofstadter, Douglas R.  1979.  @cite{G@"odel, Escher, Bach: An Eternal Golden
+Braid}. New York: Basic Books.
+
+@anchor{Hughes 1990}
+Hughes, R. J. M.  1990.  Why functional programming matters.  In @cite{Research
+Topics in Functional Programming}, edited by David Turner.  Reading, @abbr{MA}:
+Addison-Wesley, pp. 17-42.
+@url{http://www.cs.kent.ac.uk/people/staff/dat/miranda/whyfp90.pdf, –›}
+
+@anchor{IEEE 1990}
+@abbr{IEEE} Std 1178-1990.  1990.  @cite{@abbr{IEEE} Standard for the
+Scheme Programming Language}.
+
+@anchor{Ingerman et al. 1960}
+Ingerman, Peter, Edgar Irons, Kirk Sattley, and Wallace Feurzeig; assisted by
+M. Lind, Herbert Kanner, and Robert Floyd.  1960.  @abbr{THUNKS}: A way of
+compiling procedure statements, with some comments on procedure declarations.
+Unpublished manuscript.  (Also, private communication from Wallace Feurzeig.)
+
+@anchor{Kaldewaij 1990}
+Kaldewaij, Anne. 1990.  @cite{Programming: The Derivation of Algorithms}. New
+York: Prentice-Hall.
+
+@anchor{Knuth (1973)}
+Knuth, Donald E.  1973.  @cite{Fundamental Algorithms}. Volume 1 of @cite{The
+Art of Computer Programming}.  2nd edition. Reading, @abbr{MA}: Addison-Wesley.
+
+@anchor{Knuth 1981}
+Knuth, Donald E.  1981.  @cite{Seminumerical Algorithms}. Volume 2 of @cite{The
+Art of Computer Programming}.  2nd edition. Reading, @abbr{MA}: Addison-Wesley.
+
+@anchor{Kohlbecker 1986}
+Kohlbecker, Eugene Edmund, Jr. 1986.  Syntactic extensions in the programming
+language Lisp.  Ph.D. thesis, Indiana University.
+@url{http://www.ccs.neu.edu/scheme/pubs/dissertation-kohlbecker.pdf, –›}
+
+@anchor{Konopasek and Jayaraman 1984}
+Konopasek, Milos, and Sundaresan Jayaraman.  1984.  @cite{The TK!Solver Book: A
+Guide to Problem-Solving in Science, Engineering, Business, and
+Education}. Berkeley, @abbr{CA}: Osborne/McGraw-Hill.
+
+@anchor{Kowalski (1973; 1979)}
+Kowalski, Robert.  1973.  Predicate logic as a programming language.  Technical
+report 70, Department of Computational Logic, School of Artificial
+Intelligence, University of Edinburgh.
+@url{http://www.doc.ic.ac.uk/~rak/papers/IFIP%2074.pdf, –›}
+
+Kowalski, Robert.  1979.  @cite{Logic for Problem Solving}. New York:
+North-Holland.
+@url{http://www.doc.ic.ac.uk/%7Erak/papers/LogicForProblemSolving.pdf, –›}
+
+@anchor{Lamport (1978)}
+Lamport, Leslie. 1978.  Time, clocks, and the ordering of events in a
+distributed system.  @cite{Communications of the @abbr{ACM}} 21(7): 558-565.
+@url{https://amturing.acm.org/p558-lamport.pdf, –›}
+
+@anchor{Lampson et al. 1981}
+Lampson, Butler, J. J. Horning, R.  London, J. G. Mitchell, and G. K.  Popek.
+1981.  Report on the programming language Euclid.  Technical report, Computer
+Systems Research Group, University of Toronto.
+@url{http://www.bitsavers.org/pdf/xerox/parc/techReports/CSL-81-12_Report_On_The_Programming_Language_Euclid.pdf, –›}
+
+@anchor{Landin (1965)}
+Landin, Peter.  1965.  A correspondence between Algol 60 and Church's lambda
+notation: Part I.  @cite{Communications of the @abbr{ACM}} 8(2): 89-101.
+
+@anchor{Lieberman and Hewitt 1983}
+Lieberman, Henry, and Carl E. Hewitt. 1983. A real-time garbage collector based
+on the lifetimes of objects. @cite{Communications of the @abbr{ACM}}
+26(6): 419-429.
+@url{http://dspace.mit.edu/handle/1721.1/6335, –›}
+
+@anchor{Liskov and Zilles (1975)}
+Liskov, Barbara H., and Stephen N. Zilles.  1975.  Specification techniques for
+data abstractions.  @cite{@abbr{IEEE} Transactions on Software Engineering}
+1(1): 7-19.
+@url{http://csg.csail.mit.edu/CSGArchives/memos/Memo-117.pdf, –›}
+
+@anchor{McAllester (1978; 1980)}
+McAllester, David Allen.  1978.  A three-valued truth-maintenance system.  Memo

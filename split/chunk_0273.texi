@@ -1,0 +1,100 @@
+retrieval.  The query language we shall implement in this chapter is designed
+to be used in this way.
+
+In order to illustrate what the query system does, we will show how it can be
+used to manage the data base of personnel records for Microshaft, a thriving
+high-technology company in the Boston area.  The language provides
+pattern-directed access to personnel information and can also take advantage of
+general rules in order to make logical deductions.
+
+@subsubheading A sample data base
+
+The personnel data base for Microshaft contains @newterm{assertions} about
+company personnel.  Here is the information about Ben Bitdiddle, the resident
+computer wizard:
+
+@lisp
+(address (Bitdiddle Ben) 
+         (Slumerville (Ridge Road) 10))
+(job (Bitdiddle Ben) (computer wizard))
+(salary (Bitdiddle Ben) 60000)
+@end lisp
+
+@noindent
+Each assertion is a list (in this case a triple) whose elements can themselves
+be lists.
+
+As resident wizard, Ben is in charge of the company's computer division, and he
+supervises two programmers and one technician.  Here is the information about
+them:
+
+@lisp
+(address (Hacker Alyssa P) 
+         (Cambridge (Mass Ave) 78))
+(job (Hacker Alyssa P) (computer programmer))
+(salary (Hacker Alyssa P) 40000)
+(supervisor (Hacker Alyssa P) (Bitdiddle Ben))
+
+(address (Fect Cy D) 
+         (Cambridge (Ames Street) 3))
+(job (Fect Cy D) (computer programmer))
+(salary (Fect Cy D) 35000)
+(supervisor (Fect Cy D) (Bitdiddle Ben))
+
+(address (Tweakit Lem E) 
+         (Boston (Bay State Road) 22))
+(job (Tweakit Lem E) (computer technician))
+(salary (Tweakit Lem E) 25000)
+(supervisor (Tweakit Lem E) (Bitdiddle Ben))
+@end lisp
+
+@noindent
+There is also a programmer trainee, who is supervised by Alyssa:
+
+@lisp
+(address (Reasoner Louis) 
+         (Slumerville (Pine Tree Road) 80))
+(job (Reasoner Louis) 
+     (computer programmer trainee))
+(salary (Reasoner Louis) 30000)
+(supervisor (Reasoner Louis) 
+            (Hacker Alyssa P))
+@end lisp
+
+@noindent
+All of these people are in the computer division, as indicated by the word
+@code{computer} as the first item in their job descriptions.
+
+Ben is a high-level employee.  His supervisor is the company's big wheel
+himself:
+
+@lisp
+(supervisor (Bitdiddle Ben) (Warbucks Oliver))
+(address (Warbucks Oliver) 
+         (Swellesley (Top Heap Road)))
+(job (Warbucks Oliver) 
+     (administration big wheel))
+(salary (Warbucks Oliver) 150000)
+@end lisp
+
+@noindent
+Besides the computer division supervised by Ben, the company has an accounting
+division, consisting of a chief accountant and his assistant:
+
+@lisp
+(address (Scrooge Eben) 
+         (Weston (Shady Lane) 10))
+(job (Scrooge Eben) 
+     (accounting chief accountant))
+(salary (Scrooge Eben) 75000)
+(supervisor (Scrooge Eben) (Warbucks Oliver))
+
+(address (Cratchet Robert) 
+         (Allston (N Harvard Street) 16))
+(job (Cratchet Robert) (accounting scrivener))
+(salary (Cratchet Robert) 18000)
+(supervisor (Cratchet Robert) (Scrooge Eben))
+@end lisp
+
+@noindent
+There is also a secretary for the big wheel:

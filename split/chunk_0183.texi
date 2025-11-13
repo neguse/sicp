@@ -1,0 +1,100 @@
+@i{Error! Contradiction (77 212)}
+@end lisp
+
+@noindent
+The connector complains that it has sensed a contradiction: Its value is 77,
+and someone is trying to set it to 212.  If we really want to reuse the network
+with new values, we can tell @code{C} to forget its old value:
+
+@lisp
+(forget-value! C 'user)
+@i{Probe: Celsius temp = ?}
+@i{Probe: Fahrenheit temp = ?}
+@i{done}
+@end lisp
+
+@noindent
+@code{C} finds that the @code{user}, who set its value originally, is now
+retracting that value, so @code{C} agrees to lose its value, as shown by the
+probe, and informs the rest of the network of this fact.  This information
+eventually propagates to @code{F}, which now finds that it has no reason for
+continuing to believe that its own value is 77.  Thus, @code{F} also gives up
+its value, as shown by the probe.
+
+Now that @code{F} has no value, we are free to set it to 212:
+
+@lisp
+(set-value! F 212 'user)
+@i{Probe: Fahrenheit temp = 212}
+@i{Probe: Celsius temp = 100}
+@i{done}
+@end lisp
+
+@noindent
+This new value, when propagated through the network, forces @code{C} to have a
+value of 100, and this is registered by the probe on @code{C}.  Notice that the
+very same network is being used to compute @code{C} given @code{F} and to
+compute @code{F} given @code{C}.  This nondirectionality of computation is the
+distinguishing feature of constraint-based systems.
+
+@subsubheading Implementing the constraint system
+
+The constraint system is implemented via procedural objects with local state,
+in a manner very similar to the digital-circuit simulator of 
+@ref{3.3.4}.  Although the primitive objects of the constraint system are
+somewhat more complex, the overall system is simpler, since there is no concern
+about agendas and logic delays.
+
+The basic operations on connectors are the following:
+
+@itemize @bullet
+
+@item
+@code{(has-value? ⟨@var{connector}⟩)} tells whether the connector has a value.
+
+@item
+@code{(get-value ⟨@var{connector}⟩)} returns the connector's current value.
+
+@item
+@code{(set-value! ⟨@var{connector}⟩ ⟨@var{new-value}⟩ ⟨@var{informant}⟩)}
+indicates that the informant is requesting the connector to set its value to
+the new value.
+
+@item
+@code{(forget-value! ⟨@var{connector}⟩ ⟨@var{retractor}⟩)} tells the connector
+that the retractor is requesting it to forget its value.
+
+@item
+@code{(connect ⟨@var{connector}⟩ ⟨@var{new-constraint}⟩)} tells the connector
+to participate in the new constraint.
+
+@end itemize
+
+@noindent
+The connectors communicate with the constraints by means of the procedures
+@code{inform-about-value}, which tells the given constraint that the connector
+has a value, and @code{inform-about-no-value}, which tells the constraint that
+the connector has lost its value.
+
+@code{Adder} constructs an adder constraint among summand connectors @code{a1}
+and @code{a2} and a @code{sum} connector.  An adder is implemented as a
+procedure with local state (the procedure @code{me} below):
+
+@lisp
+(define (adder a1 a2 sum)
+  (define (process-new-value)
+    (cond ((and (has-value? a1) 
+                (has-value? a2))
+           (set-value! sum
+                       (+ (get-value a1) 
+                          (get-value a2))
+                       me))
+          ((and (has-value? a1) 
+                (has-value? sum))
+           (set-value! a2
+                       (- (get-value sum) 
+                          (get-value a1))
+                       me))
+          ((and (has-value? a2) 
+                (has-value? sum))
+           (set-value! a1

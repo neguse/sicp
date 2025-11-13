@@ -1,0 +1,100 @@
+@strong{Figure 3.2:} Environment structure produced by
+evaluating @code{(define (square x) (* x x))} in the global environment.
+
+@example
+           +----------------------+
+           | other variables      |
+global --->|                      |
+env        | square: --+          |
+           +-----------|----------+
+                       |       ^
+(define (square x)     |       |
+  (* x x))             V       |
+                   .---.---.   |
+                   | O | O-+---+
+                   `-|-^---'
+                     |
+                     V
+                   parameters: x
+                   body: (* x x)
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.2b,81mm,,,.std.svg}
+@caption{@strong{Figure 3.2:} Environment structure produced by evaluating @code{(define (square x) (* x x))} in the global environment.}
+@end iftex
+@end float
+
+@noindent
+Now that we have seen how procedures are created, we can describe how
+procedures are applied.  The environment model specifies: To apply a procedure
+to arguments, create a new environment containing a frame that binds the
+parameters to the values of the arguments.  The enclosing environment of this
+frame is the environment specified by the procedure.  Now, within this new
+environment, evaluate the procedure body.
+
+To show how this rule is followed, @ref{Figure 3.3} illustrates the environment
+structure created by evaluating the expression @code{(square 5)} in the global
+environment, where @code{square} is the procedure generated in @ref{Figure 3.2}.  
+Applying the procedure results in the creation of a new environment,
+labeled E1 in the figure, that begins with a frame in which @code{x}, the
+formal parameter for the procedure, is bound to the argument 5.  The pointer
+leading upward from this frame shows that the frame's enclosing environment is
+the global environment.  The global environment is chosen here, because this is
+the environment that is indicated as part of the @code{square} procedure
+object.  Within E1, we evaluate the body of the procedure, @code{(* x x)}.
+Since the value of @code{x} in E1 is 5, the result is @code{(* 5 5)}, or 25.
+
+@float
+@anchor{Figure 3.3}
+@ifinfo
+@quotation
+@strong{Figure 3.3:} Environment created by evaluating
+@code{(square 5)} in the global environment.
+
+@example
+          +------------------------------------+
+          | other variables                    |
+global -->|                                    |
+env       | square: --+                        |
+          +-----------|---------------------+--+
+                      |       ^             ^
+(square 5)            |       |             |
+                      V       |             |
+                  .---.---.   |         +---+--+
+                  | O | O-+---+   E1 -->| x: 5 |
+                  `-|-^---'             +------+
+                    |
+                    V
+                  parameters: x
+                  body: (* x x)
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.3b,129mm,,,.std.svg}
+@caption{@strong{Figure 3.3:} Environment created by evaluating @code{(square 5)} in the global environment.}
+@end iftex
+@end float
+
+@noindent
+The environment model of procedure application can be summarized by two rules:
+
+@itemize @bullet
+
+@item
+A procedure object is applied to a set of arguments by constructing a frame,
+binding the formal parameters of the procedure to the arguments of the call,
+and then evaluating the body of the procedure in the context of the new
+environment constructed.  The new frame has as its enclosing environment the
+environment part of the procedure object being applied.
+
+@item
+A procedure is created by evaluating a λ-expression relative to a
+given environment.  The resulting procedure object is a pair consisting of the
+text of the λ-expression and a pointer to the environment in which
+the procedure was created.
+
+@end itemize
+

@@ -1,0 +1,100 @@
+than placing the value of the rest of the stream into the @code{cdr} of the
+pair we will put there a promise to compute the rest if it is ever requested.
+@code{Stream-car} and @code{stream-cdr} can now be defined as procedures:
+
+@lisp
+(define (stream-car stream) 
+  (car stream))
+
+(define (stream-cdr stream) 
+  (force (cdr stream)))
+@end lisp
+
+@noindent
+@code{Stream-car} selects the @code{car} of the pair; @code{stream-cdr} selects
+the @code{cdr} of the pair and evaluates the delayed expression found there to
+obtain the rest of the stream.@footnote{Although @code{stream-car} and
+@code{stream-cdr} can be defined as procedures, @code{cons-stream} must be a
+special form.  If @code{cons-stream} were a procedure, then, according to our
+model of evaluation, evaluating @code{(cons-stream ⟨@var{a}⟩ ⟨@var{b}⟩)} would
+automatically cause @code{⟨}@var{b}@code{⟩} to be evaluated, which is precisely what we do
+not want to happen.  For the same reason, @code{delay} must be a special form,
+though @code{force} can be an ordinary procedure.}
+
+@subsubheading The stream implementation in action
+
+To see how this implementation behaves, let us analyze the ``outrageous'' prime
+computation we saw above, reformulated in terms of streams:
+
+@lisp
+(stream-car 
+ (stream-cdr
+  (stream-filter 
+   prime? (stream-enumerate-interval 
+           10000 1000000))))
+@end lisp
+
+@noindent
+We will see that it does indeed work efficiently.
+
+We begin by calling @code{stream-enumerate-interval} with the arguments 10,000
+and 1,000,000.  @code{Stream-enumerate-interval} is the stream analog of
+@code{enumerate-interval} (@ref{2.2.3}):
+
+@lisp
+(define (stream-enumerate-interval low high)
+  (if (> low high)
+      the-empty-stream
+      (cons-stream
+       low
+       (stream-enumerate-interval (+ low 1)
+                                  high))))
+@end lisp
+
+@noindent
+and thus the result returned by @code{stream-enumerate-interval}, formed by the
+@code{cons-stream}, is@footnote{The numbers shown here do not really appear in
+the delayed expression.  What actually appears is the original expression, in
+an environment in which the variables are bound to the appropriate numbers.
+For example, @code{(+ low 1)} with @code{low} bound to 10,000 actually appears
+where @code{10001} is shown.}
+
+@lisp
+(cons 10000
+      (delay 
+        (stream-enumerate-interval 
+         10001 
+         1000000)))
+@end lisp
+
+@noindent
+That is, @code{stream-enumerate-interval} returns a stream represented as a
+pair whose @code{car} is 10,000 and whose @code{cdr} is a promise to enumerate
+more of the interval if so requested.  This stream is now filtered for primes,
+using the stream analog of the @code{filter} procedure (@ref{2.2.3}):
+
+@lisp
+(define (stream-filter pred stream)
+  (cond ((stream-null? stream) 
+         the-empty-stream)
+        ((pred (stream-car stream))
+         (cons-stream 
+          (stream-car stream)
+          (stream-filter 
+           pred
+           (stream-cdr stream))))
+        (else (stream-filter 
+               pred 
+               (stream-cdr stream)))))
+@end lisp
+
+@noindent
+@code{Stream-filter} tests the @code{stream-car} of the stream (the @code{car}
+of the pair, which is 10,000).  Since this is not prime, @code{stream-filter}
+examines the @code{stream-cdr} of its input stream.  The call to
+@code{stream-cdr} forces evaluation of the delayed
+@code{stream-enumerate-interval}, which now returns
+
+@lisp
+(cons 10001
+      (delay 

@@ -1,0 +1,100 @@
+@code{*table*}:
+
+@lisp
+(define (make-table)
+  (list '*table*))
+@end lisp
+
+@subsubheading Two-dimensional tables
+
+In a two-dimensional table, each value is indexed by two keys.  We can
+construct such a table as a one-dimensional table in which each key identifies
+a subtable.  @ref{Figure 3.23} shows the box-and-pointer diagram for the table
+
+@example
+math:  +: 43    letters:  a: 97
+       -: 45              b: 98
+       *: 42
+@end example
+
+@noindent
+which has two subtables.  (The subtables don't need a special header symbol,
+since the key that identifies the subtable serves this purpose.)
+
+@float
+@anchor{Figure 3.23}
+@ifinfo
+@strong{Figure 3.23:} A two-dimensional table.
+
+@example
+table
+  |
+  V
++---+---+   +---+---+   +---+---+
+| * | *-+-->| * | *-+-->| * | / |
++-|-+---+   +-|-+---+   +-|-+---+
+  V           |           V
++-------+     |         +---+---+   +---+---+   +---+---+
+|*table*|     |         | * | *-+-->| * | *-+-->| * | / |
++-------+     |         +-|-+---+   +-|-+---+   +-|-+---+
+              |           V           V           V
+              |       +-------+     +---+---+   +---+---+
+              |       |letters|     | * | * |   | * | * |
+              |       +-------+     +-|-+-|-+   +-|-+-|-+
+              |                       V   V       V   V
+              |                    +---+ +---+ +---+ +---+
+              |                    | a | | 97| | b | | 98|
+              |                    +---+ +---+ +---+ +---+
+              V
+            +---+---+   +---+---+   +---+---+   +---+---+
+            | * | *-+-->| * | *-+-->| * | *-+-->| * | / |
+            +-|-+---+   +-|-+---+   +-|-+---+   +-|-+---+
+              V           V           V           V
+          +------+      +---+---+   +---+---+   +---+---+
+          | math |      | * | * |   | * | * |   | * | * |
+          +------+      +-|-+-|-+   +-|-+-|-+   +-|-+-|-+
+                          V   V       V   V       V   V
+                       +---+ +---+ +---+ +---+ +---+ +---+
+                       | + | | 43| | - | | 45| | * | | 42|
+                       +---+ +---+ +---+ +---+ +---+ +---+
+@end example
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.23b,143mm,,,.std.svg}
+@caption{@strong{Figure 3.23:} A two-dimensional table.}
+@end iftex
+@end float
+
+@noindent
+When we look up an item, we use the first key to identify the correct subtable.
+Then we use the second key to identify the record within the subtable.
+
+@lisp
+(define (lookup key-1 key-2 table)
+  (let ((subtable (assoc key-1 (cdr table))))
+    (if subtable
+        (let ((record 
+               (assoc key-2 (cdr subtable))))
+          (if record (cdr record) false))
+        false)))
+@end lisp
+
+@noindent
+To insert a new item under a pair of keys, we use @code{assoc} to see if there
+is a subtable stored under the first key.  If not, we build a new subtable
+containing the single record (@code{key-2}, @code{value}) and insert it into
+the table under the first key.  If a subtable already exists for the first key,
+we insert the new record into this subtable, using the insertion method for
+one-dimensional tables described above:
+
+@lisp
+(define (insert! key-1 key-2 value table)
+  (let ((subtable (assoc key-1 (cdr table))))
+    (if subtable
+        (let ((record 
+               (assoc key-2 (cdr subtable))))
+          (if record
+              (set-cdr! record value)
+              (set-cdr! 
+               subtable
+               (cons (cons key-2 value)

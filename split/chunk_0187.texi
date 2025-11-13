@@ -1,0 +1,100 @@
+
+@lisp
+(define a (make-connector))
+(define b (make-connector))
+(set-value! a 10 'user)
+@end lisp
+
+At some time during evaluation of the @code{set-value!}, the following
+expression from the connector's local procedure is evaluated:
+
+@lisp
+(for-each-except 
+  setter inform-about-value constraints)
+@end lisp
+
+Draw an environment diagram showing the environment in which the above
+expression is evaluated.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.37}Exercise 3.37:} The
+@code{celsius-fahrenheit-converter} procedure is cumbersome when compared with
+a more expression-oriented style of definition, such as
+
+@lisp
+(define (celsius-fahrenheit-converter x)
+  (c+ (c* (c/ (cv 9) (cv 5))
+          x)
+      (cv 32)))
+
+(define C (make-connector))
+(define F (celsius-fahrenheit-converter C))
+@end lisp
+
+Here @code{c+}, @code{c*}, etc. are the ``constraint'' versions of the
+arithmetic operations.  For example, @code{c+} takes two connectors as
+arguments and returns a connector that is related to these by an adder
+constraint:
+
+@lisp
+(define (c+ x y)
+  (let ((z (make-connector)))
+    (adder x y z)
+    z))
+@end lisp
+
+Define analogous procedures @code{c-}, @code{c*}, @code{c/}, and @code{cv}
+(constant value) that enable us to define compound constraints as in the
+converter example above.@footnote{The expression-oriented format is convenient
+because it avoids the need to name the intermediate expressions in a
+computation.  Our original formulation of the constraint language is cumbersome
+in the same way that many languages are cumbersome when dealing with operations
+on compound data.  For example, if we wanted to compute the product 
+@math{{(a + b) \cdot (c + d)}}, where the variables represent vectors, we could work
+in ``imperative style,'' using procedures that set the values of designated
+vector arguments but do not themselves return vectors as values:
+
+@lisp
+(v-sum a b temp1)
+(v-sum c d temp2)
+(v-prod temp1 temp2 answer)
+@end lisp
+
+Alternatively, we could deal with expressions, using procedures that return
+vectors as values, and thus avoid explicitly mentioning @code{temp1} and
+@code{temp2}:
+
+@lisp
+(define answer 
+  (v-prod (v-sum a b) (v-sum c d)))
+@end lisp
+
+Since Lisp allows us to return compound objects as values of procedures, we can
+transform our imperative-style constraint language into an expression-oriented
+style as shown in this exercise.  In languages that are impoverished in
+handling compound objects, such as Algol, Basic, and Pascal (unless one
+explicitly uses Pascal pointer variables), one is usually stuck with the
+imperative style when manipulating compound objects.  Given the advantage of
+the expression-oriented format, one might ask if there is any reason to have
+implemented the system in imperative style, as we did in this section.  One
+reason is that the non-expression-oriented constraint language provides a
+handle on constraint objects (e.g., the value of the @code{adder} procedure) as
+well as on connector objects.  This is useful if we wish to extend the system
+with new operations that communicate with constraints directly rather than only
+indirectly via operations on connectors.  Although it is easy to implement the
+expression-oriented style in terms of the imperative implementation, it is very
+difficult to do the converse.}
+@end quotation
+
+@node	3.4, 3.5, 3.3, Chapter 3
+@section Concurrency: Time Is of the Essence
+
+We've seen the power of computational objects with local state as tools for
+modeling.  Yet, as @ref{3.1.3} warned, this power extracts a price: the
+loss of referential transparency, giving rise to a thicket of questions about
+sameness and change, and the need to abandon the substitution model of
+evaluation in favor of the more intricate environment model.
+
+The central issue lurking beneath the complexity of state, sameness, and change
+is that by introducing assignment we are forced to admit @newterm{time} into

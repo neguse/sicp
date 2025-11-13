@@ -1,0 +1,100 @@
+
+@lisp
+(define (=number? exp num)
+  (and (number? exp) (= exp num)))
+@end lisp
+
+@noindent
+Similarly, we will change @code{make-product} to build in the rules that 0
+times anything is 0 and 1 times anything is the thing itself:
+
+@lisp
+(define (make-product m1 m2)
+  (cond ((or (=number? m1 0) 
+             (=number? m2 0)) 
+         0)
+        ((=number? m1 1) m2)
+        ((=number? m2 1) m1)
+        ((and (number? m1) (number? m2)) 
+         (* m1 m2))
+        (else (list '* m1 m2))))
+@end lisp
+
+@noindent
+Here is how this version works on our three examples:
+
+@lisp
+(deriv '(+ x 3) 'x)
+@i{1}
+
+(deriv '(* x y) 'x)
+@i{y}
+
+(deriv '(* (* x y) (+ x 3)) 'x)
+@i{(+ (* x y) (* y (+ x 3)))}
+@end lisp
+
+@noindent
+Although this is quite an improvement, the third example shows that there is
+still a long way to go before we get a program that puts expressions into a
+form that we might agree is ``simplest.''  The problem of algebraic
+simplification is complex because, among other reasons, a form that may be
+simplest for one purpose may not be for another.
+
+@quotation
+@strong{@anchor{Exercise 2.56}Exercise 2.56:} Show how to extend the basic
+differentiator to handle more kinds of expressions.  For instance, implement
+the differentiation rule
+@ifinfo
+
+@example
+d(u^n)            du
+------ = nu^(n-1) --  
+  dx              dx
+@end example
+
+@end ifinfo
+@tex
+\[ % :45:
+  {d(u^{\kern0.1ex n}) \over dx} \,=\, {nu^{\kern0.1ex n-1} \, {du \over dx}}  \]
+@end tex
+@noindent
+by adding a new clause to the @code{deriv} program and defining appropriate
+procedures @code{exponentiation?}, @code{base}, @code{exponent}, and
+@code{make-exponentiation}.  (You may use the symbol @code{**} to denote
+exponentiation.)  Build in the rules that anything raised to the power 0 is 1
+and anything raised to the power 1 is the thing itself.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.57}Exercise 2.57:} Extend the differentiation
+program to handle sums and products of arbitrary numbers of (two or more)
+terms.  Then the last example above could be expressed as
+
+@lisp
+(deriv '(* x y (+ x 3)) 'x)
+@end lisp
+
+Try to do this by changing only the representation for sums and products,
+without changing the @code{deriv} procedure at all.  For example, the
+@code{addend} of a sum would be the first term, and the @code{augend} would be
+the sum of the rest of the terms.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.58}Exercise 2.58:} Suppose we want to modify the
+differentiation program so that it works with ordinary mathematical notation,
+in which @code{+} and @code{*} are infix rather than prefix operators.  Since
+the differentiation program is defined in terms of abstract data, we can modify
+it to work with different representations of expressions solely by changing the
+predicates, selectors, and constructors that define the representation of the
+algebraic expressions on which the differentiator is to operate.
+
+@enumerate a
+
+@item
+Show how to do this in order to differentiate algebraic expressions presented
+in infix form, such as @code{(x + (3 * (x + (y + 2))))}.  To simplify the task,
+assume that @code{+} and @code{*} always take two arguments and that
+expressions are fully parenthesized.
+

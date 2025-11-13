@@ -1,0 +1,100 @@
+
+@end enumerate
+@end quotation
+
+@subsubheading Compound queries
+
+Simple queries form the primitive operations of the query language.  In order
+to form compound operations, the query language provides means of combination.
+One thing that makes the query language a logic programming language is that
+the means of combination mirror the means of combination used in forming
+logical expressions: @code{and}, @code{or}, and @code{not}.  (Here @code{and},
+@code{or}, and @code{not} are not the Lisp primitives, but rather operations
+built into the query language.)
+
+We can use @code{and} as follows to find the addresses of all the computer
+programmers:
+
+@lisp
+(and (job ?person (computer programmer))
+     (address ?person ?where))
+@end lisp
+
+@noindent
+The resulting output is
+
+@lisp
+(and (job (Hacker Alyssa P) 
+          (computer programmer))
+     (address (Hacker Alyssa P) 
+              (Cambridge (Mass Ave) 78)))
+
+(and (job (Fect Cy D) (computer programmer))
+     (address (Fect Cy D) 
+              (Cambridge (Ames Street) 3)))
+@end lisp
+
+@noindent
+In general,
+
+@lisp
+(and ⟨@var{query₁}⟩ ⟨@var{query₂}⟩ @r{…} ⟨@var{queryₙ}⟩)
+@end lisp
+
+@noindent
+is satisfied by all sets of values for the pattern variables that
+simultaneously satisfy @math{{⟨\kern0.1em query_1⟩}} @r{…} @math{{⟨\kern0.1em query_n⟩}}.
+
+As for simple queries, the system processes a compound query by finding all
+assignments to the pattern variables that satisfy the query, then displaying
+instantiations of the query with those values.
+
+Another means of constructing compound queries is through @code{or}.  For
+example,
+
+@lisp
+(or (supervisor ?x (Bitdiddle Ben))
+    (supervisor ?x (Hacker Alyssa P)))
+@end lisp
+
+@noindent
+will find all employees supervised by Ben Bitdiddle or Alyssa P.  Hacker:
+
+@lisp
+(or (supervisor (Hacker Alyssa P) 
+                (Bitdiddle Ben))
+    (supervisor (Hacker Alyssa P) 
+                (Hacker Alyssa P)))
+
+(or (supervisor (Fect Cy D) 
+                (Bitdiddle Ben))
+    (supervisor (Fect Cy D) 
+                (Hacker Alyssa P)))
+
+(or (supervisor (Tweakit Lem E) 
+                (Bitdiddle Ben))
+    (supervisor (Tweakit Lem E) 
+                (Hacker Alyssa P)))
+
+(or (supervisor (Reasoner Louis) 
+                (Bitdiddle Ben))
+    (supervisor (Reasoner Louis) 
+                (Hacker Alyssa P)))
+@end lisp
+
+@noindent
+In general,
+
+@lisp
+(or ⟨@var{query₁}⟩ ⟨@var{query₂}⟩ @r{…} ⟨@var{queryₙ}⟩)
+@end lisp
+
+@noindent
+is satisfied by all sets of values for the pattern variables that satisfy at
+least one of @math{{⟨\kern0.1em query_1⟩}} @r{…} @math{{⟨\kern0.1em query_n⟩}}.
+
+Compound queries can also be formed with @code{not}. For example,
+
+@lisp
+(and (supervisor ?x (Bitdiddle Ben))
+     (not (job ?x (computer programmer))))

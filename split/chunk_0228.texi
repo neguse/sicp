@@ -1,0 +1,100 @@
+@code{apply-primitive-procedure} applies a primitive procedure to a given list
+of arguments.
+
+@menu
+* 4.1.1::            The Core of the Evaluator
+* 4.1.2::            Representing Expressions
+* 4.1.3::            Evaluator Data Structures
+* 4.1.4::            Running the Evaluator as a Program
+* 4.1.5::            Data as Programs
+* 4.1.6::            Internal Definitions
+* 4.1.7::            Separating Syntactic Analysis from Execution
+@end menu
+
+@node	4.1.1, 4.1.2, 4.1, 4.1
+@subsection The Core of the Evaluator
+
+The evaluation process can be described as the interplay between two
+procedures: @code{eval} and @code{apply}.
+
+@subsubheading Eval
+
+@code{Eval} takes as arguments an expression and an environment.  It classifies
+the expression and directs its evaluation.  @code{Eval} is structured as a case
+analysis of the syntactic type of the expression to be evaluated.  In order to
+keep the procedure general, we express the determination of the type of an
+expression abstractly, making no commitment to any particular representation
+for the various types of expressions.  Each type of expression has a predicate
+that tests for it and an abstract means for selecting its parts.  This
+@newterm{abstract syntax} makes it easy to see how we can change the syntax of
+the language by using the same evaluator, but with a different collection of
+syntax procedures.
+
+@noindent
+@b{Primitive expressions}
+
+@itemize @bullet
+
+@item
+For self-evaluating expressions, such as numbers, @code{eval} returns the
+expression itself.
+
+@item
+@code{Eval} must look up variables in the environment to find their values.
+
+@end itemize
+
+@noindent
+@b{Special forms}
+
+@itemize @bullet
+
+@item
+For quoted expressions, @code{eval} returns the expression that was quoted.
+
+@item
+An assignment to (or a definition of) a variable must recursively call
+@code{eval} to compute the new value to be associated with the variable.  The
+environment must be modified to change (or create) the binding of the variable.
+
+@item
+An @code{if} expression requires special processing of its parts, so as to
+evaluate the consequent if the predicate is true, and otherwise to evaluate the
+alternative.
+
+@item
+A @code{lambda} expression must be transformed into an applicable procedure by
+packaging together the parameters and body specified by the @code{lambda}
+expression with the environment of the evaluation.
+
+@item
+A @code{begin} expression requires evaluating its sequence of expressions in
+the order in which they appear.
+
+@item
+A case analysis (@code{cond}) is transformed into a nest of @code{if}
+expressions and then evaluated.
+
+@end itemize
+
+@noindent
+@b{Combinations}
+
+@itemize @bullet
+
+@item
+For a procedure application, @code{eval} must recursively evaluate the operator
+part and the operands of the combination.  The resulting procedure and
+arguments are passed to @code{apply}, which handles the actual procedure
+application.
+
+@end itemize
+
+@noindent
+Here is the definition of @code{eval}:
+
+@lisp
+(define (eval exp env)
+  (cond ((self-evaluating? exp) 
+         exp)
+        ((variable? exp) 

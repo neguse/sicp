@@ -1,0 +1,100 @@
+the arguments @code{1} and the value of @code{n} into @code{argl}.  Then it
+tests whether @code{proc} contains a primitive or a compound procedure, and
+dispatches to a primitive branch or a compound branch accordingly.  Both
+branches resume at the @code{after-call} label.  The requirements to preserve
+registers around the evaluation of the operator and operands don't result in
+any saving of registers, because in this case those evaluations don't modify
+the registers in question.
+
+@lisp
+  (assign proc (op lookup-variable-value)
+               (const =) 
+               (reg env))
+  (assign val (const 1))
+  (assign argl (op list) (reg val))
+  (assign val (op lookup-variable-value)
+              (const n)
+              (reg env))
+  (assign argl (op cons) (reg val) (reg argl))
+  (test (op primitive-procedure?) (reg proc))
+  (branch (label primitive-branch17))
+compiled-branch16
+  (assign continue (label after-call15))
+  (assign val (op compiled-procedure-entry)
+              (reg proc))
+  (goto (reg val))
+primitive-branch17
+  (assign val (op apply-primitive-procedure)
+              (reg proc)
+              (reg argl))
+after-call15
+@end lisp
+
+@noindent
+The true branch, which is the constant 1, compiles (with target @code{val} and
+linkage @code{return}) to
+
+@lisp
+(assign val (const 1))
+(goto (reg continue))
+@end lisp
+
+@noindent
+The code for the false branch is another procedure call, where the procedure
+is the value of the symbol @code{*}, and the arguments are @code{n} and the
+result of another procedure call (a call to @code{factorial}).  Each of these
+calls sets up @code{proc} and @code{argl} and its own primitive and compound
+branches.  @ref{Figure 5.17} shows the complete compilation of the definition
+of the @code{factorial} procedure.  Notice that the possible @code{save} and
+@code{restore} of @code{continue} and @code{env} around the predicate, shown
+above, are in fact generated, because these registers are modified by the
+procedure call in the predicate and needed for the procedure call and the
+@code{return} linkage in the branches.
+
+@quotation
+@strong{@anchor{Figure 5.17}Figure 5.17:} @math{\downarrow} Compilation of the definition of the @code{factorial} procedure.
+
+@lisp
+@r{;; construct the procedure and skip over code}
+@r{;; for the procedure body}
+  (assign val
+          (op make-compiled-procedure) 
+          (label entry2) 
+          (reg env))
+  (goto (label after-lambda1))
+entry2     @r{; calls to @code{factorial} will enter here}
+  (assign env 
+          (op compiled-procedure-env)
+          (reg proc))
+  (assign env
+          (op extend-environment) 
+          (const (n)) 
+          (reg argl) 
+          (reg env))
+@r{;; begin actual procedure body}
+  (save continue)
+  (save env)
+@r{;; compute @code{(= n 1)}}
+  (assign proc 
+          (op lookup-variable-value) 
+          (const =) 
+          (reg env))
+  (assign val (const 1))
+  (assign argl (op list) (reg val))
+  (assign val 
+          (op lookup-variable-value) 
+          (const n) 
+          (reg env))
+  (assign argl (op cons) (reg val) (reg argl))
+  (test (op primitive-procedure?) (reg proc))
+  (branch (label primitive-branch17))
+compiled-branch16
+  (assign continue (label after-call15))
+  (assign val
+          (op compiled-procedure-entry)
+          (reg proc))
+  (goto (reg val))
+primitive-branch17
+  (assign val 
+          (op apply-primitive-procedure) 
+          (reg proc) 

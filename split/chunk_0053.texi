@@ -1,0 +1,100 @@
+{\tan x} \,=\, {\frac{x}{1 - \frac{x^2}{3 - \frac{x^2}{5 - \dots}}}\,,}
+\]
+
+@end tex
+@noindent
+where @math{x} is in radians.  Define a procedure @code{(tan-cf x k)} that
+computes an approximation to the tangent function based on Lambert's formula.
+@code{k} specifies the number of terms to compute, as in @ref{Exercise 1.37}.
+@end quotation
+
+@node	1.3.4, Chapter 2, 1.2, 1.3
+@subsection Procedures as Returned Values
+
+The above examples demonstrate how the ability to pass procedures as arguments
+significantly enhances the expressive power of our programming language.  We
+can achieve even more expressive power by creating procedures whose returned
+values are themselves procedures.
+
+We can illustrate this idea by looking again at the fixed-point example
+described at the end of @ref{1.3.3}.  We formulated a new version of
+the square-root procedure as a fixed-point search, starting with the
+observation that @math{\sqrt{x}} is a fixed-point of the function @math{{y \mapsto
+x / y}}.  Then we used average damping to make the approximations converge.
+Average damping is a useful general technique in itself.  Namely, given a
+function @math{f}, we consider the function whose value at @math{x} is equal to the
+average of @math{x} and @math{{f(x)}}.
+
+We can express the idea of average damping by means of the following procedure:
+
+@lisp
+(define (average-damp f)
+  (lambda (x) 
+    (average x (f x))))
+@end lisp
+
+@noindent
+@code{Average-damp} is a procedure that takes as its argument a procedure
+@code{f} and returns as its value a procedure (produced by the @code{lambda})
+that, when applied to a number @code{x}, produces the average of @code{x} and
+@code{(f x)}.  For example, applying @code{average-damp} to the @code{square}
+procedure produces a procedure whose value at some number @math{x} is the average
+of @math{x} and @math{x^2}.  Applying this resulting procedure to 10 returns the
+average of 10 and 100, or 55:@footnote{Observe that this is a combination whose
+operator is itself a combination.  @ref{Exercise 1.4} already demonstrated the
+ability to form such combinations, but that was only a toy example.  Here we
+begin to see the real need for such combinations---when applying a procedure
+that is obtained as the value returned by a higher-order procedure.}
+
+@lisp
+((average-damp square) 10)
+@i{55}
+@end lisp
+
+@noindent
+Using @code{average-damp}, we can reformulate the square-root procedure as
+follows:
+
+@lisp
+(define (sqrt x)
+  (fixed-point 
+   (average-damp 
+    (lambda (y) (/ x y)))
+   1.0))
+@end lisp
+
+@noindent
+Notice how this formulation makes explicit the three ideas in the method:
+fixed-point search, average damping, and the function @math{{y \mapsto x / y}}.
+It is instructive to compare this formulation of the square-root method with
+the original version given in @ref{1.1.7}.  Bear in mind that these
+procedures express the same process, and notice how much clearer the idea
+becomes when we express the process in terms of these abstractions.  In
+general, there are many ways to formulate a process as a procedure.
+Experienced programmers know how to choose procedural formulations that are
+particularly perspicuous, and where useful elements of the process are exposed
+as separate entities that can be reused in other applications.  As a simple
+example of reuse, notice that the cube root of @math{x} is a fixed point of the
+function @math{{y \mapsto x / y^2}}, so we can immediately generalize our
+square-root procedure to one that extracts cube roots:@footnote{See
+@ref{Exercise 1.45} for a further generalization.}
+
+@lisp
+(define (cube-root x)
+  (fixed-point 
+   (average-damp 
+    (lambda (y) 
+      (/ x (square y))))
+   1.0))
+@end lisp
+
+@subsubheading Newton's method
+
+When we first introduced the square-root procedure, in @ref{1.1.7}, we
+mentioned that this was a special case of @newterm{Newton's method}.  
+If @math{{x \mapsto g(x)}} is a differentiable function, then a solution of the equation
+@math{{g(x) = 0}} is a fixed point of the function @math{{x \mapsto f(x)}} where
+@ifinfo
+
+@example
+           g(x)

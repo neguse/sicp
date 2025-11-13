@@ -1,0 +1,100 @@
+
+(define (get-indexed-rules pattern)
+  (stream-append
+   (get-stream (index-key-of pattern)
+               'rule-stream)
+   (get-stream '? 'rule-stream)))
+@end lisp
+
+@noindent
+@code{Add-rule-or-assertion!} is used by @code{query-driver-loop} to add
+assertions and rules to the data base.  Each item is stored in the index, if
+appropriate, and in a stream of all assertions or rules in the data base.
+
+@lisp
+(define (add-rule-or-assertion! assertion)
+  (if (rule? assertion)
+      (add-rule! assertion)
+      (add-assertion! assertion)))
+
+(define (add-assertion! assertion)
+  (store-assertion-in-index assertion)
+  (let ((old-assertions THE-ASSERTIONS))
+    (set! THE-ASSERTIONS
+          (cons-stream assertion 
+                       old-assertions))
+    'ok))
+
+(define (add-rule! rule)
+  (store-rule-in-index rule)
+  (let ((old-rules THE-RULES))
+    (set! THE-RULES
+          (cons-stream rule old-rules))
+    'ok))
+@end lisp
+
+@noindent
+To actually store an assertion or a rule, we check to see if it can be indexed.
+If so, we store it in the appropriate stream.
+
+@lisp
+(define (store-assertion-in-index assertion)
+  (if (indexable? assertion)
+      (let ((key (index-key-of assertion)))
+        (let ((current-assertion-stream
+               (get-stream 
+                key 'assertion-stream)))
+          (put key
+               'assertion-stream
+               (cons-stream 
+                assertion
+                current-assertion-stream))))))
+
+(define (store-rule-in-index rule)
+  (let ((pattern (conclusion rule)))
+    (if (indexable? pattern)
+        (let ((key (index-key-of pattern)))
+          (let ((current-rule-stream
+                 (get-stream 
+                  key 'rule-stream)))
+            (put key
+                 'rule-stream
+                 (cons-stream 
+                  rule
+                  current-rule-stream)))))))
+@end lisp
+
+@noindent
+The following procedures define how the data-base index is used.  A pattern (an
+assertion or a rule conclusion) will be stored in the table if it starts with a
+variable or a constant symbol.
+
+@lisp
+(define (indexable? pat)
+  (or (constant-symbol? (car pat))
+      (var? (car pat))))
+@end lisp
+
+@noindent
+The key under which a pattern is stored in the table is either @code{?} (if it
+starts with a variable) or the constant symbol with which it starts.
+
+@lisp
+(define (index-key-of pat)
+  (let ((key (car pat)))
+    (if (var? key) '? key)))
+@end lisp
+
+@noindent
+The index will be used to retrieve items that might match a pattern if the
+pattern starts with a constant symbol.
+
+@lisp
+(define (use-index? pat)
+  (constant-symbol? (car pat)))
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 4.70}Exercise 4.70:} What is the purpose of the
+@code{let} bindings in the procedures @code{add-assertion!} and
+@code{add-rule!}?  What would be wrong with the following implementation of

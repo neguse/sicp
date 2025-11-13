@@ -1,0 +1,100 @@
+Now we must consider how to go about doing arithmetic on polynomials.  In this
+simple system, we will consider only addition and multiplication.  Moreover, we
+will insist that two polynomials to be combined must have the same
+indeterminate.
+
+We will approach the design of our system by following the familiar discipline
+of data abstraction.  We will represent polynomials using a data structure
+called a @newterm{poly}, which consists of a variable and a collection of
+terms.  We assume that we have selectors @code{variable} and @code{term-list}
+that extract those parts from a poly and a constructor @code{make-poly} that
+assembles a poly from a given variable and a term list.  A variable will be
+just a symbol, so we can use the @code{same-variable?}  procedure of 
+@ref{2.3.2} to compare variables.  The following procedures define addition and
+multiplication of polys:
+
+@lisp
+(define (add-poly p1 p2)
+  (if (same-variable? (variable p1) 
+                      (variable p2))
+      (make-poly 
+       (variable p1)
+       (add-terms (term-list p1)
+                  (term-list p2)))
+      (error "Polys not in same var: 
+              ADD-POLY"
+             (list p1 p2))))
+
+(define (mul-poly p1 p2)
+  (if (same-variable? (variable p1) 
+                      (variable p2))
+      (make-poly 
+       (variable p1)
+       (mul-terms (term-list p1)
+                  (term-list p2)))
+      (error "Polys not in same var: 
+              MUL-POLY"
+             (list p1 p2))))
+@end lisp
+
+@noindent
+To incorporate polynomials into our generic arithmetic system, we need to
+supply them with type tags.  We'll use the tag @code{polynomial}, and install
+appropriate operations on tagged polynomials in the operation table.  We'll
+embed all our code in an installation procedure for the polynomial package,
+similar to the ones in @ref{2.5.1}:
+
+@lisp
+(define (install-polynomial-package)
+  @r{;; internal procedures}
+  @r{;; representation of poly}
+  (define (make-poly variable term-list)
+    (cons variable term-list))
+  (define (variable p) (car p))
+  (define (term-list p) (cdr p))
+  ⟨@emph{procedures @code{same-variable?} 
+   and @code{variable?} from section 2.3.2}⟩
+
+  @r{;; representation of terms and term lists}
+  ⟨@emph{procedures @code{adjoin-term} @r{…} @code{coeff} 
+  from text below}⟩
+
+  (define (add-poly p1 p2) @r{…})
+  ⟨@emph{procedures used by @code{add-poly}}⟩
+  (define (mul-poly p1 p2) @r{…})
+  ⟨@emph{procedures used by @code{mul-poly}}⟩
+
+  @r{;; interface to rest of the system}
+  (define (tag p) (attach-tag 'polynomial p))
+  (put 'add '(polynomial polynomial)
+       (lambda (p1 p2) 
+         (tag (add-poly p1 p2))))
+  (put 'mul '(polynomial polynomial)
+       (lambda (p1 p2) 
+         (tag (mul-poly p1 p2))))
+  (put 'make 'polynomial
+       (lambda (var terms) 
+         (tag (make-poly var terms))))
+  'done)
+@end lisp
+
+@noindent
+Polynomial addition is performed termwise.  Terms of the same order (i.e., with
+the same power of the indeterminate) must be combined.  This is done by forming
+a new term of the same order whose coefficient is the sum of the coefficients
+of the addends.  Terms in one addend for which there are no terms of the same
+order in the other addend are simply accumulated into the sum polynomial being
+constructed.
+
+In order to manipulate term lists, we will assume that we have a constructor
+@code{the-empty-termlist} that returns an empty term list and a constructor
+@code{adjoin-term} that adjoins a new term to a term list.  We will also assume
+that we have a predicate @code{empty-termlist?} that tells if a given term list
+is empty, a selector @code{first-term} that extracts the highest-order term
+from a term list, and a selector @code{rest-terms} that returns all but the
+highest-order term.  To manipulate terms, we will suppose that we have a
+constructor @code{make-term} that constructs a term with given order and
+coefficient, and selectors @code{order} and @code{coeff} that return,
+respectively, the order and the coefficient of the term.  These operations
+allow us to consider both terms and term lists as data abstractions, whose
+concrete representations we can worry about separately.

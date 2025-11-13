@@ -1,0 +1,100 @@
+program, only the addition of the new symbolic analogs of those objects or
+actions.  If we have been successful in our system organization, then to add a
+new feature or debug an old one we will have to work on only a localized part
+of the system.
+
+To a large extent, then, the way we organize a large program is dictated by our
+perception of the system to be modeled.  In this chapter we will investigate
+two prominent organizational strategies arising from two rather different
+``world views'' of the structure of systems.  The first organizational strategy
+concentrates on @newterm{objects}, viewing a large system as a collection of
+distinct objects whose behaviors may change over time.  An alternative
+organizational strategy concentrates on the @newterm{streams} of information
+that flow in the system, much as an electrical engineer views a
+signal-processing system.
+
+Both the object-based approach and the stream-processing approach raise
+significant linguistic issues in programming.  With objects, we must be
+concerned with how a computational object can change and yet maintain its
+identity.  This will force us to abandon our old substitution model of
+computation (@ref{1.1.5}) in favor of a more mechanistic but less
+theoretically tractable @newterm{environment model} of computation.  The
+difficulties of dealing with objects, change, and identity are a fundamental
+consequence of the need to grapple with time in our computational models.
+These difficulties become even greater when we allow the possibility of
+concurrent execution of programs.  The stream approach can be most fully
+exploited when we decouple simulated time in our model from the order of the
+events that take place in the computer during evaluation.  We will accomplish
+this using a technique known as @newterm{delayed evaluation}.
+
+@menu
+* 3.1::              Assignment and Local State
+* 3.2::              The Environment Model of Evaluation
+* 3.3::              Modeling with Mutable Data
+* 3.4::              Concurrency: Time Is of the Essence
+* 3.5::              Streams
+@end menu
+
+@node	3.1, 3.2, Chapter 3, Chapter 3
+@section Assignment and Local State
+
+We ordinarily view the world as populated by independent objects, each of which
+has a state that changes over time.  An object is said to ``have state'' if its
+behavior is influenced by its history.  A bank account, for example, has state
+in that the answer to the question ``Can I withdraw $100?''  depends upon the
+history of deposit and withdrawal transactions.  We can characterize an
+object's state by one or more @newterm{state variables}, which among them
+maintain enough information about history to determine the object's current
+behavior.  In a simple banking system, we could characterize the state of an
+account by a current balance rather than by remembering the entire history of
+account transactions.
+
+In a system composed of many objects, the objects are rarely completely
+independent.  Each may influence the states of others through interactions,
+which serve to couple the state variables of one object to those of other
+objects.  Indeed, the view that a system is composed of separate objects is
+most useful when the state variables of the system can be grouped into closely
+coupled subsystems that are only loosely coupled to other subsystems.
+
+This view of a system can be a powerful framework for organizing computational
+models of the system.  For such a model to be modular, it should be decomposed
+into computational objects that model the actual objects in the system.  Each
+computational object must have its own @newterm{local state variables}
+describing the actual object's state.  Since the states of objects in the
+system being modeled change over time, the state variables of the corresponding
+computational objects must also change.  If we choose to model the flow of time
+in the system by the elapsed time in the computer, then we must have a way to
+construct computational objects whose behaviors change as our programs run.  In
+particular, if we wish to model state variables by ordinary symbolic names in
+the programming language, then the language must provide an @newterm{assignment operator} 
+to enable us to change the value associated with a name.
+
+@menu
+* 3.1.1::            Local State Variables
+* 3.1.2::            The Benefits of Introducing Assignment
+* 3.1.3::            The Costs of Introducing Assignment
+@end menu
+
+@node	3.1.1, 3.1.2, 3.1, 3.1
+@subsection Local State Variables
+
+To illustrate what we mean by having a computational object with time-varying
+state, let us model the situation of withdrawing money from a bank account.  We
+will do this using a procedure @code{withdraw}, which takes as argument an
+@code{amount} to be withdrawn.  If there is enough money in the account to
+accommodate the withdrawal, then @code{withdraw} should return the balance
+remaining after the withdrawal.  Otherwise, @code{withdraw} should return the
+message @emph{Insufficient funds}. For example, if we begin with $100 in the
+account, we should obtain the following sequence of responses using
+@code{withdraw}:
+
+@lisp
+(withdraw 25)
+@i{75}
+
+(withdraw 25)
+@i{50}
+
+(withdraw 60)
+@i{"Insufficient funds"}
+

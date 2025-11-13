@@ -1,0 +1,100 @@
+will allow one to make transactions on @code{peter-acc} using the name
+@code{paul-acc} and the password @code{rosebud}.  You may wish to modify your
+solution to @ref{Exercise 3.3} to accommodate this new feature.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.8}Exercise 3.8:} When we defined the evaluation
+model in @ref{1.1.3}, we said that the first step in evaluating an
+expression is to evaluate its subexpressions.  But we never specified the order
+in which the subexpressions should be evaluated (e.g., left to right or right
+to left).  When we introduce assignment, the order in which the arguments to a
+procedure are evaluated can make a difference to the result.  Define a simple
+procedure @code{f} such that evaluating 
+
+@lisp
+(+ (f 0) (f 1))
+@end lisp
+
+@noindent
+will return 0 if
+the arguments to @code{+} are evaluated from left to right but will return 1 if
+the arguments are evaluated from right to left.
+@end quotation
+
+@node	3.2, 3.3, 3.1, Chapter 3
+@section The Environment Model of Evaluation
+
+When we introduced compound procedures in @ref{Chapter 1}, we used the
+substitution model of evaluation (@ref{1.1.5}) to define what is meant
+by applying a procedure to arguments:
+
+@itemize @bullet
+
+@item
+To apply a compound procedure to arguments, evaluate the body of the procedure
+with each formal parameter replaced by the corresponding argument.
+
+@end itemize
+
+@noindent
+Once we admit assignment into our programming language, such a definition is no
+longer adequate.  In particular, @ref{3.1.3} argued that, in the
+presence of assignment, a variable can no longer be considered to be merely a
+name for a value.  Rather, a variable must somehow designate a ``place'' in
+which values can be stored.  In our new model of evaluation, these places will
+be maintained in structures called @newterm{environments}.
+
+An environment is a sequence of @newterm{frames}.  Each frame is a table
+(possibly empty) of @newterm{bindings}, which associate variable names with
+their corresponding values.  (A single frame may contain at most one binding
+for any variable.)  Each frame also has a pointer to its @newterm{enclosing environment}, 
+unless, for the purposes of discussion, the frame is considered
+to be @newterm{global}.  The @newterm{value of a variable} with respect to an
+environment is the value given by the binding of the variable in the first
+frame in the environment that contains a binding for that variable.  If no
+frame in the sequence specifies a binding for the variable, then the variable
+is said to be @newterm{unbound} in the environment.
+
+@ref{Figure 3.1} shows a simple environment structure consisting of three
+frames, labeled I, II, and III.  In the diagram, A, B, C, and D are pointers to
+environments.  C and D point to the same environment.  The variables @code{z}
+and @code{x} are bound in frame II, while @code{y} and @code{x} are bound in
+frame I.  The value of @code{x} in environment D is 3.  The value of @code{x}
+with respect to environment B is also 3.  This is determined as follows: We
+examine the first frame in the sequence (frame III) and do not find a binding
+for @code{x}, so we proceed to the enclosing environment D and find the binding
+in frame I.  On the other hand, the value of @code{x} in environment A is 7,
+because the first frame in the sequence (frame II) contains a binding of
+@code{x} to 7.  With respect to environment A, the binding of @code{x} to 7 in
+frame II is said to @newterm{shadow} the binding of @code{x} to 3 in frame I.
+
+@float
+@anchor{Figure 3.1}
+@ifinfo
+@quotation
+@strong{Figure 3.1:} A simple environment structure.
+
+@example
+           +--------+
+           |      I |
+           | x: 3   |
+           | y: 5   |
+           +--------+
+              ^  ^
+              |  |
+            C |  | D
++---------+   |  |   +----------+
+|      II |   |  |   |      III |
+| z: 6    +---+  +---+ m: 1     |
+| x: 7    |          | y: 2     |
++---------+          +----------+
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.1b,69mm,,,.std.svg}
+@caption{@strong{Figure 3.1:} A simple environment structure.}
+@end iftex
+@end float
+

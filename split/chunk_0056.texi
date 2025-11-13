@@ -1,0 +1,100 @@
+They may be included in data structures.@footnote{We'll see examples of this
+after we introduce data structures in @ref{Chapter 2,,@w{Chapter 2}}.}
+
+@end itemize
+
+@noindent
+Lisp, unlike other common programming languages, awards procedures full
+first-class status.  This poses challenges for efficient implementation, but
+the resulting gain in expressive power is enormous.@footnote{The major
+implementation cost of first-class procedures is that allowing procedures to be
+returned as values requires reserving storage for a procedure's free variables
+even while the procedure is not executing.  In the Scheme implementation we
+will study in @ref{4.1}, these variables are stored in the procedure's
+environment.}
+
+@quotation
+@strong{@anchor{Exercise 1.40}Exercise 1.40:} Define a procedure @code{cubic}
+that can be used together with the @code{newtons-method} procedure in
+expressions of the form
+
+@lisp
+(newtons-method (cubic a b c) 1)
+@end lisp
+
+@noindent
+to approximate zeros of the cubic @math{{x^3 + ax^2 + bx + c}}.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.41}Exercise 1.41:} Define a procedure @code{double}
+that takes a procedure of one argument as argument and returns a procedure that
+applies the original procedure twice.  For example, if @code{inc} is a
+procedure that adds 1 to its argument, then @code{(double inc)} should be a
+procedure that adds 2.  What value is returned by
+
+@lisp
+(((double (double double)) inc) 5)
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.42}Exercise 1.42:} Let @math{f} and @math{g} be two
+one-argument functions.  The @newterm{composition} @math{f} after @math{g} is defined
+to be the function @math{{x \mapsto f(g(x))}}.  Define a procedure
+@code{compose} that implements composition.  For example, if @code{inc} is a
+procedure that adds 1 to its argument,
+
+@lisp
+((compose square inc) 6)
+@i{49}
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.43}Exercise 1.43:} If @math{f} is a numerical function
+and @math{n} is a positive integer, then we can form the @math{n^{\text{th}}} repeated
+application of @math{f}, which is defined to be the function whose value at @math{x}
+is @math{{f(f(\dots (f(x))\dots ))}}.  For example, if @math{f} is the
+function @math{{x \mapsto x + 1}}, then the @math{n^{\text{th}}} repeated application of @math{f} is
+the function @math{{x \mapsto x + n}}.  If @math{f} is the operation of squaring a
+number, then the @math{n^{\text{th}}} repeated application of @math{f} is the function that
+raises its argument to the @math{{2^n\text{-th}}} power.  Write a procedure that takes as
+inputs a procedure that computes @math{f} and a positive integer @math{n} and returns
+the procedure that computes the @math{n^{\text{th}}} repeated application of @math{f}.  Your
+procedure should be able to be used as follows:
+
+@lisp
+((repeated square 2) 5)
+@i{625}
+@end lisp
+
+Hint: You may find it convenient to use @code{compose} from @ref{Exercise 1.42}.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.44}Exercise 1.44:} The idea of @newterm{smoothing} a
+function is an important concept in signal processing.  If @math{f} is a function
+and @math{{dx}} is some small number, then the smoothed version of @math{f} is the
+function whose value at a point @math{x} is the average of @math{{f(x - dx)}}, 
+@math{{f(x)}}, and @math{{f(x + dx)}}.  Write a procedure
+@code{smooth} that takes as input a procedure that computes @math{f} and returns a
+procedure that computes the smoothed @math{f}.  It is sometimes valuable to
+repeatedly smooth a function (that is, smooth the smoothed function, and so on)
+to obtain the @newterm{@i{n}-fold smoothed function}.  Show how to generate
+the @i{n}-fold smoothed function of any given function using @code{smooth} and
+@code{repeated} from @ref{Exercise 1.43}.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.45}Exercise 1.45:} We saw in @ref{1.3.3}
+that attempting to compute square roots by naively finding a fixed point of
+@math{{y \mapsto x / y}} does not converge, and that this can be fixed by average
+damping.  The same method works for finding cube roots as fixed points of the
+average-damped @math{{y \mapsto x / y^2}}.  Unfortunately, the process does not
+work for fourth roots---a single average damp is not enough to make a
+fixed-point search for @math{{y \mapsto x / y^3}} converge.  On the other hand, if
+we average damp twice (i.e., use the average damp of the average damp of 
+@math{{y \mapsto x / y^3}}) the fixed-point search does converge.  Do some experiments
+to determine how many average damps are required to compute @math{n^{\text{th}}} roots as a
+fixed-point search based upon repeated average damping of @math{{y \mapsto x / y^{\kern0.1em n-1}}}.  

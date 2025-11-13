@@ -1,0 +1,100 @@
+
+@lisp
+(define (compile-and-go expression)
+  (let ((instructions
+         (assemble 
+          (statements
+           (compile 
+            expression 'val 'return))
+          eceval)))
+    (set! the-global-environment
+          (setup-environment))
+    (set-register-contents! 
+     eceval 'val instructions)
+    (set-register-contents! 
+     eceval 'flag true)
+    (start eceval)))
+@end lisp
+
+@noindent
+If we have set up stack monitoring, as at the end of @ref{5.4.4}, we
+can examine the stack usage of compiled code:
+
+@lisp
+(compile-and-go
+ '(define (factorial n)
+    (if (= n 1)
+        1
+        (* (factorial (- n 1)) n))))
+@i{(total-pushes = 0, maximum-depth = 0)}
+
+@i{;;; EC-Eval value:}
+@i{ok}
+
+@i{;;; EC-Eval input:}
+(factorial 5)
+@i{(total-pushes = 31, maximum-depth = 14)}
+
+@i{;;; EC-Eval value:}
+@i{120}
+@end lisp
+
+@noindent
+Compare this example with the evaluation of @code{(factorial 5)} using the
+interpreted version of the same procedure, shown at the end of 
+@ref{5.4.4}.  The interpreted version required 144 pushes and a maximum stack
+depth of 28.  This illustrates the optimization that results from our
+compilation strategy.
+
+@subsubheading Interpretation and compilation
+
+With the programs in this section, we can now experiment with the alternative
+execution strategies of interpretation and compilation.@footnote{We can do even
+better by extending the compiler to allow compiled code to call interpreted
+procedures.  See @ref{Exercise 5.47}.}  An interpreter raises the machine to
+the level of the user program; a compiler lowers the user program to the level
+of the machine language.  We can regard the Scheme language (or any programming
+language) as a coherent family of abstractions erected on the machine language.
+Interpreters are good for interactive program development and debugging because
+the steps of program execution are organized in terms of these abstractions,
+and are therefore more intelligible to the programmer.  Compiled code can
+execute faster, because the steps of program execution are organized in terms
+of the machine language, and the compiler is free to make optimizations that
+cut across the higher-level abstractions.@footnote{Independent of the strategy
+of execution, we incur significant overhead if we insist that errors
+encountered in execution of a user program be detected and signaled, rather
+than being allowed to kill the system or produce wrong answers.  For example,
+an out-of-bounds array reference can be detected by checking the validity of
+the reference before performing it.  The overhead of checking, however, can be
+many times the cost of the array reference itself, and a programmer should
+weigh speed against safety in determining whether such a check is desirable.  A
+good compiler should be able to produce code with such checks, should avoid
+redundant checks, and should allow programmers to control the extent and type
+of error checking in the compiled code.
+
+Compilers for popular languages, such as C and C++, put hardly any
+error-checking operations into running code, so as to make things run as fast
+as possible.  As a result, it falls to programmers to explicitly provide error
+checking.  Unfortunately, people often neglect to do this, even in critical
+applications where speed is not a constraint.  Their programs lead fast and
+dangerous lives.  For example, the notorious ``Worm'' that paralyzed the
+Internet in 1988 exploited the @abbr{UNIX}(tm) operating system's failure to
+check whether the input buffer has overflowed in the finger daemon. (See
+@ref{Spafford 1989}.)}
+
+The alternatives of interpretation and compilation also lead to different
+strategies for porting languages to new computers. Suppose that we wish to
+implement Lisp for a new machine.  One strategy is to begin with the
+explicit-control evaluator of @ref{5.4} and translate its instructions
+to instructions for the new machine.  A different strategy is to begin with the
+compiler and change the code generators so that they generate code for the new
+machine.  The second strategy allows us to run any Lisp program on the new
+machine by first compiling it with the compiler running on our original Lisp
+system, and linking it with a compiled version of the run-time
+library.@footnote{Of course, with either the interpretation or the compilation
+strategy we must also implement for the new machine storage allocation, input
+and output, and all the various operations that we took as ``primitive'' in our
+discussion of the evaluator and compiler.  One strategy for minimizing work
+here is to write as many of these operations as possible in Lisp and then
+compile them for the new machine.  Ultimately, everything reduces to a small
+kernel (such as garbage collection and the mechanism for applying actual

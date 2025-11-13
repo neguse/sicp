@@ -1,0 +1,100 @@
+in the evaluator of @ref{4.1.7} in that we generate an execution
+procedure for each operand.  At simulation time, we call the operand procedures
+and apply the Scheme procedure that simulates the operation to the resulting
+values.  The simulation procedure is found by looking up the operation name in
+the operation table for the machine:
+
+@lisp
+(define (lookup-prim symbol operations)
+  (let ((val (assoc symbol operations)))
+    (if val
+        (cadr val)
+        (error "Unknown operation: ASSEMBLE"
+               symbol))))
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 5.9}Exercise 5.9:} The treatment of machine operations
+above permits them to operate on labels as well as on constants and the
+contents of registers.  Modify the expression-processing procedures to enforce
+the condition that operations can be used only with registers and constants.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.10}Exercise 5.10:} Design a new syntax for
+register-machine instructions and modify the simulator to use your new syntax.
+Can you implement your new syntax without changing any part of the simulator
+except the syntax procedures in this section?
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.11}Exercise 5.11:} When we introduced @code{save}
+and @code{restore} in @ref{5.1.4}, we didn't specify what would happen
+if you tried to restore a register that was not the last one saved, as in the
+sequence
+
+@lisp
+(save y)
+(save x)
+(restore y)
+@end lisp
+
+There are several reasonable possibilities for the meaning of @code{restore}:
+
+@enumerate a
+
+@item
+@code{(restore y)} puts into @code{y} the last value saved on the stack,
+regardless of what register that value came from.  This is the way our
+simulator behaves.  Show how to take advantage of this behavior to eliminate
+one instruction from the Fibonacci machine of @ref{5.1.4} (@ref{Figure 5.12}).
+
+@item
+@code{(restore y)} puts into @code{y} the last value saved on the stack, but
+only if that value was saved from @code{y}; otherwise, it signals an error.
+Modify the simulator to behave this way.  You will have to change @code{save}
+to put the register name on the stack along with the value.
+
+@item
+@code{(restore y)} puts into @code{y} the last value saved from @code{y}
+regardless of what other registers were saved after @code{y} and not restored.
+Modify the simulator to behave this way.  You will have to associate a separate
+stack with each register.  You should make the @code{initialize-stack}
+operation initialize all the register stacks.
+
+@end enumerate
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.12}Exercise 5.12:} The simulator can be used to help
+determine the data paths required for implementing a machine with a given
+controller.  Extend the assembler to store the following information in the
+machine model:
+
+@itemize
+
+@item
+a list of all instructions, with duplicates removed, sorted by instruction type
+(@code{assign}, @code{goto}, and so on);
+
+@item
+a list (without duplicates) of the registers used to hold entry points (these
+are the registers referenced by @code{goto} instructions);
+
+@item
+a list (without duplicates) of the registers that are @code{save}d
+or @code{restore}d;
+
+@item
+for each register, a list (without duplicates) of the sources from which it is
+assigned (for example, the sources for register @code{val} in the factorial
+machine of @ref{Figure 5.11} are @code{(const 1)} and @code{((op *) (reg n)
+(reg val))}).
+
+@end itemize
+
+Extend the message-passing interface to the machine to provide access to this
+new information.  To test your analyzer, define the Fibonacci machine from
+@ref{Figure 5.12} and examine the lists you constructed.
+@end quotation
+

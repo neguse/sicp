@@ -1,0 +1,100 @@
+Use this notation to write a procedure @code{same-parity} that takes one or
+more integers and returns a list of all the arguments that have the same
+even-odd parity as the first argument.  For example,
+
+@lisp
+(same-parity 1 2 3 4 5 6 7)
+@i{(1 3 5 7)}
+
+(same-parity 2 3 4 5 6 7)
+@i{(2 4 6)}
+@end lisp
+@end quotation
+
+@subsubheading Mapping over lists
+
+One extremely useful operation is to apply some transformation to each element
+in a list and generate the list of results.  For instance, the following
+procedure scales each number in a list by a given factor:
+
+@lisp
+(define (scale-list items factor)
+  (if (null? items)
+      nil
+      (cons (* (car items) factor)
+            (scale-list (cdr items) 
+                        factor))))
+
+(scale-list (list 1 2 3 4 5) 10)
+@i{(10 20 30 40 50)}
+@end lisp
+
+@noindent
+We can abstract this general idea and capture it as a common pattern expressed
+as a higher-order procedure, just as in @ref{1.3}.  The higher-order
+procedure here is called @code{map}.  @code{Map} takes as arguments a procedure
+of one argument and a list, and returns a list of the results produced by
+applying the procedure to each element in the list:@footnote{@anchor{Footnote 78}
+Scheme standardly provides a @code{map} procedure that
+is more general than the one described here.  This more general @code{map}
+takes a procedure of @math{n} arguments, together with @math{n} lists, and applies
+the procedure to all the first elements of the lists, all the second elements
+of the lists, and so on, returning a list of the results.  For example:
+
+@lisp
+(map + 
+     (list 1 2 3) 
+     (list 40 50 60) 
+     (list 700 800 900))
+@i{(741 852 963)}
+
+(map (lambda (x y) (+ x (* 2 y)))
+     (list 1 2 3)
+     (list 4 5 6))
+@i{(9 12 15)}
+@end lisp
+}
+
+@lisp
+(define (map proc items)
+  (if (null? items)
+      nil
+      (cons (proc (car items))
+            (map proc (cdr items)))))
+
+(map abs (list -10 2.5 -11.6 17))
+@i{(10 2.5 11.6 17)}
+
+(map (lambda (x) (* x x)) (list 1 2 3 4))
+@i{(1 4 9 16)}
+@end lisp
+
+@noindent
+Now we can give a new definition of @code{scale-list} in terms of @code{map}:
+
+@lisp
+(define (scale-list items factor)
+  (map (lambda (x) (* x factor))
+       items))
+@end lisp
+
+@noindent
+@code{Map} is an important construct, not only because it captures a common
+pattern, but because it establishes a higher level of abstraction in dealing
+with lists.  In the original definition of @code{scale-list}, the recursive
+structure of the program draws attention to the element-by-element processing
+of the list.  Defining @code{scale-list} in terms of @code{map} suppresses that
+level of detail and emphasizes that scaling transforms a list of elements to a
+list of results.  The difference between the two definitions is not that the
+computer is performing a different process (it isn't) but that we think about
+the process differently.  In effect, @code{map} helps establish an abstraction
+barrier that isolates the implementation of procedures that transform lists
+from the details of how the elements of the list are extracted and combined.
+Like the barriers shown in @ref{Figure 2.1}, this abstraction gives us the
+flexibility to change the low-level details of how sequences are implemented,
+while preserving the conceptual framework of operations that transform
+sequences to sequences.  Section @ref{2.2.3} expands on this use of sequences
+as a framework for organizing programs.
+
+@quotation
+@strong{@anchor{Exercise 2.21}Exercise 2.21:} The procedure @code{square-list}

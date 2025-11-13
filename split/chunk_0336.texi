@@ -1,0 +1,100 @@
+
+Our Scheme evaluator register machine includes a stack and seven registers:
+@code{exp}, @code{env}, @code{val}, @code{continue}, @code{proc}, @code{argl},
+and @code{unev}.  @code{Exp} is used to hold the expression to be evaluated,
+and @code{env} contains the environment in which the evaluation is to be
+performed.  At the end of an evaluation, @code{val} contains the value obtained
+by evaluating the expression in the designated environment.  The
+@code{continue} register is used to implement recursion, as explained in
+@ref{5.1.4}.  (The evaluator needs to call itself recursively, since
+evaluating an expression requires evaluating its subexpressions.)  The
+registers @code{proc}, @code{argl}, and @code{unev} are used in evaluating
+combinations.
+
+We will not provide a data-path diagram to show how the registers and
+operations of the evaluator are connected, nor will we give the complete list
+of machine operations.  These are implicit in the evaluator's controller, which
+will be presented in detail.
+
+@menu
+* 5.4.1::            The Core of the Explicit-Control Evaluator
+* 5.4.2::            Sequence Evaluation and Tail Recursion
+* 5.4.3::            Conditionals, Assignments, and Definitions
+* 5.4.4::            Running the Evaluator
+@end menu
+
+@node	5.4.1, 5.4.2, 5.4, 5.4
+@subsection The Core of the Explicit-Control Evaluator
+
+The central element in the evaluator is the sequence of instructions beginning
+at @code{eval-dispatch}.  This corresponds to the @code{eval} procedure of the
+metacircular evaluator described in @ref{4.1.1}.  When the controller
+starts at @code{eval-dispatch}, it evaluates the expression specified by
+@code{exp} in the environment specified by @code{env}.  When evaluation is
+complete, the controller will go to the entry point stored in @code{continue},
+and the @code{val} register will hold the value of the expression.  As with the
+metacircular @code{eval}, the structure of @code{eval-dispatch} is a case
+analysis on the syntactic type of the expression to be evaluated.@footnote{In
+our controller, the dispatch is written as a sequence of @code{test} and
+@code{branch} instructions.  Alternatively, it could have been written in a
+data-directed style (and in a real system it probably would have been) to avoid
+the need to perform sequential tests and to facilitate the definition of new
+expression types.  A machine designed to run Lisp would probably include a
+@code{dispatch-on-type} instruction that would efficiently execute such
+data-directed dispatches.}
+
+@lisp
+eval-dispatch
+  (test (op self-evaluating?) (reg exp))
+  (branch (label ev-self-eval))
+  (test (op variable?) (reg exp))
+  (branch (label ev-variable))
+  (test (op quoted?) (reg exp))
+  (branch (label ev-quoted))
+  (test (op assignment?) (reg exp))
+  (branch (label ev-assignment))
+  (test (op definition?) (reg exp))
+  (branch (label ev-definition))
+  (test (op if?) (reg exp))
+  (branch (label ev-if))
+  (test (op lambda?) (reg exp))
+  (branch (label ev-lambda))
+  (test (op begin?) (reg exp))
+  (branch (label ev-begin))
+  (test (op application?) (reg exp))
+  (branch (label ev-application))
+  (goto (label unknown-expression-type))
+@end lisp
+
+@subsubheading Evaluating simple expressions
+
+Numbers and strings (which are self-evaluating), variables, quotations, and
+@code{lambda} expressions have no subexpressions to be evaluated.  For these,
+the evaluator simply places the correct value in the @code{val} register and
+continues execution at the entry point specified by @code{continue}.
+Evaluation of simple expressions is performed by the following controller code:
+
+@lisp
+ev-self-eval
+  (assign val (reg exp))
+  (goto (reg continue))
+ev-variable
+  (assign val
+          (op lookup-variable-value)
+          (reg exp)
+          (reg env))
+  (goto (reg continue))
+ev-quoted
+  (assign val
+          (op text-of-quotation)
+          (reg exp))
+  (goto (reg continue))
+ev-lambda
+  (assign unev
+          (op lambda-parameters)
+          (reg exp))
+  (assign exp 
+          (op lambda-body)
+          (reg exp))
+  (assign val 
+          (op make-procedure)

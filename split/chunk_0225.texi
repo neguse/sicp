@@ -1,0 +1,100 @@
+approximates the world by dividing it into separate pieces.  The functional
+model does not modularize along object boundaries.  The object model is useful
+when the unshared state of the ``objects'' is much larger than the state that
+they share.  An example of a place where the object viewpoint fails is quantum
+mechanics, where thinking of things as individual particles leads to paradoxes
+and confusions.  Unifying the object view with the functional view may have
+little to do with programming, but rather with fundamental epistemological
+issues.}
+
+@node    Chapter 4, 4.1, 3.5, Top
+@chapter Metalinguistic Abstraction
+
+@quotation
+@dots{} It's in words that the magic is---Abracadabra, Open Sesame, and the
+rest---but the magic words in one story aren't magical in the next.  The real
+magic is to understand which words work, and when, and for what; the trick is
+to learn the trick.
+
+@dots{} And those words are made from the letters of our alphabet: a
+couple-dozen squiggles we can draw with the pen.  This is the key!  And the
+treasure, too, if we can only get our hands on it!  It's as if---as if the key
+to the treasure @emph{is} the treasure!
+
+---John Barth, @cite{Chimera}
+@end quotation
+
+
+@noindent
+In our study of program design, we have seen that expert programmers control
+the complexity of their designs with the same general techniques used by
+designers of all complex systems.  They combine primitive elements to form
+compound objects, they abstract compound objects to form higher-level building
+blocks, and they preserve modularity by adopting appropriate large-scale views
+of system structure.  In illustrating these techniques, we have used Lisp as a
+language for describing processes and for constructing computational data
+objects and processes to model complex phenomena in the real world.  However,
+as we confront increasingly complex problems, we will find that Lisp, or indeed
+any fixed programming language, is not sufficient for our needs.  We must
+constantly turn to new languages in order to express our ideas more
+effectively.  Establishing new languages is a powerful strategy for controlling
+complexity in engineering design; we can often enhance our ability to deal with
+a complex problem by adopting a new language that enables us to describe (and
+hence to think about) the problem in a different way, using primitives, means
+of combination, and means of abstraction that are particularly well suited to
+the problem at hand.@footnote{The same idea is pervasive throughout all of
+engineering.  For example, electrical engineers use many different languages
+for describing circuits.  Two of these are the language of electrical
+@newterm{networks} and the language of electrical @newterm{systems}.  The
+network language emphasizes the physical modeling of devices in terms of
+discrete electrical elements.  The primitive objects of the network language
+are primitive electrical components such as resistors, capacitors, inductors,
+and transistors, which are characterized in terms of physical variables called
+voltage and current.  When describing circuits in the network language, the
+engineer is concerned with the physical characteristics of a design.  In
+contrast, the primitive objects of the system language are signal-processing
+modules such as filters and amplifiers.  Only the functional behavior of the
+modules is relevant, and signals are manipulated without concern for their
+physical realization as voltages and currents.  The system language is erected
+on the network language, in the sense that the elements of signal-processing
+systems are constructed from electrical networks.  Here, however, the concerns
+are with the large-scale organization of electrical devices to solve a given
+application problem; the physical feasibility of the parts is assumed.  This
+layered collection of languages is another example of the stratified design
+technique illustrated by the picture language of @ref{2.2.4}.}
+
+Programming is endowed with a multitude of languages.  There are physical
+languages, such as the machine languages for particular computers.  These
+languages are concerned with the representation of data and control in terms of
+individual bits of storage and primitive machine instructions.  The
+machine-language programmer is concerned with using the given hardware to erect
+systems and utilities for the efficient implementation of resource-limited
+computations.  High-level languages, erected on a machine-language substrate,
+hide concerns about the representation of data as collections of bits and the
+representation of programs as sequences of primitive instructions.  These
+languages have means of combination and abstraction, such as procedure
+definition, that are appropriate to the larger-scale organization of systems.
+
+@newterm{Metalinguistic abstraction}---establishing new languages---plays an
+important role in all branches of engineering design.  It is particularly
+important to computer programming, because in programming not only can we
+formulate new languages but we can also implement these languages by
+constructing evaluators.  An @newterm{evaluator} (or @newterm{interpreter}) for
+a programming language is a procedure that, when applied to an expression of
+the language, performs the actions required to evaluate that expression.
+
+It is no exaggeration to regard this as the most fundamental idea in
+programming:
+
+@quotation
+The evaluator, which determines the meaning of expressions in a programming
+language, is just another program.
+@end quotation
+
+@noindent
+To appreciate this point is to change our images of ourselves as programmers.
+We come to see ourselves as designers of languages, rather than only users of
+languages designed by others.
+
+In fact, we can regard almost any program as the evaluator for some language.
+For instance, the polynomial manipulation system of @ref{2.5.3}

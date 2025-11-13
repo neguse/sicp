@@ -1,0 +1,100 @@
+                  V                ^            |
+              .---.---.            |            V
+            +-+-O | O-+------------+    parameters: balance
+            | `---^---'                 body: ...
+            V
+    parameters: amount
+    body: (if (>= balance amount)
+              (begin (set! balance (- balance amount))
+                     balance)
+              "Insufficient funds")
+@end example
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.7b,145mm,,,.std.svg}
+@caption{@strong{Figure 3.7:} Result of evaluating @code{(define W1 (make-withdraw 100))}.}
+@end iftex
+@end float
+
+Now we can analyze what happens when @code{W1} is applied to an argument:
+
+@lisp
+(W1 50)
+@i{50}
+@end lisp
+
+@noindent
+We begin by constructing a frame in which @code{amount}, the formal parameter
+of @code{W1}, is bound to the argument 50.  The crucial point to observe is
+that this frame has as its enclosing environment not the global environment,
+but rather the environment E1, because this is the environment that is
+specified by the @code{W1} procedure object.  Within this new environment, we
+evaluate the body of the procedure:
+
+@lisp
+(if (>= balance amount)
+    (begin (set! balance (- balance amount))
+           balance)
+    "Insufficient funds")
+@end lisp
+
+@noindent
+The resulting environment structure is shown in @ref{Figure 3.8}.  The
+expression being evaluated references both @code{amount} and @code{balance}.
+@code{Amount} will be found in the first frame in the environment, while
+@code{balance} will be found by following the enclosing-environment pointer to
+E1.
+
+@float
+@anchor{Figure 3.8}
+@ifinfo
+@strong{Figure 3.8:} Environments created by applying the procedure object @code{W1}.
+
+@example
+          +---------------------------------------------------+
+          | make-withdraw: ...                                |
+global -->|                                                   |
+env       | W1: --+                                           |
+          +-------|-------------------------------------------+
+                  |               ^
+                  |               |
+                  |       +-------+------+ Here is the balance
+                  | E1 -->| balance: 100 | that will be changed
+                  |       +--------------+ by the set!.
+                  V               ^   ^
+              .---.---.           |   +----+
+              | O | O-+-----------+        |
+              `-|-^---'             +------+-----+
+                |                   | amount: 50 |
+                V                   +------------+
+      parameters: amount   (if (>= balance amount)
+      body: ...                (begin (set! balance
+                                            (- balance amount))
+                                      balance)
+                               "Insufficient funds")
+@end example
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.8c,145mm,,,.std.svg}
+@caption{@strong{Figure 3.8:} Environments created by applying the procedure object @code{W1}.}
+@end iftex
+@end float
+
+When the @code{set!} is executed, the binding of @code{balance} in E1 is
+changed.  At the completion of the call to @code{W1}, @code{balance} is 50, and
+the frame that contains @code{balance} is still pointed to by the procedure
+object @code{W1}.  The frame that binds @code{amount} (in which we executed the
+code that changed @code{balance}) is no longer relevant, since the procedure
+call that constructed it has terminated, and there are no pointers to that
+frame from other parts of the environment.  The next time @code{W1} is called,
+this will build a new frame that binds @code{amount} and whose enclosing
+environment is E1.  We see that E1 serves as the ``place'' that holds the local
+state variable for the procedure object @code{W1}.  @ref{Figure 3.9} shows the
+situation after the call to @code{W1}.
+
+@float
+@anchor{Figure 3.9}
+@ifinfo
+@strong{Figure 3.9:} Environments after the call to @code{W1}.
+
+@example

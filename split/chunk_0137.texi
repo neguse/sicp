@@ -1,0 +1,100 @@
+  {{x^3 + 2x^2 + 3x + 1 \over x^4 + x^3 - x - 1}.}  \]
+@end tex
+@noindent
+(Here the sum has been simplified by removing common factors.  Ordinary ``cross
+multiplication'' would have produced a fourth-degree polynomial over a
+fifth-degree polynomial.)
+
+If we modify our rational-arithmetic package so that it uses generic
+operations, then it will do what we want, except for the problem of reducing
+fractions to lowest terms.
+
+@quotation
+@strong{@anchor{Exercise 2.93}Exercise 2.93:} Modify the rational-arithmetic
+package to use generic operations, but change @code{make-rat} so that it does
+not attempt to reduce fractions to lowest terms.  Test your system by calling
+@code{make-rational} on two polynomials to produce a rational function:
+
+@lisp
+(define p1 (make-polynomial 'x '((2 1) (0 1))))
+(define p2 (make-polynomial 'x '((3 1) (0 1))))
+(define rf (make-rational p2 p1))
+@end lisp
+
+Now add @code{rf} to itself, using @code{add}. You will observe that this
+addition procedure does not reduce fractions to lowest terms.
+@end quotation
+
+@noindent
+We can reduce polynomial fractions to lowest terms using the same idea we used
+with integers: modifying @code{make-rat} to divide both the numerator and the
+denominator by their greatest common divisor.  The notion of ``greatest common
+divisor'' makes sense for polynomials.  In fact, we can compute the
+@abbr{GCD} of two polynomials using essentially the same Euclid's Algorithm
+that works for integers.@footnote{The fact that Euclid's Algorithm works for
+polynomials is formalized in algebra by saying that polynomials form a kind of
+algebraic domain called a @newterm{Euclidean ring}.  A Euclidean ring is a
+domain that admits addition, subtraction, and commutative multiplication,
+together with a way of assigning to each element @math{x} of the ring a positive
+integer ``measure'' @math{{m(x)}} with the properties that 
+@math{{m(xy) \ge m(x)}} for any nonzero @math{x} and @math{y} and that, given any @math{x} and
+@math{y}, there exists a @math{q} such that @math{{y = qx + r}} and either
+@math{{r = 0}} or @math{{m(r) < m(x)}}.  From an abstract point of view, this
+is what is needed to prove that Euclid's Algorithm works.  For the domain of
+integers, the measure @math{m} of an integer is the absolute value of the integer
+itself.  For the domain of polynomials, the measure of a polynomial is its
+degree.}  The integer version is
+
+@lisp
+(define (gcd a b)
+  (if (= b 0)
+      a
+      (gcd b (remainder a b))))
+@end lisp
+
+@noindent
+Using this, we could make the obvious modification to define a @abbr{GCD}
+operation that works on term lists:
+
+@lisp
+(define (gcd-terms a b)
+  (if (empty-termlist? b)
+      a
+      (gcd-terms b (remainder-terms a b))))
+@end lisp
+
+@noindent
+where @code{remainder-terms} picks out the remainder component of the list
+returned by the term-list division operation @code{div-terms} that was
+implemented in @ref{Exercise 2.91}.
+
+@quotation
+@strong{@anchor{Exercise 2.94}Exercise 2.94:} Using @code{div-terms}, implement
+the procedure @code{remainder-terms} and use this to define @code{gcd-terms} as
+above.  Now write a procedure @code{gcd-poly} that computes the polynomial
+@abbr{GCD} of two polys.  (The procedure should signal an error if the two
+polys are not in the same variable.)  Install in the system a generic operation
+@code{greatest-common-divisor} that reduces to @code{gcd-poly} for polynomials
+and to ordinary @code{gcd} for ordinary numbers.  As a test, try
+
+@lisp
+(define p1 
+  (make-polynomial 
+   'x '((4 1) (3 -1) (2 -2) (1 2))))
+
+(define p2 
+  (make-polynomial 
+   'x '((3 1) (1 -1))))
+
+(greatest-common-divisor p1 p2)
+@end lisp
+
+@noindent
+and check your result by hand.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.95}Exercise 2.95:} Define @math{P_1}, @math{P_2}, and
+@math{P_3} to be the polynomials
+@ifinfo
+

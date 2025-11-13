@@ -1,0 +1,100 @@
+
+@i{;;; Starting a new problem}
+@i{;;; Amb-Eval value:}
+@i{(3 20)}
+@end lisp
+
+@noindent
+The value returned was obtained after the evaluator repeatedly chose elements
+from each of the lists, until a successful choice was made.
+
+Section @ref{4.3.1} introduces @code{amb} and explains how it supports
+nondeterminism through the evaluator's automatic search mechanism.  
+@ref{4.3.2} presents examples of nondeterministic programs, and 
+@ref{4.3.3} gives the details of how to implement the @code{amb} evaluator by
+modifying the ordinary Scheme evaluator.
+
+@menu
+* 4.3.1::            Amb and Search
+* 4.3.2::            Examples of Nondeterministic Programs
+* 4.3.3::            Implementing the @code{Amb} Evaluator
+@end menu
+
+@node	4.3.1, 4.3.2, 4.3, 4.3
+@subsection Amb and Search
+
+To extend Scheme to support nondeterminism, we introduce a new special form
+called @code{amb}.@footnote{The idea of @code{amb} for nondeterministic
+programming was first described in 1961 by John McCarthy (see @ref{McCarthy 1963}).}
+The expression
+
+@lisp
+(amb ⟨@var{e₁}⟩ ⟨@var{e₂}⟩ @r{…} ⟨@var{eₙ}⟩)
+@end lisp
+
+@noindent
+returns the value of one of the @math{n} expressions @math{{⟨\kern0.03em e_i⟩}}
+``ambiguously.''  For example, the expression
+
+@lisp
+(list (amb 1 2 3) (amb 'a 'b))
+@end lisp
+
+@noindent
+can have six possible values:
+
+@example
+@code{(1 a)} @code{(1 b)} @code{(2 a)} @code{(2 b)} @code{(3 a)} @code{(3 b)}
+@end example
+
+@noindent
+@code{Amb} with a single choice produces an ordinary (single) value.
+
+@code{Amb} with no choices---the expression @code{(amb)}---is an expression
+with no acceptable values.  Operationally, we can think of @code{(amb)} as an
+expression that when evaluated causes the computation to ``fail'': The
+computation aborts and no value is produced.  Using this idea, we can express
+the requirement that a particular predicate expression @code{p} must be true as
+follows:
+
+@lisp
+(define (require p)
+  (if (not p) (amb)))
+@end lisp
+
+@noindent
+With @code{amb} and @code{require}, we can implement the @code{an-element-of}
+procedure used above:
+
+@lisp
+(define (an-element-of items)
+  (require (not (null? items)))
+  (amb (car items) 
+       (an-element-of (cdr items))))
+@end lisp
+
+@noindent
+@code{An-element-of} fails if the list is empty.  Otherwise it ambiguously
+returns either the first element of the list or an element chosen from the rest
+of the list.
+
+We can also express infinite ranges of choices.  The following procedure
+potentially returns any integer greater than or equal to some given @math{n}:
+
+@lisp
+(define (an-integer-starting-from n)
+  (amb n (an-integer-starting-from (+ n 1))))
+@end lisp
+
+@noindent
+This is like the stream procedure @code{integers-starting-from} described in
+@ref{3.5.2}, but with an important difference: The stream procedure
+returns an object that represents the sequence of all integers beginning with
+@math{n}, whereas the @code{amb} procedure returns a single integer.@footnote{In
+actuality, the distinction between nondeterministically returning a single
+choice and returning all choices depends somewhat on our point of view.  From
+the perspective of the code that uses the value, the nondeterministic choice
+returns a single value.  From the perspective of the programmer designing the
+code, the nondeterministic choice potentially returns all possible values, and
+the computation branches so that each value is investigated separately.}
+

@@ -1,0 +1,100 @@
+    balance)
+  (define (dispatch m)
+    (cond ((eq? m 'withdraw) withdraw)
+          ((eq? m 'deposit) deposit)
+          (else (error "Unknown request: 
+                 MAKE-ACCOUNT" m))))
+  dispatch)
+@end lisp
+
+@noindent
+Each call to @code{make-account} sets up an environment with a local state
+variable @code{balance}.  Within this environment, @code{make-account} defines
+procedures @code{deposit} and @code{withdraw} that access @code{balance} and an
+additional procedure @code{dispatch} that takes a ``message'' as input and
+returns one of the two local procedures.  The @code{dispatch} procedure itself
+is returned as the value that represents the bank-account object.  This is
+precisely the @newterm{message-passing} style of programming that we saw in
+@ref{2.4.3}, although here we are using it in conjunction with the
+ability to modify local variables.
+
+@code{Make-account} can be used as follows:
+
+@lisp
+(define acc (make-account 100))
+
+((acc 'withdraw) 50)
+@i{50}
+
+((acc 'withdraw) 60)
+@i{"Insufficient funds"}
+
+((acc 'deposit) 40)
+@i{90}
+
+((acc 'withdraw) 60)
+@i{30}
+@end lisp
+
+@noindent
+Each call to @code{acc} returns the locally defined @code{deposit} or
+@code{withdraw} procedure, which is then applied to the specified
+@code{amount}.  As was the case with @code{make-withdraw}, another call to
+@code{make-account}
+
+@lisp
+(define acc2 (make-account 100))
+@end lisp
+
+@noindent
+will produce a completely separate account object, which maintains its own
+local @code{balance}.
+
+@quotation
+@strong{@anchor{Exercise 3.1}Exercise 3.1:} An @newterm{accumulator} is a
+procedure that is called repeatedly with a single numeric argument and
+accumulates its arguments into a sum.  Each time it is called, it returns the
+currently accumulated sum.  Write a procedure @code{make-accumulator} that
+generates accumulators, each maintaining an independent sum.  The input to
+@code{make-accumulator} should specify the initial value of the sum; for
+example
+
+@lisp
+(define A (make-accumulator 5))
+
+(A 10)
+@i{15}
+
+(A 10)
+@i{25}
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.2}Exercise 3.2:} In software-testing applications,
+it is useful to be able to count the number of times a given procedure is
+called during the course of a computation.  Write a procedure
+@code{make-monitored} that takes as input a procedure, @code{f}, that itself
+takes one input.  The result returned by @code{make-monitored} is a third
+procedure, say @code{mf}, that keeps track of the number of times it has been
+called by maintaining an internal counter.  If the input to @code{mf} is the
+special symbol @code{how-many-calls?}, then @code{mf} returns the value of the
+counter.  If the input is the special symbol @code{reset-count}, then @code{mf}
+resets the counter to zero.  For any other input, @code{mf} returns the result
+of calling @code{f} on that input and increments the counter.  For instance, we
+could make a monitored version of the @code{sqrt} procedure:
+
+@lisp
+(define s (make-monitored sqrt))
+
+(s 100)
+@i{10}
+
+(s 'how-many-calls?)
+@i{1}
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.3}Exercise 3.3:} Modify the @code{make-account}
+procedure so that it creates password-protected accounts.  That is,

@@ -1,0 +1,100 @@
+Combining these equations shows that the state of the circuit (summarized by
+@math{v_C}, the voltage across the capacitor, and @math{i_L}, the current in
+the inductor) is described by the pair of differential equations
+@ifinfo
+
+@example
+d v_C        i_L
+-----  =  -  ---
+ d t          C
+
+d i_L      1           R
+-----  =  --- v_C  -  --- i_L
+ d t       L           L
+@end example
+
+@end ifinfo
+@tex
+\[ % :77:
+\begin{eqnarray}
+  {dv_C \over dt}   &=&   -{i_L \over C}\,, \\
+  {di_L \over dt}   &=&    {1 \over L}\, v_C - {R \over L}\, i_L.
+\end{eqnarray}
+\]
+@end tex
+@noindent
+The signal-flow diagram representing this system of differential equations is
+shown in @ref{Figure 3.37}.
+@end quotation
+
+@float
+@anchor{Figure 3.37}
+@ifinfo
+@quotation
+@strong{Figure 3.37:} A signal-flow diagram for the solution to a series RLC circuit.
+
+@example
+                 +-------------+
++----------------+  scale: l/L |<--+
+|                +-------------+   |
+|                                  |
+|                +-------------+   |  v_C
+|       dv_C +-->|   integral  +---*------>
+|            |   +-------------+
+|            |        ^
+|            |        | v_(C_0)
+|            |
+|            |   +-------------+
+|            +---+ scale: -l/C |<--+
+|                +-------------+   |
+|  |\__                            |
++->|   \_  di_L  +-------------+   |  i_L
+   | add_>------>|   integral  +---*------>
++->| __/         +-------------+   |
+|  |/                 ^            |
+|                     | i_(L_0)    |
+|                                  |
+|                +-------------+   |
++----------------+ scale: -R/L |<--+
+                 +-------------+
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.37,110mm,,,.std.svg}
+@caption{@strong{Figure 3.37:} A signal-flow diagram for the solution to a series RLC circuit.}
+@end iftex
+@end float
+
+@quotation
+Write a procedure @code{RLC} that takes as arguments the parameters @math{R},
+@math{L}, and @math{C} of the circuit and the time increment @math{{dt}}.  In a manner
+similar to that of the @code{RC} procedure of @ref{Exercise 3.73}, @code{RLC}
+should produce a procedure that takes the initial values of the state
+variables, @math{v_{C_0}} and @math{i_{L_0}}, and produces a pair (using
+@code{cons}) of the streams of states @math{v_C} and @math{i_L}.  Using
+@code{RLC}, generate the pair of streams that models the behavior of a series
+RLC circuit with @math{R} = 1 ohm, @math{C} = 0.2 farad, @math{L} = 1 henry, @math{{dt}}
+= 0.1 second, and initial values @math{i_{L_0}} = 0 amps and @math{v_{C_0}} =
+10 volts.
+@end quotation
+
+@subsubheading Normal-order evaluation
+
+The examples in this section illustrate how the explicit use of @code{delay}
+and @code{force} provides great programming flexibility, but the same examples
+also show how this can make our programs more complex.  Our new @code{integral}
+procedure, for instance, gives us the power to model systems with loops, but we
+must now remember that @code{integral} should be called with a delayed
+integrand, and every procedure that uses @code{integral} must be aware of this.
+In effect, we have created two classes of procedures: ordinary procedures and
+procedures that take delayed arguments.  In general, creating separate classes
+of procedures forces us to create separate classes of higher-order procedures
+as well.@footnote{This is a small reflection, in Lisp, of the difficulties that
+conventional strongly typed languages such as Pascal have in coping with
+higher-order procedures.  In such languages, the programmer must specify the
+data types of the arguments and the result of each procedure: number, logical
+value, sequence, and so on.  Consequently, we could not express an abstraction
+such as ``map a given procedure @code{proc} over all the elements in a
+sequence'' by a single higher-order procedure such as @code{stream-map}.
+Rather, we would need a different mapping procedure for each different

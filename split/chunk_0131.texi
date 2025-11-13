@@ -1,0 +1,100 @@
+@node	2.5.3, Chapter 3, 2.4, 2.5
+@subsection Example: Symbolic Algebra
+
+The manipulation of symbolic algebraic expressions is a complex process that
+illustrates many of the hardest problems that occur in the design of
+large-scale systems.  An algebraic expression, in general, can be viewed as a
+hierarchical structure, a tree of operators applied to operands.  We can
+construct algebraic expressions by starting with a set of primitive objects,
+such as constants and variables, and combining these by means of algebraic
+operators, such as addition and multiplication.  As in other languages, we form
+abstractions that enable us to refer to compound objects in simple terms.
+Typical abstractions in symbolic algebra are ideas such as linear combination,
+polynomial, rational function, or trigonometric function.  We can regard these
+as compound ``types,'' which are often useful for directing the processing of
+expressions.  For example, we could describe the expression
+@ifinfo
+
+@example
+x^2 sin (y^2 + 1) + x cos 2y + cos(y^3 - 2y^2)
+@end example
+
+@end ifinfo
+@tex
+\[ % :49:
+  {x^2 \sin (y^2 + 1)} + {x \cos 2y} + {\cos(y^3 - 2y^2)}  \]
+@end tex
+@noindent
+as a polynomial in @math{x} with coefficients that are trigonometric functions of
+polynomials in @math{y} whose coefficients are integers.
+
+We will not attempt to develop a complete algebraic-manipulation system here.
+Such systems are exceedingly complex programs, embodying deep algebraic
+knowledge and elegant algorithms.  What we will do is look at a simple but
+important part of algebraic manipulation: the arithmetic of polynomials.  We
+will illustrate the kinds of decisions the designer of such a system faces, and
+how to apply the ideas of abstract data and generic operations to help organize
+this effort.
+
+@subsubheading Arithmetic on polynomials
+
+Our first task in designing a system for performing arithmetic on polynomials
+is to decide just what a polynomial is.  Polynomials are normally defined
+relative to certain variables (the @newterm{indeterminates} of the polynomial).
+For simplicity, we will restrict ourselves to polynomials having just one
+indeterminate (@newterm{univariate polynomials}).@footnote{On the other hand,
+we will allow polynomials whose coefficients are themselves polynomials in
+other variables.  This will give us essentially the same representational power
+as a full multivariate system, although it does lead to coercion problems, as
+discussed below.} We will define a polynomial to be a sum of terms, each of
+which is either a coefficient, a power of the indeterminate, or a product of a
+coefficient and a power of the indeterminate.  A coefficient is defined as an
+algebraic expression that is not dependent upon the indeterminate of the
+polynomial.  For example,
+@ifinfo
+
+@example
+5x^2 + 3x + 7
+@end example
+
+@end ifinfo
+@tex
+\[ % :50:
+  {5x^2} + {3x} + 7  \]
+@end tex
+@noindent
+is a simple polynomial in @math{x}, and
+@ifinfo
+
+@example
+(y^2 + 1)x^3 + (2y)x + 1
+@end example
+
+@end ifinfo
+@tex
+\[ % :51:
+  {(y^2 + 1)x^3} + {(2y)x + 1}  \]
+@end tex
+@noindent
+is a polynomial in @math{x} whose coefficients are polynomials in @math{y}.
+
+Already we are skirting some thorny issues.  Is the first of these polynomials
+the same as the polynomial @math{{5y^2 + 3y + 7}}, or not?  A reasonable answer
+might be ``yes, if we are considering a polynomial purely as a mathematical
+function, but no, if we are considering a polynomial to be a syntactic form.''
+The second polynomial is algebraically equivalent to a polynomial in @math{y}
+whose coefficients are polynomials in @math{x}.  Should our system recognize this,
+or not?  Furthermore, there are other ways to represent a polynomial---for
+example, as a product of factors, or (for a univariate polynomial) as the set
+of roots, or as a listing of the values of the polynomial at a specified set of
+points.@footnote{For univariate polynomials, giving the value of a polynomial
+at a given set of points can be a particularly good representation.  This makes
+polynomial arithmetic extremely simple.  To obtain, for example, the sum of two
+polynomials represented in this way, we need only add the values of the
+polynomials at corresponding points.  To transform back to a more familiar
+representation, we can use the Lagrange interpolation formula, which shows how
+to recover the coefficients of a polynomial of degree @math{n} given the values of
+the polynomial at @math{{n + 1}} points.}  We can finesse these questions by
+deciding that in our algebraic-manipulation system a ``polynomial'' will be a
+particular syntactic form, not its underlying mathematical meaning.
+

@@ -1,0 +1,100 @@
+Alyssa's polar package is analogous:
+
+@lisp
+(define (install-polar-package)
+  @r{;; internal procedures}
+  (define (magnitude z) (car z))
+  (define (angle z) (cdr z))
+  (define (make-from-mag-ang r a) (cons r a))
+  (define (real-part z)
+    (* (magnitude z) (cos (angle z))))
+  (define (imag-part z)
+    (* (magnitude z) (sin (angle z))))
+  (define (make-from-real-imag x y)
+    (cons (sqrt (+ (square x) (square y)))
+          (atan y x)))
+  @r{;; interface to the rest of the system}
+  (define (tag x) (attach-tag 'polar x))
+  (put 'real-part '(polar) real-part)
+  (put 'imag-part '(polar) imag-part)
+  (put 'magnitude '(polar) magnitude)
+  (put 'angle '(polar) angle)
+  (put 'make-from-real-imag 'polar
+       (lambda (x y) 
+         (tag (make-from-real-imag x y))))
+  (put 'make-from-mag-ang 'polar
+       (lambda (r a) 
+         (tag (make-from-mag-ang r a))))
+  'done)
+@end lisp
+
+@noindent
+Even though Ben and Alyssa both still use their original procedures defined
+with the same names as each other's (e.g., @code{real-part}), these definitions
+are now internal to different procedures (see @ref{1.1.8}), so there is
+no name conflict.
+
+The complex-arithmetic selectors access the table by means of a general
+``operation'' procedure called @code{apply-generic}, which applies a generic
+operation to some arguments.  @code{Apply-generic} looks in the table under the
+name of the operation and the types of the arguments and applies the resulting
+procedure if one is present:@footnote{@code{Apply-generic} uses the dotted-tail
+notation described in @ref{Exercise 2.20}, because different generic operations
+may take different numbers of arguments.  In @code{apply-generic}, @code{op}
+has as its value the first argument to @code{apply-generic} and @code{args} has
+as its value a list of the remaining arguments.
+
+@code{Apply-generic} also uses the primitive procedure @code{apply}, which
+takes two arguments, a procedure and a list.  @code{Apply} applies the
+procedure, using the elements in the list as arguments.  For example,
+
+@lisp
+(apply + (list 1 2 3 4))
+@end lisp
+
+@noindent
+returns 10.}
+
+@lisp
+(define (apply-generic op . args)
+  (let ((type-tags (map type-tag args)))
+    (let ((proc (get op type-tags)))
+      (if proc
+          (apply proc (map contents args))
+          (error
+            "No method for these types: 
+             APPLY-GENERIC"
+            (list op type-tags))))))
+@end lisp
+
+@noindent
+Using @code{apply-generic}, we can define our generic selectors as follows:
+
+@lisp
+(define (real-part z) 
+  (apply-generic 'real-part z))
+(define (imag-part z) 
+  (apply-generic 'imag-part z))
+(define (magnitude z) 
+  (apply-generic 'magnitude z))
+(define (angle z) 
+  (apply-generic 'angle z))
+@end lisp
+
+@noindent
+Observe that these do not change at all if a new representation is added to the
+system.
+
+We can also extract from the table the constructors to be used by the programs
+external to the packages in making complex numbers from real and imaginary
+parts and from magnitudes and angles.  As in @ref{2.4.2}, we construct
+rectangular numbers whenever we have real and imaginary parts, and polar
+numbers whenever we have magnitudes and angles:
+
+@lisp
+(define (make-from-real-imag x y)
+  ((get 'make-from-real-imag 
+        'rectangular) 
+   x y))
+
+(define (make-from-mag-ang r a)

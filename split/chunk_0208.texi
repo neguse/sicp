@@ -1,0 +1,100 @@
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.57}Exercise 3.57:} How many additions are performed
+when we compute the @math{n^{\text{th}}} Fibonacci number using the definition of
+@code{fibs} based on the @code{add-streams} procedure?  Show that the number of
+additions would be exponentially greater if we had implemented @code{(delay ⟨@var{exp}⟩)} 
+simply as @code{(lambda () ⟨@var{exp}⟩)}, without using the
+optimization provided by the @code{memo-proc} procedure described in 
+@ref{3.5.1}.@footnote{This exercise shows how call-by-need is closely related
+to ordinary memoization as described in @ref{Exercise 3.27}.  In that exercise,
+we used assignment to explicitly construct a local table.  Our call-by-need
+stream optimization effectively constructs such a table automatically, storing
+values in the previously forced parts of the stream.}
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.58}Exercise 3.58:} Give an interpretation of the
+stream computed by the following procedure:
+
+@lisp
+(define (expand num den radix)
+  (cons-stream
+   (quotient (* num radix) den)
+   (expand (remainder (* num radix) den) 
+           den 
+           radix)))
+@end lisp
+
+(@code{Quotient} is a primitive that returns the integer quotient of two
+integers.)  What are the successive elements produced by @code{(expand 1 7
+10)}?  What is produced by @code{(expand 3 8 10)}?
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.59}Exercise 3.59:} In @ref{2.5.3} we saw how
+to implement a polynomial arithmetic system representing polynomials as lists
+of terms.  In a similar way, we can work with @newterm{power series}, such as
+@ifinfo
+
+@example
+               x^2     x^3       x^4
+e^x = 1 + x + ----- + ----- + --------- + ...
+                2     3 * 2   4 * 3 * 2
+
+             x^2       x^4
+cos x = 1 - ----- + --------- - ...
+              2     4 * 3 * 2
+
+             x^3         x^5
+sin x = x - ----- + ------------- - ...
+            3 * 2   5 * 4 * 3 * 2
+@end example
+
+@end ifinfo
+@tex
+\[ % :63:
+\begin{eqnarray}
+  e^x 	  &=& 1 + x + \frac{1}{2} x^2  + \frac{1}{3 \cdot 2} x^3  + \frac{1}{4 \cdot 3 \cdot 2} x^4  + \dots, \\
+  \cos x  &=& 1 - \frac{1}{2} x^2  + \frac{1}{4 \cdot 3 \cdot 2} x^4  - \dots, \\
+  \sin x  &=& x - \frac{1}{3 \cdot 2} x^3  + \frac{1}{5 \cdot 4 \cdot 3 \cdot 2} x^5  - \dots
+\end{eqnarray}
+\]
+@end tex
+@noindent
+represented as infinite streams.  We will represent the series @math{{a_0 +
+a_1 x} + {a_2 x^2} + {a_3 x^3 + \dots}} as the stream whose
+elements are the coefficients @math{a_0}, @math{a_1}, @math{a_2}, @math{a_3}, @dots{}.
+
+@enumerate a
+
+@item
+The integral of the series @math{{a_0 + a_1 x} + {a_2 x^2} + {a_3 x^3 + \dots}} is the series
+@ifinfo
+
+@example
+             1             1             1
+c + a_0 x + --- a_1 x^2 + --- a_2 x^3 + --- a_3 x^4 + ...
+             2             3             4
+@end example
+
+@end ifinfo
+@tex
+\[ % :64:
+  c + {a_0 x} + {\frac{1}{2} a_1 x^2} + {\frac{1}{3} a_2 x^3} + {\frac{1}{4} a_3 x^4 + \dots,}  \]
+@end tex
+@noindent
+where @math{c} is any constant.  Define a procedure @code{integrate-series} that
+takes as input a stream @math{a_0}, @math{a_1}, @math{a_2}, @dots{} representing a power
+series and returns the stream @math{a_0}, @math{{{1\over2}a_1}}, @math{{{1\over3}a_2}}, @dots{} of
+coefficients of the non-constant terms of the integral of the series.  (Since
+the result has no constant term, it doesn't represent a power series; when we
+use @code{integrate-series}, we will @code{cons} on the appropriate constant.)
+
+@item
+The function @math{{x \mapsto e^x}} is its own derivative.  This implies that
+@math{e^x} and the integral of @math{e^x} are the same series, except for the
+constant term, which is @math{{e^0 = 1}}.  Accordingly, we can generate the series
+for @math{e^x} as
+

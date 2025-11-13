@@ -1,0 +1,100 @@
+
+@i{;;; EC-Eval input:}
+(define (append x y)
+  (if (null? x)
+      y
+      (cons (car x) (append (cdr x) y))))
+
+@i{;;; EC-Eval value:}
+@i{ok}
+
+@i{;;; EC-Eval input:}
+(append '(a b c) '(d e f))
+
+@i{;;; EC-Eval value:}
+@i{(a b c d e f)}
+@end lisp
+
+@noindent
+Of course, evaluating expressions in this way will take much longer than if we
+had directly typed them into Scheme, because of the multiple levels of
+simulation involved.  Our expressions are evaluated by the
+explicit-control-evaluator machine, which is being simulated by a Scheme
+program, which is itself being evaluated by the Scheme interpreter.
+
+@subsubheading Monitoring the performance of the evaluator
+
+Simulation can be a powerful tool to guide the implementation of evaluators.
+Simulations make it easy not only to explore variations of the register-machine
+design but also to monitor the performance of the simulated evaluator.  For
+example, one important factor in performance is how efficiently the evaluator
+uses the stack.  We can observe the number of stack operations required to
+evaluate various expressions by defining the evaluator register machine with
+the version of the simulator that collects statistics on stack use 
+(@ref{5.2.4}), and adding an instruction at the evaluator's @code{print-result}
+entry point to print the statistics:
+
+@lisp
+print-result
+  @r{; added instruction:}
+  (perform (op print-stack-statistics))
+  (perform (op announce-output)
+           (const ";;; EC-Eval value:"))
+  @r{…} @r{; same as before}
+@end lisp
+
+@noindent
+Interactions with the evaluator now look like this:
+
+@lisp
+@i{;;; EC-Eval input:}
+(define (factorial n)
+  (if (= n 1) 1 (* (factorial (- n 1)) n)))
+@i{(total-pushes = 3, maximum-depth = 3)}
+
+@i{;;; EC-Eval value:}
+@i{ok}
+
+@i{;;; EC-Eval input:}
+(factorial 5)
+@i{(total-pushes = 144, maximum-depth = 28)}
+
+@i{;;; EC-Eval value:}
+@i{120}
+@end lisp
+
+@noindent
+Note that the driver loop of the evaluator reinitializes the stack at the start
+of each interaction, so that the statistics printed will refer only to stack
+operations used to evaluate the previous expression.
+
+@quotation
+@strong{@anchor{Exercise 5.26}Exercise 5.26:} Use the monitored stack to
+explore the tail-recursive property of the evaluator (@ref{5.4.2}).
+Start the evaluator and define the iterative @code{factorial} procedure from
+@ref{1.2.1}:
+
+@lisp
+(define (factorial n)
+  (define (iter product counter)
+    (if (> counter n)
+        product
+        (iter (* counter product)
+              (+ counter 1))))
+  (iter 1 1))
+@end lisp
+
+Run the procedure with some small values of @math{n}.  Record the maximum stack
+depth and the number of pushes required to compute @math{{n!}} for each of these
+values.
+
+@enumerate a
+
+@item
+You will find that the maximum depth required to evaluate @math{{n!}} is independent
+of @math{n}.  What is that depth?
+
+@item
+Determine from your data a formula in terms of @math{n} for the total number of
+push operations used in evaluating @math{{n!}} for any @math{{n \ge 1}}.  Note that the
+number of operations used is a linear function of @math{n} and is thus determined

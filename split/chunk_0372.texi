@@ -1,0 +1,100 @@
+machine primitives) that is hand-coded for the new machine.} Better yet, we can
+compile the compiler itself, and run this on the new machine to compile other
+Lisp programs.@footnote{This strategy leads to amusing tests of correctness of
+the compiler, such as checking whether the compilation of a program on the new
+machine, using the compiled compiler, is identical with the compilation of the
+program on the original Lisp system.  Tracking down the source of differences
+is fun but often frustrating, because the results are extremely sensitive to
+minuscule details.}  Or we can compile one of the interpreters of 
+@ref{4.1} to produce an interpreter that runs on the new machine.
+
+@quotation
+@strong{@anchor{Exercise 5.45}Exercise 5.45:} By comparing the stack operations
+used by compiled code to the stack operations used by the evaluator for the
+same computation, we can determine the extent to which the compiler optimizes
+use of the stack, both in speed (reducing the total number of stack operations)
+and in space (reducing the maximum stack depth).  Comparing this optimized
+stack use to the performance of a special-purpose machine for the same
+computation gives some indication of the quality of the compiler.
+
+@enumerate a
+
+@item
+@ref{Exercise 5.27} asked you to determine, as a function of @math{n}, the number
+of pushes and the maximum stack depth needed by the evaluator to compute @math{{n!}}
+using the recursive factorial procedure given above.  @ref{Exercise 5.14} asked
+you to do the same measurements for the special-purpose factorial machine shown
+in @ref{Figure 5.11}. Now perform the same analysis using the compiled
+@code{factorial} procedure.
+
+Take the ratio of the number of pushes in the compiled version to the number of
+pushes in the interpreted version, and do the same for the maximum stack depth.
+Since the number of operations and the stack depth used to compute @math{{n!}}  are
+linear in @math{n}, these ratios should approach constants as @math{n} becomes large.
+What are these constants?  Similarly, find the ratios of the stack usage in the
+special-purpose machine to the usage in the interpreted version.
+
+Compare the ratios for special-purpose versus interpreted code to the ratios
+for compiled versus interpreted code.  You should find that the special-purpose
+machine does much better than the compiled code, since the hand-tailored
+controller code should be much better than what is produced by our rudimentary
+general-purpose compiler.
+
+@item
+Can you suggest improvements to the compiler that would help it generate code
+that would come closer in performance to the hand-tailored version?
+
+@end enumerate
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.46}Exercise 5.46:} Carry out an analysis like the
+one in @ref{Exercise 5.45} to determine the effectiveness of compiling the
+tree-recursive Fibonacci procedure
+
+@lisp
+(define (fib n)
+  (if (< n 2)
+      n
+      (+ (fib (- n 1)) (fib (- n 2)))))
+@end lisp
+
+@noindent
+compared to the effectiveness of using the special-purpose Fibonacci machine of
+@ref{Figure 5.12}.  (For measurement of the interpreted performance, see
+@ref{Exercise 5.29}.)  For Fibonacci, the time resource used is not linear in
+@math{{n;}} hence the ratios of stack operations will not approach a limiting value
+that is independent of @math{n}.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.47}Exercise 5.47:} This section described how to
+modify the explicit-control evaluator so that interpreted code can call
+compiled procedures.  Show how to modify the compiler so that compiled
+procedures can call not only primitive procedures and compiled procedures, but
+interpreted procedures as well.  This requires modifying
+@code{compile-procedure-call} to handle the case of compound (interpreted)
+procedures.  Be sure to handle all the same @code{target} and @code{linkage}
+combinations as in @code{compile-proc-appl}.  To do the actual procedure
+application, the code needs to jump to the evaluator's @code{compound-apply}
+entry point.  This label cannot be directly referenced in object code (since
+the assembler requires that all labels referenced by the code it is assembling
+be defined there), so we will add a register called @code{compapp} to the
+evaluator machine to hold this entry point, and add an instruction to
+initialize it:
+
+@lisp
+  (assign compapp (label compound-apply))
+  @r{;; branches if @code{flag} is set:}
+  (branch (label external-entry))
+read-eval-print-loop @r{…}
+@end lisp
+
+To test your code, start by defining a procedure @code{f} that calls a
+procedure @code{g}.  Use @code{compile-and-go} to compile the definition of
+@code{f} and start the evaluator.  Now, typing at the evaluator, define
+@code{g} and try to call @code{f}.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.48}Exercise 5.48:} The @code{compile-and-go}

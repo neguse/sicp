@@ -1,0 +1,100 @@
+breakthrough in hardware technology leads to more massive programming
+enterprises, new organizational principles, and an enrichment of abstract
+models.  Every reader should ask himself periodically ``Toward what end, toward
+what end?''---but do not ask it too often lest you pass up the fun of
+programming for the constipation of bittersweet philosophy.
+
+Among the programs we write, some (but never enough) perform a precise
+mathematical function such as sorting or finding the maximum of a sequence of
+numbers, determining primality, or finding the square root.  We call such
+programs algorithms, and a great deal is known of their optimal behavior,
+particularly with respect to the two important parameters of execution time and
+data storage requirements.  A programmer should acquire good algorithms and
+idioms.  Even though some programs resist precise specifications, it is the
+responsibility of the programmer to estimate, and always to attempt to improve,
+their performance.
+
+Lisp is a survivor, having been in use for about a quarter of a century.  Among
+the active programming languages only Fortran has had a longer life.  Both
+languages have supported the programming needs of important areas of
+application, Fortran for scientific and engineering computation and Lisp for
+artificial intelligence.  These two areas continue to be important, and their
+programmers are so devoted to these two languages that Lisp and Fortran may
+well continue in active use for at least another quarter-century.
+
+Lisp changes.  The Scheme dialect used in this text has evolved from the
+original Lisp and differs from the latter in several important ways, including
+static scoping for variable binding and permitting functions to yield functions
+as values.  In its semantic structure Scheme is as closely akin to Algol 60 as
+to early Lisps.  Algol 60, never to be an active language again, lives on in
+the genes of Scheme and Pascal.  It would be difficult to find two languages
+that are the communicating coin of two more different cultures than those
+gathered around these two languages.  Pascal is for building
+pyramids---imposing, breathtaking, static structures built by armies pushing
+heavy blocks into place.  Lisp is for building organisms---imposing,
+breathtaking, dynamic structures built by squads fitting fluctuating myriads of
+simpler organisms into place.  The organizing principles used are the same in
+both cases, except for one extraordinarily important difference: The
+discretionary exportable functionality entrusted to the individual Lisp
+programmer is more than an order of magnitude greater than that to be found
+within Pascal enterprises.  Lisp programs inflate libraries with functions
+whose utility transcends the application that produced them.  The list, Lisp's
+native data structure, is largely responsible for such growth of utility.  The
+simple structure and natural applicability of lists are reflected in functions
+that are amazingly nonidiosyncratic.  In Pascal the plethora of declarable data
+structures induces a specialization within functions that inhibits and
+penalizes casual cooperation.  It is better to have 100 functions operate on
+one data structure than to have 10 functions operate on 10 data structures.  As
+a result the pyramid must stand unchanged for a millennium; the organism must
+evolve or perish.
+
+To illustrate this difference, compare the treatment of material and exercises
+within this book with that in any first-course text using Pascal.  Do not labor
+under the illusion that this is a text digestible at @abbr{MIT} only,
+peculiar to the breed found there.  It is precisely what a serious book on
+programming Lisp must be, no matter who the student is or where it is used.
+
+Note that this is a text about programming, unlike most Lisp books, which are
+used as a preparation for work in artificial intelligence.  After all, the
+critical programming concerns of software engineering and artificial
+intelligence tend to coalesce as the systems under investigation become larger.
+This explains why there is such growing interest in Lisp outside of artificial
+intelligence.
+
+As one would expect from its goals, artificial intelligence research generates
+many significant programming problems.  In other programming cultures this
+spate of problems spawns new languages.  Indeed, in any very large programming
+task a useful organizing principle is to control and isolate traffic within the
+task modules via the invention of language.  These languages tend to become
+less primitive as one approaches the boundaries of the system where we humans
+interact most often.  As a result, such systems contain complex
+language-processing functions replicated many times.  Lisp has such a simple
+syntax and semantics that parsing can be treated as an elementary task.  Thus
+parsing technology plays almost no role in Lisp programs, and the construction
+of language processors is rarely an impediment to the rate of growth and change
+of large Lisp systems.  Finally, it is this very simplicity of syntax and
+semantics that is responsible for the burden and freedom borne by all Lisp
+programmers.  No Lisp program of any size beyond a few lines can be written
+without being saturated with discretionary functions.  Invent and fit; have
+fits and reinvent!  We toast the Lisp programmer who pens his thoughts within
+nests of parentheses.
+
+@noindent
+Alan J. Perlis@*
+New Haven, Connecticut
+
+@node    Preface, Preface 1e, Foreword, Top
+@unnumbered Preface to the Second Edition
+
+@quotation
+Is it possible that software is not like anything else, that it is meant to be
+discarded: that the whole point is to always see it as a soap bubble?
+
+---Alan J. Perlis
+@end quotation
+
+
+@noindent
+The material in this book has been the basis of @abbr{MIT}'s entry-level
+computer science subject since 1980.  We had been teaching this material for
+four years when the first edition was published, and twelve more years have

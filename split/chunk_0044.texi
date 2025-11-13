@@ -1,0 +1,100 @@
+We can also define @code{pi-sum} in the same way:@footnote{Notice that we have
+used block structure (@ref{1.1.8}) to embed the definitions of
+@code{pi-next} and @code{pi-term} within @code{pi-sum}, since these procedures
+are unlikely to be useful for any other purpose.  We will see how to get rid of
+them altogether in @ref{1.3.2}.}
+
+@lisp
+(define (pi-sum a b)
+  (define (pi-term x)
+    (/ 1.0 (* x (+ x 2))))
+  (define (pi-next x)
+    (+ x 4))
+  (sum pi-term a pi-next b))
+@end lisp
+
+@noindent
+Using these procedures, we can compute an approximation to @math{\pi}:
+
+@lisp
+(* 8 (pi-sum 1 1000))
+@i{3.139592655589783}
+@end lisp
+
+@noindent
+Once we have @code{sum}, we can use it as a building block in formulating
+further concepts.  For instance, the definite integral of a function @math{f}
+between the limits @math{a} and @math{b} can be approximated numerically using the
+formula
+@ifinfo
+
+@example
+/b     /  /     dx \    /          dx \    /           dx \      \
+|  f = | f| a + -- | + f| a + dx + -- | + f| a + 2dx + -- | + ...| dx
+/a     \  \     2  /    \          2  /    \           2  /      /
+@end example
+
+@end ifinfo
+@tex
+
+\[ % :19:
+ 
+{\int_a^b \kern-0.3em f}
+  \;=\; {\left[\;f\left(a + \frac{d x}{2}\right)\right.}
+  \,+\, {f\left(a + dx + \frac{dx}{2}\right)}
+  \,+\, {\left. f\left(a + 2dx + \frac{dx}{2}\right)
+  \,+\, \dots \;\right] dx}
+\]
+
+@end tex
+@noindent
+for small values of @math{{dx}}.  We can express this directly as a procedure:
+
+@lisp
+(define (integral f a b dx)
+  (define (add-dx x) (+ x dx))
+  (* (sum f (+ a (/ dx 2.0)) add-dx b) 
+     dx))
+
+(integral cube 0 1 0.01)
+@i{.24998750000000042}
+
+(integral cube 0 1 0.001)
+@i{.249999875000001}
+@end lisp
+
+@noindent
+(The exact value of the integral of @code{cube} between 0 and 1 is 1/4.)
+
+@quotation
+@strong{@anchor{Exercise 1.29}Exercise 1.29:} Simpson's Rule is a more accurate
+method of numerical integration than the method illustrated above.  Using
+Simpson's Rule, the integral of a function @math{f} between @math{a} and @math{b} is
+approximated as
+@ifinfo
+
+@example
+h
+- (y_0 + 4y_1 + 2y_2 + 4y_3 + 2y_4 + ... + 2y_(n-2) + 4y_(n-1) + y_n)
+3
+@end example
+
+@end ifinfo
+@tex
+
+\[ % :20:
+  
+\frac{h}{3}(y_0 + {4y_1} + {2y_2} + {4y_3} + {2y_4} + \dots + {2y_{n-2}} + {4y_{n-1} + y_n),}
+\]
+
+@end tex
+@noindent
+where @math{{h = (b - a)/n}}, for some even integer @math{n}, and
+@math{y_k = {f(a + kh)}}.  (Increasing @math{n} increases the
+accuracy of the approximation.)  Define a procedure that takes as arguments
+@math{f}, @math{a}, @math{b}, and @math{n} and returns the value of the integral, computed
+using Simpson's Rule.  Use your procedure to integrate @code{cube} between 0
+and 1 (with @math{{n = 100}} and @math{{n = 1000}}), and compare the results to those of
+the @code{integral} procedure shown above.
+@end quotation
+

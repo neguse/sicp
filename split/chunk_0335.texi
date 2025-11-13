@@ -1,0 +1,100 @@
+  (assign  oldcr 
+           (op vector-ref)
+           (reg the-cdrs)
+           (reg old))
+  (perform (op vector-set!)
+           (reg new-cdrs)
+           (reg new)
+           (reg oldcr))
+  @r{;; Construct the broken heart.}
+  (perform (op vector-set!)
+           (reg the-cars)
+           (reg old)
+           (const broken-heart))
+  (perform (op vector-set!)
+           (reg the-cdrs)
+           (reg old)
+           (reg new))
+  (goto (reg relocate-continue))
+already-moved
+  (assign  new
+           (op vector-ref)
+           (reg the-cdrs)
+           (reg old))
+  (goto (reg relocate-continue))
+@end lisp
+
+@noindent
+At the very end of the garbage-collection process, we interchange the role of
+old and new memories by interchanging pointers: interchanging @code{the-cars}
+with @code{new-cars}, and @code{the-cdrs} with @code{new-cdrs}.  We will then
+be ready to perform another garbage collection the next time memory runs out.
+
+@lisp
+gc-flip
+  (assign temp (reg the-cdrs))
+  (assign the-cdrs (reg new-cdrs))
+  (assign new-cdrs (reg temp))
+  (assign temp (reg the-cars))
+  (assign the-cars (reg new-cars))
+  (assign new-cars (reg temp))
+@end lisp
+
+@node	5.4, 5.5, 5.3, Chapter 5
+@section The Explicit-Control Evaluator
+
+In @ref{5.1} we saw how to transform simple Scheme programs into
+descriptions of register machines.  We will now perform this transformation on
+a more complex program, the metacircular evaluator of 
+@ref{4.1.1}--@ref{4.1.4}, which shows how the behavior of a Scheme interpreter
+can be described in terms of the procedures @code{eval} and @code{apply}. The
+@newterm{explicit-control evaluator} that we develop in this section shows how
+the underlying procedure-calling and argument-passing mechanisms used in the
+evaluation process can be described in terms of operations on registers and
+stacks.  In addition, the explicit-control evaluator can serve as an
+implementation of a Scheme interpreter, written in a language that is very
+similar to the native machine language of conventional computers.  The
+evaluator can be executed by the register-machine simulator of 
+@ref{5.2}.  Alternatively, it can be used as a starting point for building a
+machine-language implementation of a Scheme evaluator, or even a
+special-purpose machine for evaluating Scheme expressions.  @ref{Figure 5.16}
+shows such a hardware implementation: a silicon chip that acts as an evaluator
+for Scheme.  The chip designers started with the data-path and controller
+specifications for a register machine similar to the evaluator described in
+this section and used design automation programs to construct the
+integrated-circuit layout.@footnote{See @ref{Batali et al. 1982} for more information
+on the chip and the method by which it was designed.}
+
+@float
+@anchor{Figure 5.16}
+@ifinfo
+@quotation
+@strong{Figure 5.16:} A silicon-chip implementation of an evaluator for Scheme.
+
+[A photograph of chip layout]
+
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap5/chip,,,,.std.svg}
+@caption{@strong{Figure 5.16:} A silicon-chip implementation of an evaluator for Scheme.}
+@end iftex
+@end float
+
+@subsubheading Registers and operations
+
+In designing the explicit-control evaluator, we must specify the operations to
+be used in our register machine.  We described the metacircular evaluator in
+terms of abstract syntax, using procedures such as @code{quoted?} and
+@code{make-procedure}.  In implementing the register machine, we could expand
+these procedures into sequences of elementary list-structure memory operations,
+and implement these operations on our register machine.  However, this would
+make our evaluator very long, obscuring the basic structure with details.  To
+clarify the presentation, we will include as primitive operations of the
+register machine the syntax procedures given in @ref{4.1.2} and the
+procedures for representing environments and other run-time data given in
+sections @ref{4.1.3} and @ref{4.1.4}.  In order to completely specify an
+evaluator that could be programmed in a low-level machine language or
+implemented in hardware, we would replace these operations by more elementary
+operations, using the list-structure implementation we described in 
+@ref{5.3}.

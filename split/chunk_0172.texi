@@ -1,0 +1,100 @@
+                     (cdr subtable)))))
+        (set-cdr! 
+         table
+         (cons (list key-1 (cons key-2 value))
+               (cdr table)))))
+  'ok)
+@end lisp
+
+@subsubheading Creating local tables
+
+The @code{lookup} and @code{insert!} operations defined above take the table as
+an argument.  This enables us to use programs that access more than one table.
+Another way to deal with multiple tables is to have separate @code{lookup} and
+@code{insert!} procedures for each table.  We can do this by representing a
+table procedurally, as an object that maintains an internal table as part of
+its local state.  When sent an appropriate message, this ``table object''
+supplies the procedure with which to operate on the internal table.  Here is a
+generator for two-dimensional tables represented in this fashion:
+
+@lisp
+(define (make-table)
+  (let ((local-table (list '*table*)))
+    (define (lookup key-1 key-2)
+      (let ((subtable 
+             (assoc key-1 (cdr local-table))))
+        (if subtable
+            (let ((record 
+                   (assoc key-2 
+                          (cdr subtable))))
+              (if record (cdr record) false))
+            false)))
+    (define (insert! key-1 key-2 value)
+      (let ((subtable 
+             (assoc key-1 (cdr local-table))))
+        (if subtable
+            (let ((record 
+                   (assoc key-2 
+                          (cdr subtable))))
+              (if record
+                  (set-cdr! record value)
+                  (set-cdr! 
+                   subtable
+                   (cons (cons key-2 value)
+                         (cdr subtable)))))
+            (set-cdr! 
+             local-table
+             (cons (list key-1
+                         (cons key-2 value))
+                   (cdr local-table)))))
+      'ok)
+    (define (dispatch m)
+      (cond ((eq? m 'lookup-proc) lookup)
+            ((eq? m 'insert-proc!) insert!)
+            (else (error "Unknown operation: 
+                          TABLE" m))))
+    dispatch))
+@end lisp
+
+@noindent
+Using @code{make-table}, we could implement the @code{get} and @code{put}
+operations used in @ref{2.4.3} for data-directed programming, as
+follows:
+
+@lisp
+(define operation-table (make-table))
+(define get (operation-table 'lookup-proc))
+(define put (operation-table 'insert-proc!))
+@end lisp
+
+@noindent
+@code{Get} takes as arguments two keys, and @code{put} takes as arguments two
+keys and a value.  Both operations access the same local table, which is
+encapsulated within the object created by the call to @code{make-table}.
+
+@quotation
+@strong{@anchor{Exercise 3.24}Exercise 3.24:} In the table implementations
+above, the keys are tested for equality using @code{equal?} (called by
+@code{assoc}).  This is not always the appropriate test.  For instance, we
+might have a table with numeric keys in which we don't need an exact match to
+the number we're looking up, but only a number within some tolerance of it.
+Design a table constructor @code{make-table} that takes as an argument a
+@code{same-key?} procedure that will be used to test ``equality'' of keys.
+@code{Make-table} should return a @code{dispatch} procedure that can be used to
+access appropriate @code{lookup} and @code{insert!} procedures for a local
+table.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.25}Exercise 3.25:} Generalizing one- and
+two-dimensional tables, show how to implement a table in which values are
+stored under an arbitrary number of keys and different values may be stored
+under different numbers of keys.  The @code{lookup} and @code{insert!}
+procedures should take as input a list of keys used to access the table.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.26}Exercise 3.26:} To search a table as implemented
+above, one needs to scan through the list of records.  This is basically the
+unordered list representation of @ref{2.3.3}.  For large tables, it may
+be more efficient to structure the table in a different manner.  Describe a

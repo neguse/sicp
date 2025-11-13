@@ -1,0 +1,100 @@
+specify a frame in which @code{?x}, @code{?y}, and @code{?z} must all be bound
+to @code{a}.  On the other hand, unifying @code{(?x ?y a)} and @code{(?x b ?y)}
+will fail, because there is no value for @code{?y} that can make the two
+patterns equal.  (For the second elements of the patterns to be equal,
+@code{?y} would have to be @code{b}; however, for the third elements to be
+equal, @code{?y} would have to be @code{a}.)  The unifier used in the query
+system, like the pattern matcher, takes a frame as input and performs
+unifications that are consistent with this frame.
+
+The unification algorithm is the most technically difficult part of the query
+system.  With complex patterns, performing unification may seem to require
+deduction.  To unify @code{(?x ?x)} and @code{((a ?y c) (a b ?z))}, for
+example, the algorithm must infer that @code{?x} should be @code{(a b c)},
+@code{?y} should be @code{b}, and @code{?z} should be @code{c}.  We may think
+of this process as solving a set of equations among the pattern components.  In
+general, these are simultaneous equations, which may require substantial
+manipulation to solve.@footnote{In one-sided pattern matching, all the
+equations that contain pattern variables are explicit and already solved for
+the unknown (the pattern variable).} For example, unifying @code{(?x ?x)} and
+@code{((a ?y c) (a b ?z))} may be thought of as specifying the simultaneous
+equations
+
+@lisp
+?x = (a ?y c)
+?x = (a b ?z)
+@end lisp
+
+@noindent
+These equations imply that
+
+@lisp
+(a ?y c) = (a b ?z)
+@end lisp
+
+@noindent
+which in turn implies that
+
+@lisp
+a = a, ?y = b, c = ?z,
+@end lisp
+
+@noindent
+and hence that
+
+@lisp
+?x = (a b c)
+@end lisp
+
+@noindent
+In a successful pattern match, all pattern variables become bound, and the
+values to which they are bound contain only constants.  This is also true of
+all the examples of unification we have seen so far.  In general, however, a
+successful unification may not completely determine the variable values; some
+variables may remain unbound and others may be bound to values that contain
+variables.
+
+Consider the unification of @code{(?x a)} and @code{((b ?y) ?z)}.  We can
+deduce that @code{?x = (b ?y)} and @code{a = ?z}, but we cannot further solve
+for @code{?x} or @code{?y}.  The unification doesn't fail, since it is
+certainly possible to make the two patterns equal by assigning values to
+@code{?x} and @code{?y}.  Since this match in no way restricts the values
+@code{?y} can take on, no binding for @code{?y} is put into the result frame.
+The match does, however, restrict the value of @code{?x}.  Whatever value
+@code{?y} has, @code{?x} must be @code{(b ?y)}.  A binding of @code{?x} to the
+pattern @code{(b ?y)} is thus put into the frame.  If a value for @code{?y} is
+later determined and added to the frame (by a pattern match or unification that
+is required to be consistent with this frame), the previously bound @code{?x}
+will refer to this value.@footnote{Another way to think of unification is that
+it generates the most general pattern that is a specialization of the two input
+patterns.  That is, the unification of @code{(?x a)} and @code{((b ?y) ?z)} is
+@code{((b ?y) a)}, and the unification of @code{(?x a ?y)} and @code{(?y ?z
+a)}, discussed above, is @code{(a a a)}.  For our implementation, it is more
+convenient to think of the result of unification as a frame rather than a
+pattern.}
+
+@subsubheading Applying rules
+
+Unification is the key to the component of the query system that makes
+inferences from rules. To see how this is accomplished, consider processing a
+query that involves applying a rule, such as
+
+@lisp
+(lives-near ?x (Hacker Alyssa P))
+@end lisp
+
+@noindent
+To process this query, we first use the ordinary pattern-match procedure
+described above to see if there are any assertions in the data base that match
+this pattern.  (There will not be any in this case, since our data base
+includes no direct assertions about who lives near whom.)  The next step is to
+attempt to unify the query pattern with the conclusion of each rule.  We find
+that the pattern unifies with the conclusion of the rule
+
+@lisp
+(rule (lives-near ?person-1 ?person-2)
+      (and (address ?person-1 
+                    (?town . ?rest-1))
+           (address ?person-2 
+                    (?town . ?rest-2))
+           (not (same ?person-1 ?person-2))))

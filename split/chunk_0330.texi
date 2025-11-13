@@ -1,0 +1,100 @@
+        (reg the-cars)
+        (reg ⟨@var{reg₂}⟩))
+(assign ⟨@var{reg₁}⟩
+        (op vector-ref)
+        (reg the-cdrs)
+        (reg ⟨@var{reg₂}⟩))
+@end lisp
+
+@noindent
+The instructions
+
+@lisp
+(perform (op set-car!) (reg ⟨@var{reg₁}⟩) (reg ⟨@var{reg₂}⟩))
+(perform (op set-cdr!) (reg ⟨@var{reg₁}⟩) (reg ⟨@var{reg₂}⟩))
+@end lisp
+
+@noindent
+are implemented as
+
+@lisp
+(perform (op vector-set!)
+         (reg the-cars)
+         (reg ⟨@var{reg₁}⟩)
+         (reg ⟨@var{reg₂}⟩))
+(perform (op vector-set!)
+         (reg the-cdrs)
+         (reg ⟨@var{reg₁}⟩)
+         (reg ⟨@var{reg₂}⟩))
+@end lisp
+
+@noindent
+@code{Cons} is performed by allocating an unused index and storing the
+arguments to @code{cons} in @code{the-cars} and @code{the-cdrs} at that indexed
+vector position.  We presume that there is a special register, @code{free},
+that always holds a pair pointer containing the next available index, and that
+we can increment the index part of that pointer to find the next free
+location.@footnote{There are other ways of finding free storage.  For example,
+we could link together all the unused pairs into a @newterm{free list}.  Our
+free locations are consecutive (and hence can be accessed by incrementing a
+pointer) because we are using a compacting garbage collector, as we will see in
+@ref{5.3.2}.}  For example, the instruction
+
+@lisp
+(assign ⟨@var{reg₁}⟩
+        (op cons)
+        (reg ⟨@var{reg₂}⟩)
+        (reg ⟨@var{reg₃}⟩))
+@end lisp
+
+@noindent
+is implemented as the following sequence of vector operations:@footnote{This is
+essentially the implementation of @code{cons} in terms of @code{set-car!} and
+@code{set-cdr!}, as described in @ref{3.3.1}.  The operation
+@code{get-new-pair} used in that implementation is realized here by the
+@code{free} pointer.}
+
+@lisp
+(perform (op vector-set!)
+         (reg the-cars)
+         (reg free)
+         (reg ⟨@var{reg₂}⟩))
+(perform (op vector-set!)
+         (reg the-cdrs)
+         (reg free)
+         (reg ⟨@var{reg₃}⟩))
+(assign ⟨@var{reg₁}⟩ (reg free))
+(assign free (op +) (reg free) (const 1))
+@end lisp
+
+@noindent
+The @code{eq?} operation
+
+@lisp
+(op eq?) (reg ⟨@var{reg₁}⟩) (reg ⟨@var{reg₂}⟩)
+@end lisp
+
+@noindent
+simply tests the equality of all fields in the registers, and predicates such
+as @code{pair?}, @code{null?}, @code{symbol?}, and @code{number?} need only
+check the type field.
+
+@subsubheading Implementing stacks
+
+Although our register machines use stacks, we need do nothing special here,
+since stacks can be modeled in terms of lists.  The stack can be a list of the
+saved values, pointed to by a special register @code{the-stack}.  Thus, 
+@code{(save ⟨@var{reg}⟩)} can be implemented as
+
+@lisp
+(assign the-stack 
+        (op cons)
+        (reg ⟨@var{reg}⟩)
+        (reg the-stack))
+@end lisp
+
+@noindent
+Similarly, @code{(restore ⟨@var{reg}⟩)} can be implemented as
+
+@lisp
+(assign ⟨@var{reg}⟩ (op car) (reg the-stack))

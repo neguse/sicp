@@ -1,0 +1,100 @@
+w
+@i{(a b c d)}
+
+(cdr x)
+⟨@var{response}⟩
+@end lisp
+
+What are the missing @code{⟨}@var{response}@code{⟩}s?  Draw box-and-pointer diagrams to
+explain your answer.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.13}Exercise 3.13:} Consider the following
+@code{make-cycle} procedure, which uses the @code{last-pair} procedure defined
+in @ref{Exercise 3.12}:
+
+@lisp
+(define (make-cycle x)
+  (set-cdr! (last-pair x) x)
+  x)
+@end lisp
+
+Draw a box-and-pointer diagram that shows the structure @code{z} created by
+
+@lisp
+(define z (make-cycle (list 'a 'b 'c)))
+@end lisp
+
+What happens if we try to compute @code{(last-pair z)}?
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.14}Exercise 3.14:} The following procedure is quite
+useful, although obscure:
+
+@lisp
+(define (mystery x)
+  (define (loop x y)
+    (if (null? x)
+        y
+        (let ((temp (cdr x)))
+          (set-cdr! x y)
+          (loop temp x))))
+  (loop x '()))
+@end lisp
+
+@code{Loop} uses the ``temporary'' variable @code{temp} to hold the old value
+of the @code{cdr} of @code{x}, since the @code{set-cdr!}  on the next line
+destroys the @code{cdr}.  Explain what @code{mystery} does in general.  Suppose
+@code{v} is defined by @code{(define v (list 'a 'b 'c 'd))}. Draw the
+box-and-pointer diagram that represents the list to which @code{v} is bound.
+Suppose that we now evaluate @code{(define w (mystery v))}. Draw
+box-and-pointer diagrams that show the structures @code{v} and @code{w} after
+evaluating this expression.  What would be printed as the values of @code{v}
+and @code{w}?
+@end quotation
+
+@subsubheading Sharing and identity
+
+We mentioned in @ref{3.1.3} the theoretical issues of ``sameness'' and
+``change'' raised by the introduction of assignment.  These issues arise in
+practice when individual pairs are @newterm{shared} among different data
+objects.  For example, consider the structure formed by
+
+@lisp
+(define x (list 'a 'b))
+(define z1 (cons x x))
+@end lisp
+
+@noindent
+As shown in @ref{Figure 3.16}, @code{z1} is a pair whose @code{car} and
+@code{cdr} both point to the same pair @code{x}.  This sharing of @code{x} by
+the @code{car} and @code{cdr} of @code{z1} is a consequence of the
+straightforward way in which @code{cons} is implemented.  In general, using
+@code{cons} to construct lists will result in an interlinked structure of pairs
+in which many individual pairs are shared by many different structures.
+
+@float
+@anchor{Figure 3.16}
+@ifinfo
+@quotation
+@strong{Figure 3.16:} The list @code{z1} formed by @code{(cons x x)}.
+
+@example
+      +---+---+
+z1 -->| * | * |
+      +-|-+-|-+
+        V   V
+      +---+---+     +---+---+
+ x -->| * | *-+---->| * | / |
+      +-|-+---+     +-|-+---+
+        V             V
+      +---+         +---+
+      | a |         | b |
+      +---+         +---+
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.16b,78mm,,,.std.svg}

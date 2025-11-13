@@ -1,0 +1,100 @@
+
+@i{;;; Amb-Eval value:}
+@i{(8 35)}
+
+@i{;;; Amb-Eval input:}
+try-again
+
+@i{;;; There are no more values of}
+@i{(prime-sum-pair 
+ (quote (1 3 5 8)) 
+ (quote (20 35 110)))}
+
+@i{;;; Amb-Eval input:}
+(prime-sum-pair '(19 27 30) '(11 36 58))
+
+@i{;;; Starting a new problem}
+@i{;;; Amb-Eval value:}
+@i{(30 11)}
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 4.35}Exercise 4.35:} Write a procedure
+@code{an-integer-between} that returns an integer between two given bounds.
+This can be used to implement a procedure that finds Pythagorean triples, i.e.,
+triples of integers @math{{(i, j, k)}} between the given bounds such that
+@math{{i \le j}} and @math{{i^2 + j^2 = k^2}}, as follows:
+
+@lisp
+(define (a-pythagorean-triple-between low high)
+  (let ((i (an-integer-between low high)))
+    (let ((j (an-integer-between i high)))
+      (let ((k (an-integer-between j high)))
+        (require (= (+ (* i i) (* j j)) 
+                    (* k k)))
+        (list i j k)))))
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.36}Exercise 4.36:} @ref{Exercise 3.69} discussed how
+to generate the stream of @emph{all} Pythagorean triples, with no upper bound
+on the size of the integers to be searched.  Explain why simply replacing
+@code{an-integer-between} by @code{an-integer-starting-from} in the procedure
+in @ref{Exercise 4.35} is not an adequate way to generate arbit@-rary Py@-tha@-go@-rean
+triples.  Write a procedure that actually will accomplish this.  (That is,
+write a procedure for which repeatedly typing @code{try-again} would in
+principle eventually generate all Py@-tha@-go@-rean triples.)
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.37}Exercise 4.37:} Ben Bitdiddle claims that the
+following method for generating Pythagorean triples is more efficient than the
+one in @ref{Exercise 4.35}.  Is he correct?  (Hint: Consider the number of
+possibilities that must be explored.)
+
+@lisp
+(define (a-pythagorean-triple-between low high)
+  (let ((i (an-integer-between low high))
+        (hsq (* high high)))
+    (let ((j (an-integer-between i high)))
+      (let ((ksq (+ (* i i) (* j j))))
+        (require (>= hsq ksq))
+        (let ((k (sqrt ksq)))
+          (require (integer? k))
+          (list i j k))))))
+@end lisp
+@end quotation
+
+@node	4.3.2, 4.3.3, 4.3.1, 4.3
+@subsection Examples of Nondeterministic Programs
+
+Section @ref{4.3.3} describes the implementation of the @code{amb} evaluator.
+First, however, we give some examples of how it can be used.  The advantage of
+nondeterministic programming is that we can suppress the details of how search
+is carried out, thereby expressing our programs at a higher level of
+abstraction.
+
+@subsubheading Logic Puzzles
+
+The following puzzle (taken from @ref{Dinesman 1968}) is typical of a large class of
+simple logic puzzles:
+
+@quotation
+Baker, Cooper, Fletcher, Miller, and Smith live on different floors of an
+apartment house that contains only five floors.  Baker does not live on the top
+floor.  Cooper does not live on the bottom floor.  Fletcher does not live on
+either the top or the bottom floor.  Miller lives on a higher floor than does
+Cooper.  Smith does not live on a floor adjacent to Fletcher's.  Fletcher does
+not live on a floor adjacent to Cooper's.  Where does everyone live?
+@end quotation
+
+@noindent
+We can determine who lives on each floor in a straightforward way by
+enumerating all the possibilities and imposing the given
+restrictions:@footnote{Our program uses the following procedure to determine if
+the elements of a list are distinct:
+
+@lisp
+(define (distinct? items)
+  (cond ((null? items) true)

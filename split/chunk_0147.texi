@@ -1,0 +1,100 @@
+@i{5}
+
+(D 10)
+@i{15}
+@end lisp
+
+@noindent
+We can use the substitution model to explain how @code{make-decrementer} works.
+For instance, let us analyze the evaluation of the expression
+
+@lisp
+((make-decrementer 25) 20)
+@end lisp
+
+@noindent
+We first simplify the operator of the combination by substituting 25 for
+@code{balance} in the body of @code{make-decrementer}.  This reduces the
+expression to
+
+@lisp
+((lambda (amount) (- 25 amount)) 20)
+@end lisp
+
+@noindent
+Now we apply the operator by substituting 20 for @code{amount} in the body of
+the @code{lambda} expression:
+
+@lisp
+(- 25 20)
+@end lisp
+
+@noindent
+The final answer is 5.
+
+Observe, however, what happens if we attempt a similar substitution analysis
+with @code{make-simplified-withdraw}:
+
+@lisp
+((make-simplified-withdraw 25) 20)
+@end lisp
+
+@noindent
+We first simplify the operator by substituting 25 for @code{balance} in the
+body of @code{make-simplified-withdraw}.  This reduces the expression
+to@footnote{We don't substitute for the occurrence of @code{balance} in the
+@code{set!} expression because the @code{⟨}@var{name}@code{⟩} in a @code{set!} is not
+evaluated.  If we did substitute for it, we would get @code{(set! 25 (- 25
+amount))}, which makes no sense.}
+
+@lisp
+((lambda (amount) 
+   (set! balance (- 25 amount)) 25)
+ 20)
+@end lisp
+
+@noindent
+Now we apply the operator by substituting 20 for @code{amount} in the body of
+the @code{lambda} expression:
+
+@lisp
+(set! balance (- 25 20)) 25
+@end lisp
+
+@noindent
+If we adhered to the substitution model, we would have to say that the meaning
+of the procedure application is to first set @code{balance} to 5 and then
+return 25 as the value of the expression.  This gets the wrong answer.  In
+order to get the correct answer, we would have to somehow distinguish the first
+occurrence of @code{balance} (before the effect of the @code{set!})  from the
+second occurrence of @code{balance} (after the effect of the @code{set!}), and
+the substitution model cannot do this.
+
+The trouble here is that substitution is based ultimately on the notion that
+the symbols in our language are essentially names for values.  But as soon as
+we introduce @code{set!} and the idea that the value of a variable can change,
+a variable can no longer be simply a name.  Now a variable somehow refers to a
+place where a value can be stored, and the value stored at this place can
+change.  In @ref{3.2} we will see how environments play this role of
+``place'' in our computational model.
+
+@subsubheading Sameness and change
+
+The issue surfacing here is more profound than the mere breakdown of a
+particular model of computation.  As soon as we introduce change into our
+computational models, many notions that were previously straightforward become
+problematical.  Consider the concept of two things being ``the same.''
+
+Suppose we call @code{make-decrementer} twice with the same argument to create
+two procedures:
+
+@lisp
+(define D1 (make-decrementer 25))
+(define D2 (make-decrementer 25))
+@end lisp
+
+@noindent
+Are @code{D1} and @code{D2} the same?  An acceptable answer is yes, because
+@code{D1} and @code{D2} have the same computational behavior---each is a
+procedure that subtracts its input from 25.  In fact, @code{D1} could be
+substituted for @code{D2} in any computation without changing the result.

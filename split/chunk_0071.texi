@@ -1,0 +1,100 @@
+The @code{length} procedure implements a simple recursive plan. The reduction
+step is:
+
+@itemize @bullet
+
+@item
+The @code{length} of any list is 1 plus the @code{length} of the @code{cdr} of
+the list.
+
+@end itemize
+
+@noindent
+This is applied successively until we reach the base case:
+
+@itemize @bullet
+
+@item
+The @code{length} of the empty list is 0.
+
+@end itemize
+
+@noindent
+We could also compute @code{length} in an iterative style:
+
+@lisp
+(define (length items)
+  (define (length-iter a count)
+    (if (null? a)
+        count
+        (length-iter (cdr a) 
+                     (+ 1 count))))
+  (length-iter items 0))
+@end lisp
+
+@noindent
+Another conventional programming technique is to ``@code{cons} up'' an answer
+list while @code{cdr}ing down a list, as in the procedure @code{append}, which
+takes two lists as arguments and combines their elements to make a new list:
+
+@lisp
+(append squares odds)
+@i{(1 4 9 16 25 1 3 5 7)}
+
+(append odds squares)
+@i{(1 3 5 7 1 4 9 16 25)}
+@end lisp
+
+@noindent
+@code{Append} is also implemented using a recursive plan.  To @code{append}
+lists @code{list1} and @code{list2}, do the following:
+
+@itemize @bullet
+
+@item
+If @code{list1} is the empty list, then the result is just @code{list2}.
+
+@item
+Otherwise, @code{append} the @code{cdr} of @code{list1} and @code{list2}, and
+@code{cons} the @code{car} of @code{list1} onto the result:
+
+@end itemize
+
+@lisp
+(define (append list1 list2)
+  (if (null? list1)
+      list2
+      (cons (car list1) 
+            (append (cdr list1) 
+                    list2))))
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 2.17}Exercise 2.17:} Define a procedure
+@code{last-pair} that returns the list that contains only the last element of a
+given (nonempty) list:
+
+@lisp
+(last-pair (list 23 72 149 34))
+@i{(34)}
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.18}Exercise 2.18:} Define a procedure @code{reverse}
+that takes a list as argument and returns a list of the same elements in
+reverse order:
+
+@lisp
+(reverse (list 1 4 9 16 25))
+@i{(25 16 9 4 1)}
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.19}Exercise 2.19:} Consider the change-counting
+program of @ref{1.2.2}.  It would be nice to be able to easily change
+the currency used by the program, so that we could compute the number of ways
+to change a British pound, for example.  As the program is written, the
+knowledge of the currency is distributed partly into the procedure
+@code{first-denomination} and partly into the procedure @code{count-change}

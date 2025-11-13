@@ -1,0 +1,100 @@
+@noindent
+is false.  To be more precise, we can define @code{equal?}  recursively in
+terms of the basic @code{eq?} equality of symbols by saying that @code{a} and
+@code{b} are @code{equal?} if they are both symbols and the symbols are
+@code{eq?}, or if they are both lists such that @code{(car a)} is @code{equal?}
+to @code{(car b)} and @code{(cdr a)} is @code{equal?} to @code{(cdr b)}.  Using
+this idea, implement @code{equal?} as a procedure.@footnote{In practice,
+programmers use @code{equal?} to compare lists that contain numbers as well as
+symbols.  Numbers are not considered to be symbols.  The question of whether
+two numerically equal numbers (as tested by @code{=}) are also @code{eq?} is
+highly implementation-dependent.  A better definition of @code{equal?} (such as
+the one that comes as a primitive in Scheme) would also stipulate that if
+@code{a} and @code{b} are both numbers, then @code{a} and @code{b} are
+@code{equal?} if they are numerically equal.}
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.55}Exercise 2.55:} Eva Lu Ator types to the
+interpreter the expression
+
+@lisp
+(car ''abracadabra)
+@end lisp
+
+To her surprise, the interpreter prints back @code{quote}.  Explain.
+@end quotation
+
+@node	2.3.2, 2.3.3, 2.3.1, 2.3
+@subsection Example: Symbolic Differentiation
+
+As an illustration of symbol manipulation and a further illustration of data
+abstraction, consider the design of a procedure that performs symbolic
+differentiation of algebraic expressions.  We would like the procedure to take
+as arguments an algebraic expression and a variable and to return the
+derivative of the expression with respect to the variable.  For example, if the
+arguments to the procedure are @math{{ax^2 + bx + c}} and @math{x}, the
+procedure should return @math{{2ax + b}}.  Symbolic differentiation is of
+special historical significance in Lisp.  It was one of the motivating examples
+behind the development of a computer language for symbol manipulation.
+Furthermore, it marked the beginning of the line of research that led to the
+development of powerful systems for symbolic mathematical work, which are
+currently being used by a growing number of applied mathematicians and
+physicists.
+
+In developing the symbolic-differentiation program, we will follow the same
+strategy of data abstraction that we followed in developing the rational-number
+system of @ref{2.1.1}.  That is, we will first define a differentiation
+algorithm that operates on abstract objects such as ``sums,'' ``products,'' and
+``variables'' without worrying about how these are to be represented.  Only
+afterward will we address the representation problem.
+
+@subsubheading The differentiation program with abstract data
+
+In order to keep things simple, we will consider a very simple
+symbolic-differentiation program that handles expressions that are built up
+using only the operations of addition and multiplication with two arguments.
+Differentiation of any such expression can be carried out by applying the
+following reduction rules:
+@ifinfo
+
+@example
+dc
+-- = 0  for c a constant, or a variable different from x
+dx
+
+dx
+-- = 1
+dx
+
+d(u + v)   du   dv
+-------- = -- + --
+   dx      dx   dx
+
+d(uv)     / dv \     / du \
+----- = u | -- | + v | -- |
+ dx       \ dx /     \ dx /
+@end example
+
+@end ifinfo
+@tex
+\[ % :42:
+{{dc \over dx} \,=\, 0,} 
+  \quad {\text{for } c \text{ a constant }} {\text{or a variable }} {\text{different from } x,}
+\]
+@end tex
+@tex
+\[ % :43:
+\begin{eqnarray}
+{dx \over dx}         &=&   1, \\
+{d(u + v) \over dx}   &=&   {du \over dx} + {dv \over dx}, \\
+{d(uv) \over dx}      &=&   u \kern0.1em {dv \over dx} + v \kern0.1em {du \over dx}.
+\end{eqnarray}
+\]
+@end tex
+@noindent
+Observe that the latter two rules are recursive in nature.  That is, to obtain
+the derivative of a sum we first find the derivatives of the terms and add
+them.  Each of the terms may in turn be an expression that needs to be
+decomposed.  Decomposing into smaller and smaller pieces will eventually
+produce pieces that are either constants or variables, whose derivatives will

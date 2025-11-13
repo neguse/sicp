@@ -1,0 +1,100 @@
+    |    +-----+        +-----+     | |     +-----+
+    +----+  9  |        |  5  +-----+ +-----+  32 |
+         +-----+        +-----+             +-----+
+@end example
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.28,142mm,,,.std.svg}
+@caption{@strong{Figure 3.28:} The relation @math{{9C = 5(F - 32)}} expressed as a constraint network.}
+@end iftex
+@end float
+
+@noindent
+Computation by such a network proceeds as follows: When a connector is given a
+value (by the user or by a constraint box to which it is linked), it awakens
+all of its associated constraints (except for the constraint that just awakened
+it) to inform them that it has a value.  Each awakened constraint box then
+polls its connectors to see if there is enough information to determine a value
+for a connector.  If so, the box sets that connector, which then awakens all of
+its associated constraints, and so on.  For instance, in conversion between
+Celsius and Fahrenheit, @math{w}, @math{x}, and @math{y} are immediately set by the
+constant boxes to 9, 5, and 32, respectively.  The connectors awaken the
+multipliers and the adder, which determine that there is not enough information
+to proceed.  If the user (or some other part of the network) sets @math{C} to a
+value (say 25), the leftmost multiplier will be awakened, and it will set @math{u}
+to @math{{25 \cdot 9 = 225}}.  Then @math{u} awakens the second multiplier, which sets @math{v} to
+45, and @math{v} awakens the adder, which sets @math{f} to 77.
+
+@subsubheading Using the constraint system
+
+To use the constraint system to carry out the temperature computation outlined
+above, we first create two connectors, @code{C} and @code{F}, by calling the
+constructor @code{make-connector}, and link @code{C} and @code{F} in an
+appropriate network:
+
+@lisp
+(define C (make-connector))
+(define F (make-connector))
+(celsius-fahrenheit-converter C F)
+@i{ok}
+@end lisp
+
+@noindent
+The procedure that creates the network is defined as follows:
+
+@lisp
+(define (celsius-fahrenheit-converter c f)
+  (let ((u (make-connector))
+        (v (make-connector))
+        (w (make-connector))
+        (x (make-connector))
+        (y (make-connector)))
+    (multiplier c w u)
+    (multiplier v x u)
+    (adder v y f)
+    (constant 9 w)
+    (constant 5 x)
+    (constant 32 y)
+    'ok))
+@end lisp
+
+@noindent
+This procedure creates the internal connectors @code{u}, @code{v}, @code{w},
+@code{x}, and @code{y}, and links them as shown in @ref{Figure 3.28} using the
+primitive constraint constructors @code{adder}, @code{multiplier}, and
+@code{constant}.  Just as with the digital-circuit simulator of 
+@ref{3.3.4}, expressing these combinations of primitive elements in terms of
+procedures automatically provides our language with a means of abstraction for
+compound objects.
+
+To watch the network in action, we can place probes on the connectors @code{C}
+and @code{F}, using a @code{probe} procedure similar to the one we used to
+monitor wires in @ref{3.3.4}.  Placing a probe on a connector will
+cause a message to be printed whenever the connector is given a value:
+
+@lisp
+(probe "Celsius temp" C)
+(probe "Fahrenheit temp" F)
+@end lisp
+
+@noindent
+Next we set the value of @code{C} to 25.  (The third argument to
+@code{set-value!} tells @code{C} that this directive comes from the
+@code{user}.)
+
+@lisp
+(set-value! C 25 'user)
+@i{Probe: Celsius temp = 25}
+@i{Probe: Fahrenheit temp = 77}
+@i{done}
+@end lisp
+
+@noindent
+The probe on @code{C} awakens and reports the value.  @code{C} also propagates
+its value through the network as described above.  This sets @code{F} to 77,
+which is reported by the probe on @code{F}.
+
+Now we can try to set @code{F} to a new value, say 212:
+
+@lisp
+(set-value! F 212 'user)

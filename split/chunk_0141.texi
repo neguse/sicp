@@ -1,0 +1,100 @@
+(withdraw 15)
+@i{35}
+@end lisp
+
+@noindent
+Observe that the expression @code{(withdraw 25)}, evaluated twice, yields
+different values.  This is a new kind of behavior for a procedure.  Until now,
+all our procedures could be viewed as specifications for computing mathematical
+functions.  A call to a procedure computed the value of the function applied to
+the given arguments, and two calls to the same procedure with the same
+arguments always produced the same result.@footnote{Actually, this is not quite
+true.  One exception was the random-number generator in @ref{1.2.6}.
+Another exception involved the operation/type tables we introduced in 
+@ref{2.4.3}, where the values of two calls to @code{get} with the same
+arguments depended on intervening calls to @code{put}.  On the other hand,
+until we introduce assignment, we have no way to create such procedures
+ourselves.}
+
+To implement @code{withdraw}, we can use a variable @code{balance} to indicate
+the balance of money in the account and define @code{withdraw} as a procedure
+that accesses @code{balance}.  The @code{withdraw} procedure checks to see if
+@code{balance} is at least as large as the requested @code{amount}.  If so,
+@code{withdraw} decrements @code{balance} by @code{amount} and returns the new
+value of @code{balance}.  Otherwise, @code{withdraw} returns the
+@emph{Insufficient funds} message.  Here are the definitions of @code{balance}
+and @code{withdraw}:
+
+@lisp
+(define balance 100)
+
+(define (withdraw amount)
+  (if (>= balance amount)
+      (begin (set! balance (- balance amount))
+             balance)
+      "Insufficient funds"))
+@end lisp
+
+@noindent
+Decrementing @code{balance} is accomplished by the expression
+
+@lisp
+(set! balance (- balance amount))
+@end lisp
+
+@noindent
+This uses the @code{set!} special form, whose syntax is
+
+@lisp
+(set! ⟨@var{name}⟩ ⟨@var{new-value}⟩)
+@end lisp
+
+@noindent
+Here @code{⟨}@var{name}@code{⟩} is a symbol and @code{⟨}@var{new-value}@code{⟩} is any expression.
+@code{Set!} changes @code{⟨}@var{name}@code{⟩} so that its value is the result obtained by
+evaluating @code{⟨}@var{new-value}@code{⟩}.  In the case at hand, we are changing
+@code{balance} so that its new value will be the result of subtracting
+@code{amount} from the previous value of @code{balance}.@footnote{The value of
+a @code{set!} expression is implementation-dependent.  @code{Set!} should be
+used only for its effect, not for its value.
+
+The name @code{set!} reflects a naming convention used in Scheme: Operations
+that change the values of variables (or that change data structures, as we will
+see in @ref{3.3}) are given names that end with an exclamation point.
+This is similar to the convention of designating predicates by names that end
+with a question mark.}
+
+@code{Withdraw} also uses the @code{begin} special form to cause two
+expressions to be evaluated in the case where the @code{if} test is true: first
+decrementing @code{balance} and then returning the value of @code{balance}.  In
+general, evaluating the expression
+
+@lisp
+(begin ⟨@var{exp₁}⟩ ⟨@var{exp₂}⟩ @r{…} ⟨@var{expₖ}⟩)
+@end lisp
+
+@noindent
+causes the expressions @math{{⟨exp_1⟩}} through @math{{⟨exp_k⟩}} to be evaluated
+in sequence and the value of the final expression @math{{⟨exp_k⟩}} to be
+returned as the value of the entire @code{begin} form.@footnote{We have already
+used @code{begin} implicitly in our programs, because in Scheme the body of a
+procedure can be a sequence of expressions.  Also, the @code{⟨}@var{consequent}@code{⟩} part
+of each clause in a @code{cond} expression can be a sequence of expressions
+rather than a single expression.}
+
+Although @code{withdraw} works as desired, the variable @code{balance} presents
+a problem.  As specified above, @code{balance} is a name defined in the global
+environment and is freely accessible to be examined or modified by any
+procedure.  It would be much better if we could somehow make @code{balance}
+internal to @code{withdraw}, so that @code{withdraw} would be the only
+procedure that could access @code{balance} directly and any other procedure
+could access @code{balance} only indirectly (through calls to @code{withdraw}).
+This would more accurately model the notion that @code{balance} is a local
+state variable used by @code{withdraw} to keep track of the state of the
+account.
+
+We can make @code{balance} internal to @code{withdraw} by rewriting the
+definition as follows:
+
+@lisp
+(define new-withdraw

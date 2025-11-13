@@ -1,0 +1,100 @@
+
+In this exercise we will extend our compiler to support open coding of selected
+primitives.  Special-purpose code will be generated for calls to these
+primitive procedures instead of the general procedure-application code.  In
+order to support this, we will augment our machine with special argument
+registers @code{arg1} and @code{arg2}.  The primitive arithmetic operations of
+the machine will take their inputs from @code{arg1} and @code{arg2}. The
+results may be put into @code{val}, @code{arg1}, or @code{arg2}.
+
+The compiler must be able to recognize the application of an open-coded
+primitive in the source program.  We will augment the dispatch in the
+@code{compile} procedure to recognize the names of these primitives in addition
+to the reserved words (the special forms) it currently
+recognizes.@footnote{Making the primitives into reserved words is in general a
+bad idea, since a user cannot then rebind these names to different procedures.
+Moreover, if we add reserved words to a compiler that is in use, existing
+programs that define procedures with these names will stop working.  See
+@ref{Exercise 5.44} for ideas on how to avoid this problem.} For each special
+form our compiler has a code generator.  In this exercise we will construct a
+family of code generators for the open-coded primitives.
+
+@enumerate a
+
+@item
+The open-coded primitives, unlike the special forms, all need their operands
+evaluated.  Write a code generator @code{spread-arguments} for use by all the
+open-coding code generators.  @code{Spread-arguments} should take an operand
+list and compile the given operands targeted to successive argument registers.
+Note that an operand may contain a call to an open-coded primitive, so argument
+registers will have to be preserved during operand evaluation.
+
+@item
+For each of the primitive procedures @code{=}, @code{*}, @code{-}, and
+@code{+}, write a code generator that takes a combination with that operator,
+together with a target and a linkage descriptor, and produces code to spread
+the arguments into the registers and then perform the operation targeted to the
+given target with the given linkage.  You need only handle expressions with two
+operands.  Make @code{compile} dispatch to these code generators.
+
+@item
+Try your new compiler on the @code{factorial} example.  Compare the resulting
+code with the result produced without open coding.
+
+@item
+Extend your code generators for @code{+} and @code{*} so that they can handle
+expressions with arbitrary numbers of operands.  An expression with more than
+two operands will have to be compiled into a sequence of operations, each with
+only two inputs.
+
+@end enumerate
+@end quotation
+
+@node	5.5.6, 5.5.7, 5.5.5, 5.5
+@subsection Lexical Addressing
+
+One of the most common optimizations performed by compilers is the optimization
+of variable lookup.  Our compiler, as we have implemented it so far, generates
+code that uses the @code{lookup-variable-value} operation of the evaluator
+machine.  This searches for a variable by comparing it with each variable that
+is currently bound, working frame by frame outward through the run-time
+environment.  This search can be expensive if the frames are deeply nested or
+if there are many variables.  For example, consider the problem of looking up
+the value of @code{x} while evaluating the expression @code{(* x y z)} in an
+application of the procedure that is returned by
+
+@lisp
+(let ((x 3) (y 4))
+  (lambda (a b c d e)
+    (let ((y (* a b x))
+          (z (+ c d x)))
+      (* x y z))))
+@end lisp
+
+@noindent
+Since a @code{let} expression is just syntactic sugar for a @code{lambda}
+combination, this expression is equivalent to
+
+@lisp
+((lambda (x y)
+   (lambda (a b c d e)
+     ((lambda (y z) (* x y z))
+      (* a b x)
+      (+ c d x))))
+ 3
+ 4)
+@end lisp
+
+@noindent
+Each time @code{lookup-variable-value} searches for @code{x}, it must determine
+that the symbol @code{x} is not @code{eq?} to @code{y} or @code{z} (in the
+first frame), nor to @code{a}, @code{b}, @code{c}, @code{d}, or @code{e} (in
+the second frame).  We will assume, for the moment, that our programs do not
+use @code{define}---that variables are bound only with @code{lambda}.  Because
+our language is lexically scoped, the run-time environment for any expression
+will have a structure that parallels the lexical structure of the program in
+which the expression appears.@footnote{This is not true if we allow internal
+definitions, unless we scan them out.  See @ref{Exercise 5.43}.  } Thus, the
+compiler can know, when it analyzes the above expression, that each time the
+procedure is applied the variable @code{x} in @code{(* x y z)} will be found
+two frames out from the current frame and will be the first variable in that

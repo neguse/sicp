@@ -1,0 +1,100 @@
+(define (segments agenda) (cdr agenda))
+(define (set-segments! agenda segments)
+  (set-cdr! agenda segments))
+(define (first-segment agenda) 
+  (car (segments agenda)))
+(define (rest-segments agenda) 
+  (cdr (segments agenda)))
+@end lisp
+
+@noindent
+An agenda is empty if it has no time segments:
+
+@lisp
+(define (empty-agenda? agenda)
+  (null? (segments agenda)))
+@end lisp
+
+@noindent
+To add an action to an agenda, we first check if the agenda is empty.  If so,
+we create a time segment for the action and install this in the agenda.
+Otherwise, we scan the agenda, examining the time of each segment.  If we find
+a segment for our appointed time, we add the action to the associated queue.
+If we reach a time later than the one to which we are appointed, we insert a
+new time segment into the agenda just before it.  If we reach the end of the
+agenda, we must create a new time segment at the end.
+
+@lisp
+(define (add-to-agenda! time action agenda)
+  (define (belongs-before? segments)
+    (or (null? segments)
+        (< time 
+           (segment-time (car segments)))))
+  (define (make-new-time-segment time action)
+    (let ((q (make-queue)))
+      (insert-queue! q action)
+      (make-time-segment time q)))
+  (define (add-to-segments! segments)
+    (if (= (segment-time (car segments)) time)
+        (insert-queue! 
+         (segment-queue (car segments))
+         action)
+        (let ((rest (cdr segments)))
+          (if (belongs-before? rest)
+              (set-cdr!
+               segments
+               (cons (make-new-time-segment 
+                      time 
+                      action)
+                     (cdr segments)))
+              (add-to-segments! rest)))))
+  (let ((segments (segments agenda)))
+    (if (belongs-before? segments)
+        (set-segments!
+         agenda
+         (cons (make-new-time-segment 
+                time 
+                action)
+               segments))
+        (add-to-segments! segments))))
+@end lisp
+
+@noindent
+The procedure that removes the first item from the agenda deletes the item at
+the front of the queue in the first time segment.  If this deletion makes the
+time segment empty, we remove it from the list of segments:@footnote{Observe
+that the @code{if} expression in this procedure has no @code{⟨}@var{alternative}@code{⟩}
+expression.  Such a ``one-armed @code{if} statement'' is used to decide whether
+to do something, rather than to select between two expressions.  An @code{if}
+expression returns an unspecified value if the predicate is false and there is
+no @code{⟨}@var{alternative}@code{⟩}.}
+
+@lisp
+(define (remove-first-agenda-item! agenda)
+  (let ((q (segment-queue 
+            (first-segment agenda))))
+    (delete-queue! q)
+    (if (empty-queue? q)
+        (set-segments! 
+         agenda 
+         (rest-segments agenda)))))
+@end lisp
+
+@noindent
+The first agenda item is found at the head of the queue in the first time
+segment.  Whenever we extract an item, we also update the current
+time:@footnote{In this way, the current time will always be the time of the
+action most recently processed.  Storing this time at the head of the agenda
+ensures that it will still be available even if the associated time segment has
+been deleted.}
+
+@lisp
+(define (first-agenda-item agenda)
+  (if (empty-agenda? agenda)
+      (error "Agenda is empty: 
+              FIRST-AGENDA-ITEM")
+      (let ((first-seg 
+             (first-segment agenda)))
+        (set-current-time! 
+         agenda 
+         (segment-time first-seg))

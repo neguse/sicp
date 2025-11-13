@@ -1,0 +1,100 @@
+Mary:  (set! balance (- balance 
+                        (/ balance 2)))
+@end example
+
+@enumerate a
+
+@item
+List all the different possible values for @code{balance} after these three
+transactions have been completed, assuming that the banking system forces the
+three processes to run sequentially in some order.
+
+@item
+What are some other values that could be produced if the system allows the
+processes to be interleaved?  Draw timing diagrams like the one in @ref{Figure 3.29} 
+to explain how these values can occur.
+
+@end enumerate
+@end quotation
+
+@node	3.4.2, 3.5, 3.3, 3.4
+@subsection Mechanisms for Controlling Concurrency
+
+We've seen that the difficulty in dealing with concurrent processes is rooted
+in the need to consider the interleaving of the order of events in the
+different processes.  For example, suppose we have two processes, one with
+three ordered events @math{{(a, b, c)}} and one with three ordered events
+@math{{(x, y, z)}}.  If the two processes run concurrently, with no
+constraints on how their execution is interleaved, then there are 20 different
+possible orderings for the events that are consistent with the individual
+orderings for the two processes:
+
+@example
+(a,b,c,x,y,z)  (a,x,b,y,c,z)  (x,a,b,c,y,z)  
+(x,a,y,z,b,c)  (a,b,x,c,y,z)  (a,x,b,y,z,c)  
+(x,a,b,y,c,z)  (x,y,a,b,c,z)  (a,b,x,y,c,z)  
+(a,x,y,b,c,z)  (x,a,b,y,z,c)  (x,y,a,b,z,c)
+(a,b,x,y,z,c)  (a,x,y,b,z,c)  (x,a,y,b,c,z)  
+(x,y,a,z,b,c)  (a,x,b,c,y,z)  (a,x,y,z,b,c)  
+(x,a,y,b,z,c)  (x,y,z,a,b,c)
+@end example
+
+@noindent
+As programmers designing this system, we would have to consider the effects of
+each of these 20 orderings and check that each behavior is acceptable.  Such an
+approach rapidly becomes unwieldy as the numbers of processes and events
+increase.
+
+A more practical approach to the design of concurrent systems is to devise
+general mechanisms that allow us to constrain the interleaving of concurrent
+processes so that we can be sure that the program behavior is correct.  Many
+mechanisms have been developed for this purpose.  In this section, we describe
+one of them, the @newterm{serializer}.
+
+@subsubheading Serializing access to shared state
+
+Serialization implements the following idea: Processes will execute
+concurrently, but there will be certain collections of procedures that cannot
+be executed concurrently.  More precisely, serialization creates distinguished
+sets of procedures such that only one execution of a procedure in each
+serialized set is permitted to happen at a time.  If some procedure in the set
+is being executed, then a process that attempts to execute any procedure in the
+set will be forced to wait until the first execution has finished.
+
+We can use serialization to control access to shared variables.  For example,
+if we want to update a shared variable based on the previous value of that
+variable, we put the access to the previous value of the variable and the
+assignment of the new value to the variable in the same procedure.  We then
+ensure that no other procedure that assigns to the variable can run
+concurrently with this procedure by serializing all of these procedures with
+the same serializer.  This guarantees that the value of the variable cannot be
+changed between an access and the corresponding assignment.
+
+@subsubheading Serializers in Scheme
+
+To make the above mechanism more concrete, suppose that we have extended Scheme
+to include a procedure called @code{parallel-execute}:
+
+@lisp
+(parallel-execute ⟨@var{p₁}⟩ 
+                  ⟨@var{p₂}⟩ 
+                  @r{…} 
+                  ⟨@var{pₖ}⟩)
+@end lisp
+
+@noindent
+Each @code{⟨}@var{p}@code{⟩} must be a procedure of no arguments.  @code{Parallel-execute}
+creates a separate process for each @code{⟨}@var{p}@code{⟩}, which applies 
+@code{⟨}@var{p}@code{⟩} (to no arguments).  These processes all run
+concurrently.@footnote{@code{Parallel-execute} is not part of standard Scheme,
+but it can be implemented in @abbr{MIT} Scheme.  In our implementation, the
+new concurrent processes also run concurrently with the original Scheme
+process.  Also, in our implementation, the value returned by
+@code{parallel-execute} is a special control object that can be used to halt
+the newly created processes.}
+
+As an example of how this is used, consider
+
+@lisp
+(define x 10)
+(parallel-execute (lambda () (set! x (* x x)))

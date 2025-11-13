@@ -1,0 +1,100 @@
+@lisp
+(define (apply procedure arguments env)
+  (cond ((primitive-procedure? procedure)
+         (apply-primitive-procedure
+          procedure
+          (list-of-arg-values 
+           arguments 
+           env)))  @r{; changed}
+        ((compound-procedure? procedure)
+         (eval-sequence
+          (procedure-body procedure)
+          (extend-environment
+           (procedure-parameters procedure)
+           (list-of-delayed-args 
+            arguments 
+            env)   @r{; changed}
+           (procedure-environment procedure))))
+        (else (error "Unknown procedure 
+                      type: APPLY" 
+                     procedure))))
+@end lisp
+
+@noindent
+The procedures that process the arguments are just like @code{list-of-values}
+from @ref{4.1.1}, except that @code{list-of-delayed-args} delays the
+arguments instead of evaluating them, and @code{list-of-arg-values} uses
+@code{actual-value} instead of @code{eval}:
+
+@lisp
+(define (list-of-arg-values exps env)
+  (if (no-operands? exps)
+      '()
+      (cons (actual-value 
+             (first-operand exps) 
+             env)
+            (list-of-arg-values 
+             (rest-operands exps)
+             env))))
+
+(define (list-of-delayed-args exps env)
+  (if (no-operands? exps)
+      '()
+      (cons (delay-it 
+             (first-operand exps) 
+             env)
+            (list-of-delayed-args 
+             (rest-operands exps)
+             env))))
+@end lisp
+
+@noindent
+The other place we must change the evaluator is in the handling of @code{if},
+where we must use @code{actual-value} instead of @code{eval} to get the value
+of the predicate expression before testing whether it is true or false:
+
+@lisp
+(define (eval-if exp env)
+  (if (true? (actual-value (if-predicate exp) 
+                           env))
+      (eval (if-consequent exp) env)
+      (eval (if-alternative exp) env)))
+@end lisp
+
+@noindent
+Finally, we must change the @code{driver-loop} procedure (@ref{4.1.4})
+to use @code{actual-value} instead of @code{eval}, so that if a delayed value
+is propagated back to the read-eval-print loop, it will be forced before being
+printed.  We also change the prompts to indicate that this is the lazy
+evaluator:
+
+@lisp
+(define input-prompt  ";;; L-Eval input:")
+(define output-prompt ";;; L-Eval value:")
+
+(define (driver-loop)
+  (prompt-for-input input-prompt)
+  (let ((input (read)))
+    (let ((output (actual-value 
+                   input 
+                   the-global-environment)))
+      (announce-output output-prompt)
+      (user-print output)))
+  (driver-loop))
+@end lisp
+
+@noindent
+With these changes made, we can start the evaluator and test it.  The
+successful evaluation of the @code{try} expression discussed in 
+@ref{4.2.1} indicates that the interpreter is performing lazy evaluation:
+
+@lisp
+(define the-global-environment 
+  (setup-environment))
+
+(driver-loop)
+
+@i{;;; L-Eval input:}
+(define (try a b) (if (= a 0) 1 b))
+
+@i{;;; L-Eval value:}

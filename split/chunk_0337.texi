@@ -1,0 +1,100 @@
+          (reg unev)
+          (reg exp)
+          (reg env))
+  (goto (reg continue))
+@end lisp
+
+@noindent
+Observe how @code{ev-lambda} uses the @code{unev} and @code{exp} registers to
+hold the parameters and body of the lambda expression so that they can be
+passed to the @code{make-procedure} operation, along with the environment in
+@code{env}.
+
+@subsubheading Evaluating procedure applications
+
+A procedure application is specified by a combination containing an operator
+and operands.  The operator is a subexpression whose value is a procedure, and
+the operands are subexpressions whose values are the arguments to which the
+procedure should be applied.  The metacircular @code{eval} handles applications
+by calling itself recursively to evaluate each element of the combination, and
+then passing the results to @code{apply}, which performs the actual procedure
+application.  The explicit-control evaluator does the same thing; these
+recursive calls are implemented by @code{goto} instructions, together with use
+of the stack to save registers that will be restored after the recursive call
+returns.  Before each call we will be careful to identify which registers must
+be saved (because their values will be needed later).@footnote{This is an
+important but subtle point in translating algorithms from a procedural
+language, such as Lisp, to a register-machine language.  As an alternative to
+saving only what is needed, we could save all the registers (except @code{val})
+before each recursive call. This is called a @newterm{framed-stack} discipline.
+This would work but might save more registers than necessary; this could be an
+important consideration in a system where stack operations are expensive.
+Saving registers whose contents will not be needed later may also hold onto
+useless data that could otherwise be garbage-collected, freeing space to be
+reused.}
+
+We begin the evaluation of an application by evaluating the operator to produce
+a procedure, which will later be applied to the evaluated operands.  To
+evaluate the operator, we move it to the @code{exp} register and go to
+@code{eval-dispatch}.  The environment in the @code{env} register is already
+the correct one in which to evaluate the operator.  However, we save @code{env}
+because we will need it later to evaluate the operands.  We also extract the
+operands into @code{unev} and save this on the stack.  We set up
+@code{continue} so that @code{eval-dispatch} will resume at
+@code{ev-appl-did-operator} after the operator has been evaluated.  First,
+however, we save the old value of @code{continue}, which tells the controller
+where to continue after the application.
+
+@lisp
+ev-application
+  (save continue)
+  (save env)
+  (assign unev (op operands) (reg exp))
+  (save unev)
+  (assign exp (op operator) (reg exp))
+  (assign
+   continue (label ev-appl-did-operator))
+  (goto (label eval-dispatch))
+@end lisp
+
+@noindent
+Upon returning from evaluating the operator subexpression, we proceed to
+evaluate the operands of the combination and to accumulate the resulting
+arguments in a list, held in @code{argl}.  First we restore the unevaluated
+operands and the environment.  We initialize @code{argl} to an empty list.
+Then we assign to the @code{proc} register the procedure that was produced by
+evaluating the operator.  If there are no operands, we go directly to
+@code{apply-dispatch}.  Otherwise we save @code{proc} on the stack and start
+the argument-evaluation loop:@footnote{We add to the evaluator data-structure
+procedures in @ref{4.1.3} the following two procedures for manipulating
+argument lists:
+
+@lisp
+(define (empty-arglist) '())
+(define (adjoin-arg arg arglist)
+  (append arglist (list arg)))
+@end lisp
+
+@noindent
+We also use an additional syntax procedure to test for the last operand in a
+combination:
+
+@lisp
+(define (last-operand? ops) (null? (cdr ops)))
+@end lisp
+}
+
+@lisp
+ev-appl-did-operator
+  (restore unev)             @r{; the operands}
+  (restore env)
+  (assign argl (op empty-arglist))
+  (assign proc (reg val))    @r{; the operator}
+  (test (op no-operands?) (reg unev))
+  (branch (label apply-dispatch))
+  (save proc)
+@end lisp
+
+@noindent
+Each cycle of the argument-evaluation loop evaluates an operand from the list
+in @code{unev} and accumulates the result into @code{argl}.  To evaluate an

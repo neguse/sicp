@@ -1,0 +1,100 @@
+                   (stream-cdr stream)))))
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.74}Exercise 4.74:} Alyssa P. Hacker proposes to use
+a simpler version of @code{stream-flatmap} in @code{negate}, @code{lisp-value},
+and @code{find-assertions}.  She observes that the procedure that is mapped
+over the frame stream in these cases always produces either the empty stream or
+a singleton stream, so no interleaving is needed when combining these streams.
+
+@enumerate a
+
+@item
+Fill in the missing expressions in Alyssa's program.
+
+@lisp
+(define (simple-stream-flatmap proc s)
+  (simple-flatten (stream-map proc s)))
+
+(define (simple-flatten stream)
+  (stream-map ⟨??⟩
+              (stream-filter ⟨??⟩ 
+                             stream)))
+@end lisp
+
+@item
+Does the query system's behavior change if we change it in this way?
+
+@end enumerate
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.75}Exercise 4.75:} Implement for the query language
+a new special form called @code{unique}.  @code{Unique} should succeed if there
+is precisely one item in the data base satisfying a specified query.  For
+example,
+
+@lisp
+(unique (job ?x (computer wizard)))
+@end lisp
+
+@noindent
+should print the one-item stream
+
+@lisp
+(unique (job (Bitdiddle Ben)
+             (computer wizard)))
+@end lisp
+
+@noindent
+since Ben is the only computer wizard, and
+
+@lisp
+(unique (job ?x (computer programmer)))
+@end lisp
+
+@noindent
+should print the empty stream, since there is more than one computer
+programmer.  Moreover,
+
+@lisp
+(and (job ?x ?j) 
+     (unique (job ?anyone ?j)))
+@end lisp
+
+@noindent
+should list all the jobs that are filled by only one person, and the people who
+fill them.
+
+There are two parts to implementing @code{unique}.  The first is to write a
+procedure that handles this special form, and the second is to make
+@code{qeval} dispatch to that procedure.  The second part is trivial, since
+@code{qeval} does its dispatching in a data-directed way.  If your procedure is
+called @code{uniquely-asserted}, all you need to do is
+
+@lisp
+(put 'unique 'qeval uniquely-asserted)
+@end lisp
+
+@noindent
+and @code{qeval} will dispatch to this procedure for every query whose
+@code{type} (@code{car}) is the symbol @code{unique}.
+
+The real problem is to write the procedure @code{uniquely-asserted}.  This
+should take as input the @code{contents} (@code{cdr}) of the @code{unique}
+query, together with a stream of frames.  For each frame in the stream, it
+should use @code{qeval} to find the stream of all extensions to the frame that
+satisfy the given query.  Any stream that does not have exactly one item in it
+should be eliminated.  The remaining streams should be passed back to be
+accumulated into one big stream that is the result of the @code{unique} query.
+This is similar to the implementation of the @code{not} special form.
+
+Test your implementation by forming a query that lists all people who supervise
+precisely one person.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.76}Exercise 4.76:} Our implementation of @code{and}
+as a series combination of queries (@ref{Figure 4.5}) is elegant, but it is

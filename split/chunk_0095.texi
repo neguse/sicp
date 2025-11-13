@@ -1,0 +1,100 @@
+                        split-point
+                        (make-vect 1.0 0.0)
+                        (make-vect 0.5 1.0))))
+      (lambda (frame)
+        (paint-left frame)
+        (paint-right frame)))))
+@end lisp
+
+@noindent
+Observe how the painter data abstraction, and in particular the representation
+of painters as procedures, makes @code{beside} easy to implement.  The
+@code{beside} procedure need not know anything about the details of the
+component painters other than that each painter will draw something in its
+designated frame.
+
+@quotation
+@strong{@anchor{Exercise 2.50}Exercise 2.50:} Define the transformation
+@code{flip-horiz}, which flips painters horizontally, and transformations that
+rotate painters counterclockwise by 180 degrees and 270 degrees.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.51}Exercise 2.51:} Define the @code{below} operation
+for painters.  @code{Below} takes two painters as arguments.  The resulting
+painter, given a frame, draws with the first painter in the bottom of the frame
+and with the second painter in the top.  Define @code{below} in two different
+ways---first by writing a procedure that is analogous to the @code{beside}
+procedure given above, and again in terms of @code{beside} and suitable
+rotation operations (from @ref{Exercise 2.50}).
+@end quotation
+
+@subsubheading Levels of language for robust design
+
+The picture language exercises some of the critical ideas we've introduced
+about abstraction with procedures and data.  The fundamental data abstractions,
+painters, are implemented using procedural representations, which enables the
+language to handle different basic drawing capabilities in a uniform way.  The
+means of combination satisfy the closure property, which permits us to easily
+build up complex designs.  Finally, all the tools for abstracting procedures
+are available to us for abstracting means of combination for painters.
+
+We have also obtained a glimpse of another crucial idea about languages and
+program design.  This is the approach of @newterm{stratified design}, the
+notion that a complex system should be structured as a sequence of levels that
+are described using a sequence of languages.  Each level is constructed by
+combining parts that are regarded as primitive at that level, and the parts
+constructed at each level are used as primitives at the next level.  The
+language used at each level of a stratified design has primitives, means of
+combination, and means of abstraction appropriate to that level of detail.
+
+Stratified design pervades the engineering of complex systems.  For example, in
+computer engineering, resistors and transistors are combined (and described
+using a language of analog circuits) to produce parts such as and-gates and
+or-gates, which form the primitives of a language for digital-circuit
+design.@footnote{Section @ref{3.3.4} describes one such language.} These parts
+are combined to build processors, bus structures, and memory systems, which are
+in turn combined to form computers, using languages appropriate to computer
+architecture.  Computers are combined to form distributed systems, using
+languages appropriate for describing network interconnections, and so on.
+
+As a tiny example of stratification, our picture language uses primitive
+elements (primitive painters) that are created using a language that specifies
+points and lines to provide the lists of line segments for
+@code{segments->painter}, or the shading details for a painter like
+@code{rogers}.  The bulk of our description of the picture language focused on
+combining these primitives, using geometric combiners such as @code{beside} and
+@code{below}.  We also worked at a higher level, regarding @code{beside} and
+@code{below} as primitives to be manipulated in a language whose operations,
+such as @code{square-of-four}, capture common patterns of combining geometric
+combiners.
+
+Stratified design helps make programs @newterm{robust}, that is, it makes it
+likely that small changes in a specification will require correspondingly small
+changes in the program.  For instance, suppose we wanted to change the image
+based on @code{wave} shown in @ref{Figure 2.9}.  We could work at the lowest
+level to change the detailed appearance of the @code{wave} element; we could
+work at the middle level to change the way @code{corner-split} replicates the
+@code{wave}; we could work at the highest level to change how
+@code{square-limit} arranges the four copies of the corner.  In general, each
+level of a stratified design provides a different vocabulary for expressing the
+characteristics of the system, and a different kind of ability to change it.
+
+@quotation
+@strong{@anchor{Exercise 2.52}Exercise 2.52:} Make changes to the square limit
+of @code{wave} shown in @ref{Figure 2.9} by working at each of the levels
+described above.  In particular:
+
+@enumerate a
+
+@item
+Add some segments to the primitive @code{wave} painter of @ref{Exercise 2.49}
+(to add a smile, for example).
+
+@item
+Change the pattern constructed by @code{corner-split} (for example, by using
+only one copy of the @code{up-split} and @code{right-split} images instead of
+two).
+
+@item
+Modify the version of @code{square-limit} that uses @code{square-of-four} so as

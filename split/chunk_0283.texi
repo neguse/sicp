@@ -1,0 +1,100 @@
+
+@noindent
+@ref{Figure 4.6} shows the analogous method for computing the @code{or} of two
+queries as a parallel combination of the two component queries.  The input
+stream of frames is extended separately by each query.  The two resulting
+streams are then merged to produce the final output stream.
+
+@float
+@anchor{Figure 4.6}
+@ifinfo
+@strong{Figure 4.6:} The @code{or} combination of two queries is produced 
+by operating on the stream of frames in parallel and merging the results.
+
+@example
+           +---------------------------+
+           |          (or A B)         |
+           |    +---+                  |
+input      | +->| A |------------+     |  output
+stream of  | |  +---+            V     |  stream of
+frames     | |    ^          +-------+ |  frames
+-------------*    |          | merge +--------------->
+           | |    |          +-------+ |
+           | |    |              ^     |
+           | |    |   +---+      |     |
+           | +------->| B +------+     |
+           |      |   +---+            |
+           |      |     ^              |
+           |      |     |              |
+           |      +--*--+              |
+           +---------|-----------------+
+                     |
+                 data base
+@end example
+@end ifinfo
+@iftex
+@image{fig/chap4/Fig4.6a,147mm,,,.std.svg}
+@caption{@strong{Figure 4.6:} The @code{or} combination of two queries is produced by operating on the stream of frames in parallel and merging the results.}
+@end iftex
+@end float
+
+Even from this high-level description, it is apparent that the processing of
+compound queries can be slow.  For example, since a query may produce more than
+one output frame for each input frame, and each query in an @code{and} gets its
+input frames from the previous query, an @code{and} query could, in the worst
+case, have to perform a number of matches that is exponential in the number of
+queries (see @ref{Exercise 4.76}).@footnote{But this kind of exponential
+explosion is not common in @code{and} queries because the added conditions tend
+to reduce rather than expand the number of frames produced.} Though systems for
+handling only simple queries are quite practical, dealing with complex queries
+is extremely difficult.@footnote{There is a large literature on
+data-base-management systems that is concerned with how to handle complex
+queries efficiently.}
+
+@noindent
+From the stream-of-frames viewpoint, the @code{not} of some query acts as a
+filter that removes all frames for which the query can be satisfied.  For
+instance, given the pattern
+
+@lisp
+(not (job ?x (computer programmer)))
+@end lisp
+
+@noindent
+we attempt, for each frame in the input stream, to produce extension frames
+that satisfy @code{(job ?x (computer programmer))}.  We remove from the input
+stream all frames for which such extensions exist.  The result is a stream
+consisting of only those frames in which the binding for @code{?x} does not
+satisfy @code{(job ?x (computer programmer))}.  For example, in processing the
+query
+
+@lisp
+(and (supervisor ?x ?y)
+     (not (job ?x (computer programmer))))
+@end lisp
+
+@noindent
+the first clause will generate frames with bindings for @code{?x} and
+@code{?y}.  The @code{not} clause will then filter these by removing all frames
+in which the binding for @code{?x} satisfies the restriction that @code{?x} is
+a computer programmer.@footnote{There is a subtle difference between this
+filter implementation of @code{not} and the usual meaning of @code{not} in
+mathematical logic.  See @ref{4.4.3}.}
+
+The @code{lisp-value} special form is implemented as a similar filter on frame
+streams.  We use each frame in the stream to instantiate any variables in the
+pattern, then apply the Lisp predicate.  We remove from the input stream all
+frames for which the predicate fails.
+
+@subsubheading Unification
+
+In order to handle rules in the query language, we must be able to find the
+rules whose conclusions match a given query pattern.  Rule conclusions are like
+assertions except that they can contain variables, so we will need a
+generalization of pattern matching---called @newterm{unification}---in which
+both the ``pattern'' and the ``datum'' may contain variables.
+
+A unifier takes two patterns, each containing constants and variables, and
+determines whether it is possible to assign values to the variables that will
+make the two patterns equal.  If so, it returns a frame containing these
+bindings.  For example, unifying @code{(?x a ?y)} and @code{(?y ?z a)} will

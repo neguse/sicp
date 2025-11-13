@@ -1,0 +1,100 @@
+expression, we check to see if there are additional expressions to be evaluated
+in the sequence.  If so, we save the rest of the unevaluated expressions (held
+in @code{unev}) and the environment in which these must be evaluated (held in
+@code{env}) and call @code{eval-dispatch} to evaluate the expression.  The two
+saved registers are restored upon the return from this evaluation, at
+@code{ev-sequence-continue}.
+
+The final expression in the sequence is handled differently, at the entry point
+@code{ev-sequence-last-exp}.  Since there are no more expressions to be
+evaluated after this one, we need not save @code{unev} or @code{env} before
+going to @code{eval-dispatch}.  The value of the whole sequence is the value of
+the last expression, so after the evaluation of the last expression there is
+nothing left to do except continue at the entry point currently held on the
+stack (which was saved by @code{ev-application} or @code{ev-begin}.)  Rather
+than setting up @code{continue} to arrange for @code{eval-dispatch} to return
+here and then restoring @code{continue} from the stack and continuing at that
+entry point, we restore @code{continue} from the stack before going to
+@code{eval-dispatch}, so that @code{eval-dispatch} will continue at that entry
+point after evaluating the expression.
+
+@lisp
+ev-sequence
+  (assign exp (op first-exp) (reg unev))
+  (test (op last-exp?) (reg unev))
+  (branch (label ev-sequence-last-exp))
+  (save unev)
+  (save env)
+  (assign continue
+          (label ev-sequence-continue))
+  (goto (label eval-dispatch))
+ev-sequence-continue
+  (restore env)
+  (restore unev)
+  (assign unev
+          (op rest-exps)
+          (reg unev))
+  (goto (label ev-sequence))
+ev-sequence-last-exp
+  (restore continue)
+  (goto (label eval-dispatch))
+@end lisp
+
+@subsubheading Tail recursion
+
+In @ref{Chapter 1} we said that the process described by a procedure such as
+
+@lisp
+(define (sqrt-iter guess x)
+  (if (good-enough? guess x)
+      guess
+      (sqrt-iter (improve guess x) x)))
+@end lisp
+
+@noindent
+is an iterative process.  Even though the procedure is syntactically recursive
+(defined in terms of itself), it is not logically necessary for an evaluator to
+save information in passing from one call to @code{sqrt-iter} to the
+next.@footnote{We saw in @ref{5.1} how to implement such a process with
+a register machine that had no stack; the state of the process was stored in a
+fixed set of registers.} An evaluator that can execute a procedure such as
+@code{sqrt-iter} without requiring increasing storage as the procedure
+continues to call itself is called a @newterm{tail-recursive} evaluator.  The
+metacircular implementation of the evaluator in @ref{Chapter 4} does not
+specify whether the evaluator is tail-recursive, because that evaluator
+inherits its mechanism for saving state from the underlying Scheme.  With the
+explicit-control evaluator, however, we can trace through the evaluation
+process to see when procedure calls cause a net accumulation of information on
+the stack.
+
+Our evaluator is tail-recursive, because in order to evaluate the final
+expression of a sequence we transfer directly to @code{eval-dispatch} without
+saving any information on the stack.  Hence, evaluating the final expression in
+a sequence---even if it is a procedure call (as in @code{sqrt-iter}, where the
+@code{if} expression, which is the last expression in the procedure body,
+reduces to a call to @code{sqrt-iter})---will not cause any information to be
+accumulated on the stack.@footnote{This implementation of tail recursion in
+@code{ev-sequence} is one variety of a well-known optimization technique used
+by many compilers.  In compiling a procedure that ends with a procedure call,
+one can replace the call by a jump to the called procedure's entry point.
+Building this strategy into the interpreter, as we have done in this section,
+provides the optimization uniformly throughout the language.}
+
+If we did not think to take advantage of the fact that it was unnecessary to
+save information in this case, we might have implemented @code{eval-sequence}
+by treating all the expressions in a sequence in the same way---saving the
+registers, evaluating the expression, returning to restore the registers, and
+repeating this until all the expressions have been evaluated:@footnote{We can
+define @code{no-more-exps?} as follows:
+
+@lisp
+(define (no-more-exps? seq) (null? seq))
+@end lisp
+}
+
+@lisp
+ev-sequence
+  (test (op no-more-exps?) (reg unev))
+  (branch (label ev-sequence-end))
+  (assign exp (op first-exp) (reg unev))
+  (save unev)

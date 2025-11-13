@@ -1,0 +1,100 @@
+To implement this, we maintain a global variable @code{*unparsed*}, which is
+the input that has not yet been parsed.  Each time we check a word, we require
+that @code{*unparsed*} must be non-empty and that it should begin with a word
+from the designated list.  If so, we remove that word from @code{*unparsed*}
+and return the word together with its part of speech (which is found at the
+head of the list):@footnote{Notice that @code{parse-word} uses @code{set!} to
+modify the unparsed input list.  For this to work, our @code{amb} evaluator
+must undo the effects of @code{set!} operations when it backtracks.}
+
+@lisp
+(define (parse-word word-list)
+  (require (not (null? *unparsed*)))
+  (require (memq (car *unparsed*) 
+                 (cdr word-list)))
+  (let ((found-word (car *unparsed*)))
+    (set! *unparsed* (cdr *unparsed*))
+    (list (car word-list) found-word)))
+@end lisp
+
+@noindent
+To start the parsing, all we need to do is set @code{*unparsed*} to be the
+entire input, try to parse a sentence, and check that nothing is left over:
+
+@lisp
+(define *unparsed* '())
+(define (parse input)
+  (set! *unparsed* input)
+  (let ((sent (parse-sentence)))
+    (require (null? *unparsed*))
+    sent))
+@end lisp
+
+@noindent
+We can now try the parser and verify that it works for our simple test
+sentence:
+
+@lisp
+@i{;;; Amb-Eval input:}
+(parse '(the cat eats))
+
+@i{;;; Starting a new problem}
+@i{;;; Amb-Eval value:}
+@i{(sentence 
+ (noun-phrase (article the) (noun cat))
+ (verb eats))}
+@end lisp
+
+@noindent
+The @code{amb} evaluator is useful here because it is convenient to express the
+parsing constraints with the aid of @code{require}.  Automatic search and
+backtracking really pay off, however, when we consider more complex grammars
+where there are choices for how the units can be decomposed.
+
+Let's add to our grammar a list of prepositions:
+
+@lisp
+(define prepositions 
+  '(prep for to in by with))
+@end lisp
+
+@noindent
+and define a prepositional phrase (e.g., ``for the cat'') to be a preposition
+followed by a noun phrase:
+
+@lisp
+(define (parse-prepositional-phrase)
+  (list 'prep-phrase
+        (parse-word prepositions)
+        (parse-noun-phrase)))
+@end lisp
+
+@noindent
+Now we can define a sentence to be a noun phrase followed by a verb phrase,
+where a verb phrase can be either a verb or a verb phrase extended by a
+prepositional phrase:@footnote{Observe that this definition is recursive---a
+verb may be followed by any number of prepositional phrases.}
+
+@lisp
+(define (parse-sentence)
+  (list 'sentence
+         (parse-noun-phrase)
+         (parse-verb-phrase)))
+
+(define (parse-verb-phrase)
+  (define (maybe-extend verb-phrase)
+    (amb 
+     verb-phrase
+     (maybe-extend 
+      (list 'verb-phrase
+            verb-phrase
+            (parse-prepositional-phrase)))))
+  (maybe-extend (parse-word verbs)))
+@end lisp
+
+@noindent
+While we're at it, we can also elaborate the definition of noun phrases to
+permit such things as ``a cat in the class.''  What we used to call a noun
+phrase, we'll now call a simple noun phrase, and a noun phrase will now be
+either a simple noun phrase or a noun phrase extended by a prepositional
+phrase:

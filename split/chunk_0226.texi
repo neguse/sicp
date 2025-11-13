@@ -1,0 +1,100 @@
+embodies the rules of polynomial arithmetic and implements them in terms of
+operations on list-structured data.  If we augment this system with procedures
+to read and print polynomial expressions, we have the core of a special-purpose
+language for dealing with problems in symbolic mathematics.  The digital-logic
+simulator of @ref{3.3.4} and the constraint propagator of 
+@ref{3.3.5} are legitimate languages in their own right, each with its own
+primitives, means of combination, and means of abstraction.  Seen from this
+perspective, the technology for coping with large-scale computer systems merges
+with the technology for building new computer languages, and computer science
+itself becomes no more (and no less) than the discipline of constructing
+appropriate descriptive languages.
+
+We now embark on a tour of the technology by which languages are established in
+terms of other languages.  In this chapter we shall use Lisp as a base,
+implementing evaluators as Lisp procedures.  Lisp is particularly well suited
+to this task, because of its ability to represent and manipulate symbolic
+expressions.  We will take the first step in understanding how languages are
+implemented by building an evaluator for Lisp itself.  The language implemented
+by our evaluator will be a subset of the Scheme dialect of Lisp that we use in
+this book.  Although the evaluator described in this chapter is written for a
+particular dialect of Lisp, it contains the essential structure of an evaluator
+for any expression-oriented language designed for writing programs for a
+sequential machine.  (In fact, most language processors contain, deep within
+them, a little ``Lisp'' evaluator.)  The evaluator has been simplified for the
+purposes of illustration and discussion, and some features have been left out
+that would be important to include in a production-quality Lisp system.
+Nevertheless, this simple evaluator is adequate to execute most of the programs
+in this book.@footnote{The most important features that our evaluator leaves
+out are mechanisms for handling errors and supporting debugging.  For a more
+extensive discussion of evaluators, see @ref{Friedman et al. 1992}, which
+gives an exposition of programming languages that proceeds via a sequence of
+evaluators written in Scheme.}
+
+An important advantage of making the evaluator accessible as a Lisp program is
+that we can implement alternative evaluation rules by describing these as
+modifications to the evaluator program.  One place where we can use this power
+to good effect is to gain extra control over the ways in which computational
+models embody the notion of time, which was so central to the discussion in
+@ref{Chapter 3}.  There, we mitigated some of the complexities of state and
+assignment by using streams to decouple the representation of time in the world
+from time in the computer.  Our stream programs, however, were sometimes
+cumbersome, because they were constrained by the applicative-order evaluation
+of Scheme.  In @ref{4.2}, we'll change the underlying language to
+provide for a more elegant approach, by modifying the evaluator to provide for
+@newterm{normal-order evaluation}.
+
+Section @ref{4.3} implements a more ambitious linguistic change, whereby
+expressions have many values, rather than just a single value.  In this
+language of @newterm{nondeterministic computing}, it is natural to express
+processes that generate all possible values for expressions and then search for
+those values that satisfy certain constraints.  In terms of models of
+computation and time, this is like having time branch into a set of ``possible
+futures'' and then searching for appropriate time lines.  With our
+nondeterministic evaluator, keeping track of multiple values and performing
+searches are handled automatically by the underlying mechanism of the language.
+
+In @ref{4.4} we implement a @newterm{logic-programming} language in
+which knowledge is expressed in terms of relations, rather than in terms of
+computations with inputs and outputs.  Even though this makes the language
+drastically different from Lisp, or indeed from any conventional language, we
+will see that the logic-programming evaluator shares the essential structure of
+the Lisp evaluator.
+
+@menu
+* 4.1::              The Metacircular Evaluator
+* 4.2::              Variations on a Scheme -- Lazy Evaluation
+* 4.3::              Variations on a Scheme -- Nondeterministic Computing
+* 4.4::              Logic Programming
+@end menu
+
+@node	4.1, 4.2, Chapter 4, Chapter 4
+@section The Metacircular Evaluator
+
+Our evaluator for Lisp will be implemented as a Lisp program.  It may seem
+circular to think about evaluating Lisp programs using an evaluator that is
+itself implemented in Lisp.  However, evaluation is a process, so it is
+appropriate to describe the evaluation process using Lisp, which, after all, is
+our tool for describing processes.@footnote{Even so, there will remain
+important aspects of the evaluation process that are not elucidated by our
+evaluator.  The most important of these are the detailed mechanisms by which
+procedures call other procedures and return values to their callers.  We will
+address these issues in @ref{Chapter 5}, where we take a closer look at the
+evaluation process by implementing the evaluator as a simple register machine.}
+An evaluator that is written in the same language that it evaluates is said to
+be @newterm{metacircular}.
+
+The metacircular evaluator is essentially a Scheme formulation of the
+environment model of evaluation described in @ref{3.2}.  Recall that
+the model has two basic parts:
+
+@enumerate 1
+
+@item
+To evaluate a combination (a compound expression other than a special form),
+evaluate the subexpressions and then apply the value of the operator
+subexpression to the values of the operand subexpressions.
+
+@item
+To apply a compound procedure to a set of arguments, evaluate the body of the
+procedure in a new environment.  To construct this environment, extend the

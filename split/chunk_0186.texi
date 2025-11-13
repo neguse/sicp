@@ -1,0 +1,100 @@
+a value, it will set its value and remember as @code{informant} the constraint
+that requested the value to be set.@footnote{The @code{setter} might not be a
+constraint.  In our temperature example, we used @code{user} as the
+@code{setter}.}  Then the connector will notify all of its participating
+constraints except the constraint that requested the value to be set.  This is
+accomplished using the following iterator, which applies a designated procedure
+to all items in a list except a given one:
+
+@lisp
+(define (for-each-except exception 
+                         procedure 
+                         list)
+  (define (loop items)
+    (cond ((null? items) 'done)
+          ((eq? (car items) exception) 
+           (loop (cdr items)))
+          (else (procedure (car items))
+                (loop (cdr items)))))
+  (loop list))
+@end lisp
+
+@noindent
+If a connector is asked to forget its value, it runs the local procedure
+@code{forget-my-value}, which first checks to make sure that the request is
+coming from the same object that set the value originally.  If so, the
+connector informs its associated constraints about the loss of the value.
+
+The local procedure @code{connect} adds the designated new constraint to the
+list of constraints if it is not already in that list.  Then, if the connector
+has a value, it informs the new constraint of this fact.
+
+The connector's procedure @code{me} serves as a dispatch to the other internal
+procedures and also represents the connector as an object.  The following
+procedures provide a syntax interface for the dispatch:
+
+@lisp
+(define (has-value? connector)
+  (connector 'has-value?))
+(define (get-value connector)
+  (connector 'value))
+(define (set-value! connector 
+                    new-value 
+                    informant)
+  ((connector 'set-value!) 
+   new-value 
+   informant))
+(define (forget-value! connector retractor)
+  ((connector 'forget) retractor))
+(define (connect connector new-constraint)
+  ((connector 'connect) new-constraint))
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 3.33}Exercise 3.33:} Using primitive multiplier,
+adder, and constant constraints, define a procedure @code{averager} that takes
+three connectors @code{a}, @code{b}, and @code{c} as inputs and establishes the
+constraint that the value of @code{c} is the average of the values of @code{a}
+and @code{b}.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.34}Exercise 3.34:} Louis Reasoner wants to build a
+squarer, a constraint device with two terminals such that the value of
+connector @code{b} on the second terminal will always be the square of the
+value @code{a} on the first terminal.  He proposes the following simple device
+made from a multiplier:
+
+@lisp
+(define (squarer a b) (multiplier a a b))
+@end lisp
+
+There is a serious flaw in this idea.  Explain.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.35}Exercise 3.35:} Ben Bitdiddle tells Louis that
+one way to avoid the trouble in @ref{Exercise 3.34} is to define a squarer as a
+new primitive constraint.  Fill in the missing portions in Ben's outline for a
+procedure to implement such a constraint:
+
+@lisp
+(define (squarer a b)
+  (define (process-new-value)
+    (if (has-value? b)
+        (if (< (get-value b) 0)
+            (error "square less than 0: 
+                    SQUARER" 
+                   (get-value b))
+            ⟨@var{alternative1}⟩)
+        ⟨@var{alternative2}⟩))
+  (define (process-forget-value) ⟨@var{body1}⟩)
+  (define (me request) ⟨@var{body2}⟩)
+  ⟨@var{rest of definition}⟩
+  me)
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.36}Exercise 3.36:} Suppose we evaluate the following
+sequence of expressions in the global environment:

@@ -1,0 +1,100 @@
+|                           |                |
+|            +----------+   |                |
+|     __/|<--+ scale: a |<--+                |
+|   _/   |   +----------+                    |
++--<_add |                                   |
+     \__ |   +----------+                    |
+        \|<--+ scale: b |<-------------------+
+             +----------+
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.35b,116mm,,,.std.svg}
+@caption{@strong{Figure 3.35:} Signal-flow diagram for the solution to a second-order linear differential equation.}
+@end iftex
+@end float
+
+@quotation
+@strong{@anchor{Exercise 3.79}Exercise 3.79:} Generalize the @code{solve-2nd}
+procedure of @ref{Exercise 3.78} so that it can be used to solve general
+second-order differential equations @math{{d^2 y / dt^2} =
+{f(dy / dt, y)}}.
+@end quotation
+
+@float
+@anchor{Figure 3.36}
+@ifinfo
+@quotation
+@strong{Figure 3.36:} A series RLC circuit.
+
+@example
+              + v_R -
+        i_R
+     +--->----'\/\/\,--------+
+     |                       |  i_L
+    \|/          R          \|/
+  +  |  i_C                  |_   +
+    -+-                       _)
+v_C -+- C                     _)  v_L
+     |                        _)
+  -  |                       |    -
+     +-----------------------+
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.36,102mm,,,.std.svg}
+@caption{@strong{Figure 3.36:} A series RLC circuit.}
+@end iftex
+@end float
+
+@quotation
+@strong{@anchor{Exercise 3.80}Exercise 3.80:} A @newterm{series RLC circuit}
+consists of a resistor, a capacitor, and an inductor connected in series, as
+shown in @ref{Figure 3.36}.  If @math{R}, @math{L}, and @math{C} are the resistance,
+inductance, and capacitance, then the relations between voltage @math{{(v)}} and
+current @math{{(i)}} for the three components are described by the equations
+@ifinfo
+
+@example
+v_R = i_R R
+
+         d i_L
+v_L = L -------
+          d t
+
+         d v_C
+i_C = C -------
+          d t
+@end example
+
+@end ifinfo
+@tex
+\[ % :75:
+\begin{eqnarray}
+  v_R 	&=&   i_R R, \\
+  v_L 	&=&   L\,{di_L \over dt}, \\
+  i_C 	&=&   C\,{dv_C \over dt},
+\end{eqnarray}
+\]
+@end tex
+and the circuit connections dictate the relations
+@ifinfo
+
+@example
+i_R = i_L = -i_C
+
+v_C = v_L + v_R
+@end example
+
+@end ifinfo
+@tex
+\[ % :76:
+\begin{eqnarray}
+  i_R 	&=&   i_L = -i_C, \\
+  v_C 	&=&   v_L + v_R.
+\end{eqnarray}
+\]
+@end tex
+@noindent

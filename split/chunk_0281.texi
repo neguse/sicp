@@ -1,0 +1,100 @@
+@math{G}, then @math{S} is the grandson of @math{G}'' and ``If @math{W} is the wife of
+@math{M}, and @math{S} is the son of @math{W}, then @math{S} is the son of @math{M}'' (which
+was supposedly more true in biblical times than today) that will enable the
+query system to find the grandson of Cain; the sons of Lamech; the grandsons of
+Methushael.  (See @ref{Exercise 4.69} for some rules to deduce more complicated
+relationships.)
+@end quotation
+
+@node	4.4.2, 4.4.3, 4.4.1, 4.4
+@subsection How the Query System Works
+
+In section @ref{4.4.4} we will present an implementation of the query
+interpreter as a collection of procedures.  In this section we give an overview
+that explains the general structure of the system independent of low-level
+implementation details.  After describing the implementation of the
+interpreter, we will be in a position to understand some of its limitations and
+some of the subtle ways in which the query language's logical operations differ
+from the operations of mathematical logic.
+
+It should be apparent that the query evaluator must perform some kind of search
+in order to match queries against facts and rules in the data base.  One way to
+do this would be to implement the query system as a nondeterministic program,
+using the @code{amb} evaluator of @ref{4.3} (see @ref{Exercise 4.78}).
+Another possibility is to manage the search with the aid of streams.  Our
+implementation follows this second approach.
+
+The query system is organized around two central operations called
+@newterm{pattern matching} and @newterm{unification}.  We first describe
+pattern matching and explain how this operation, together with the organization
+of information in terms of streams of frames, enables us to implement both
+simple and compound queries.  We next discuss unification, a generalization of
+pattern matching needed to implement rules.  Finally, we show how the entire
+query interpreter fits together through a procedure that classifies expressions
+in a manner analogous to the way @code{eval} classifies expressions for the
+interpreter described in @ref{4.1}.
+
+@subsubheading Pattern matching
+
+A @newterm{pattern matcher} is a program that tests whether some datum fits a
+specified pattern.  For example, the data list @code{((a b) c (a b))} matches
+the pattern @code{(?x c ?x)} with the pattern variable @code{?x} bound to
+@code{(a b)}.  The same data list matches the pattern @code{(?x ?y ?z)} with
+@code{?x} and @code{?z} both bound to @code{(a b)} and @code{?y} bound to
+@code{c}.  It also matches the pattern @code{((?x ?y) c (?x ?y))} with
+@code{?x} bound to @code{a} and @code{?y} bound to @code{b}.  However, it does
+not match the pattern @code{(?x a ?y)}, since that pattern specifies a list
+whose second element is the symbol @code{a}.
+
+The pattern matcher used by the query system takes as inputs a pattern, a
+datum, and a @newterm{frame} that specifies bindings for various pattern
+variables.  It checks whether the datum matches the pattern in a way that is
+consistent with the bindings already in the frame.  If so, it returns the given
+frame augmented by any bindings that may have been determined by the match.
+Otherwise, it indicates that the match has failed.
+
+For example, using the pattern @code{(?x ?y ?x)} to match @code{(a b a)} given
+an empty frame will return a frame specifying that @code{?x} is bound to
+@code{a} and @code{?y} is bound to @code{b}.  Trying the match with the same
+pattern, the same datum, and a frame specifying that @code{?y} is bound to
+@code{a} will fail.  Trying the match with the same pattern, the same datum,
+and a frame in which @code{?y} is bound to @code{b} and @code{?x} is unbound
+will return the given frame augmented by a binding of @code{?x} to @code{a}.
+
+The pattern matcher is all the mechanism that is needed to process simple
+queries that don't involve rules.  For instance, to process the query
+
+@lisp
+(job ?x (computer programmer))
+@end lisp
+
+@noindent
+we scan through all assertions in the data base and select those that match the
+pattern with respect to an initially empty frame.  For each match we find, we
+use the frame returned by the match to instantiate the pattern with a value for
+@code{?x}.
+
+@subsubheading Streams of frames
+
+The testing of patterns against frames is organized through the use of streams.
+Given a single frame, the matching process runs through the data-base entries
+one by one.  For each data-base entry, the matcher generates either a special
+symbol indicating that the match has failed or an extension to the frame.  The
+results for all the data-base entries are collected into a stream, which is
+passed through a filter to weed out the failures.  The result is a stream of
+all the frames that extend the given frame via a match to some assertion in the
+data base.@footnote{Because matching is generally very expensive, we would like
+to avoid applying the full matcher to every element of the data base.  This is
+usually arranged by breaking up the process into a fast, coarse match and the
+final match.  The coarse match filters the data base to produce a small set of
+candidates for the final match.  With care, we can arrange our data base so
+that some of the work of coarse matching can be done when the data base is
+constructed rather then when we want to select the candidates.  This is called
+@newterm{indexing} the data base.  There is a vast technology built around
+data-base-indexing schemes.  Our implementation, described in 
+@ref{4.4.4}, contains a simple-minded form of such an optimization.}
+
+In our system, a query takes an input stream of frames and performs the above
+matching operation for every frame in the stream, as indicated in @ref{Figure 4.4}.  
+That is, for each frame in the input stream, the query generates a new
+stream consisting of all extensions to that frame by matches to assertions in

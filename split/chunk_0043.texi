@@ -1,0 +1,100 @@
+These three procedures clearly share a common underlying pattern.  They are for
+the most part identical, differing only in the name of the procedure, the
+function of @code{a} used to compute the term to be added, and the function
+that provides the next value of @code{a}.  We could generate each of the
+procedures by filling in slots in the same template:
+
+@lisp
+(define (⟨@var{name}⟩ a b)
+  (if (> a b)
+      0
+      (+ (⟨@var{term}⟩ a) 
+         (⟨@var{name}⟩ (⟨@var{next}⟩ a) b))))
+@end lisp
+
+@noindent
+The presence of such a common pattern is strong evidence that there is a useful
+abstraction waiting to be brought to the surface.  Indeed, mathematicians long
+ago identified the abstraction of @newterm{summation of a series} and invented
+``sigma notation,'' for example
+@ifinfo
+
+@example
+  b
+ ---
+ >    f(n) = f(a) + ... + f(b)
+ ---
+ n=a
+@end example
+
+@end ifinfo
+@tex
+
+\[ % :18:
+ 
+{\sum_{n = a}^b f(n)} \,=\, {f(a)} + \dots + {f(b),}
+\]
+
+@end tex
+@noindent
+to express this concept.  The power of sigma notation is that it allows
+mathematicians to deal with the concept of summation itself rather than only
+with particular sums---for example, to formulate general results about sums
+that are independent of the particular series being summed.
+
+Similarly, as program designers, we would like our language to be powerful
+enough so that we can write a procedure that expresses the concept of summation
+itself rather than only procedures that compute particular sums.  We can do so
+readily in our procedural language by taking the common template shown above
+and transforming the ``slots'' into formal parameters:
+
+@lisp
+(define (sum term a next b)
+  (if (> a b)
+      0
+      (+ (term a)
+         (sum term (next a) next b))))
+@end lisp
+
+@noindent
+Notice that @code{sum} takes as its arguments the lower and upper bounds
+@code{a} and @code{b} together with the procedures @code{term} and @code{next}.
+We can use @code{sum} just as we would any procedure.  For example, we can use
+it (along with a procedure @code{inc} that increments its argument by 1) to
+define @code{sum-cubes}:
+
+@lisp
+(define (inc n) (+ n 1))
+
+(define (sum-cubes a b)
+  (sum cube a inc b))
+@end lisp
+
+@noindent
+Using this, we can compute the sum of the cubes of the integers from 1 to 10:
+
+@lisp
+(sum-cubes 1 10)
+@i{3025}
+@end lisp
+
+@noindent
+With the aid of an identity procedure to compute the term, we can define
+@code{sum-integers} in terms of @code{sum}:
+
+@lisp
+(define (identity x) x)
+
+(define (sum-integers a b)
+  (sum identity a inc b))
+@end lisp
+
+@noindent
+Then we can add up the integers from 1 to 10:
+
+@lisp
+(sum-integers 1 10)
+@i{55}
+@end lisp
+
+@noindent

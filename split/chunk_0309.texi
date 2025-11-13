@@ -1,0 +1,100 @@
+@quotation
+@strong{@anchor{Figure 5.6}Figure 5.6:} @math{\downarrow} Controller instruction sequence for the
+@abbr{GCD} machine in @ref{Figure 5.5}.
+
+@lisp
+(controller
+ test-b
+   (test (op =) (reg b) (const 0))
+   (branch (label gcd-done))
+   (assign t (reg a))
+ rem-loop
+   (test (op <) (reg t) (reg b))
+   (branch (label rem-done))
+   (assign t (op -) (reg t) (reg b))
+   (goto (label rem-loop))
+ rem-done
+   (assign a (reg b))
+   (assign b (reg t))
+   (goto (label test-b))
+ gcd-done)
+@end lisp
+
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.3}Exercise 5.3:} Design a machine to compute square
+roots using Newton's method, as described in @ref{Sec.1.1.7,,1.1.7}:
+
+@lisp
+(define (sqrt x)
+  (define (good-enough? guess)
+    (< (abs (- (square guess) x)) 0.001))
+  (define (improve guess)
+    (average guess (/ x guess)))
+  (define (sqrt-iter guess)
+    (if (good-enough? guess)
+        guess
+        (sqrt-iter (improve guess))))
+  (sqrt-iter 1.0))
+@end lisp
+
+Begin by assuming that @code{good-enough?} and @code{improve} operations are
+available as primitives.  Then show how to expand these in terms of arithmetic
+operations.  Describe each version of the @code{sqrt} machine design by drawing
+a data-path diagram and writing a controller definition in the register-machine
+language.
+@end quotation
+
+@node	5.1.3, 5.1.4, 5.1.2, 5.1
+@subsection Subroutines
+
+When designing a machine to perform a computation, we would often prefer to
+arrange for components to be shared by different parts of the computation
+rather than duplicate the components.  Consider a machine that includes two
+@abbr{GCD} computations---one that finds the @abbr{GCD} of the contents
+of registers @code{a} and @code{b} and one that finds the @abbr{GCD} of the
+contents of registers @code{c} and @code{d}.  We might start by assuming we
+have a primitive @code{gcd} operation, then expand the two instances of
+@code{gcd} in terms of more primitive operations.  @ref{Figure 5.7} shows just
+the @abbr{GCD} portions of the resulting machine's data paths, without
+showing how they connect to the rest of the machine.  The figure also shows the
+corresponding portions of the machine's controller sequence.
+
+@float
+@anchor{Figure 5.7}
+@ifinfo
+@strong{Figure 5.7:} Portions of the data paths and controller sequence for a machine with two @abbr{GCD} computations.
+
+@example
+                            ___                                 ___  
++-----+        +-----+     /   \    +-----+        +-----+     /   \ 
+|  a  |<-(X)---+  b  |--->|  =  |   |  c  |<-(X)---+  d  |--->|  =  |
++--+--+  a<-b  ++----+     \___/    +--+--+  c<-d  ++----+     \___/ 
+   |            |  ^         ^         |            |  ^         ^   
+   `----.   .---'  |         |         `----.   .---'  |         |   
+        V   V     (X) b<-t   |              V   V     (X) d<-t   |   
+       -------     |        / \            -------     |        / \  
+       \ rem /     |       /_0_\           \ rem /     |       /_0_\ 
+        --+--      |                        --+--      |             
+          |        |                          |        |             
+         (X) t<-r  |                         (X) s<-r  |             
+          |        |                          |        |             
+          V        |                          V        |             
+       +-----+     |                       +-----+     |             
+       |  t  +-----'                       |  s  +-----'             
+       +-----+                             +-----+                   
+@end example
+
+@lisp
+gcd-1
+ (test (op =) (reg b) (const 0))
+ (branch (label after-gcd-1))
+ (assign t (op rem) (reg a) (reg b))
+ (assign a (reg b))
+ (assign b (reg t))
+ (goto (label gcd-1))
+after-gcd-1
+  @r{…}
+gcd-2
+ (test (op =) (reg d) (const 0))

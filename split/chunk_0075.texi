@@ -1,0 +1,100 @@
+@anchor{Figure 2.5}
+@ifinfo
+@quotation
+@strong{Figure 2.5:} Structure formed by @code{(cons (list 1 2) (list 3 4))}.
+
+@example
+                                          (3 4)
+                                            |
+                                            V
+((1 2) 3 4)  +---+---+                  +---+---+     +---+---+
+        ---->| * | *-+----------------->| * | *-+---->| * | / |
+             +-|-+---+                  +-|-+---+     +-|-+---+
+               |                          |             |
+               V                          V             V
+      (1 2)  +---+---+     +---+---+    +---+         +---+
+        ---->| * | *-+---->| * | / |    | 3 |         | 4 |
+             +-|-+---+     +-|-+---+    +---+         +---+
+               |             |
+               V             V
+             +---+         +---+
+             | 1 |         | 2 |
+             +---+         +---+
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap2/Fig2.5e,140mm,,,.std.svg}
+@caption{@strong{Figure 2.5:} Structure formed by @code{(cons (list 1 2) (list 3 4))}.}
+@end iftex
+@end float
+
+Another way to think of sequences whose elements are sequences is as
+@newterm{trees}.  The elements of the sequence are the branches of the tree,
+and elements that are themselves sequences are subtrees.  @ref{Figure 2.6}
+shows the structure in @ref{Figure 2.5} viewed as a tree.
+
+@float
+@anchor{Figure 2.6}
+@ifinfo
+@quotation
+@strong{Figure 2.6:} The list structure in @ref{Figure 2.5} viewed as a tree.
+
+@example
+ ((1 2) 3 4)
+     /\\
+    /  | \
+(1 2)  3 4
+ / \
+ 1 2
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap2/Fig2.6b,40mm,,,.std.svg}
+@caption{@strong{Figure 2.6:} The list structure in @ref{Figure 2.5} viewed as a tree.}
+@end iftex
+@end float
+
+@noindent
+Recursion is a natural tool for dealing with tree structures, since we can
+often reduce operations on trees to operations on their branches, which reduce
+in turn to operations on the branches of the branches, and so on, until we
+reach the leaves of the tree.  As an example, compare the @code{length}
+procedure of @ref{2.2.1} with the @code{count-leaves} procedure, which
+returns the total number of leaves of a tree:
+
+@lisp
+(define x (cons (list 1 2) (list 3 4)))
+@end lisp
+
+@lisp
+(length x)
+@i{3}
+@end lisp
+
+@lisp
+(count-leaves x)
+@i{4}
+
+(list x x)
+@i{(((1 2) 3 4) ((1 2) 3 4))}
+
+(length (list x x))
+@i{2}
+
+(count-leaves (list x x))
+@i{8}
+@end lisp
+
+@noindent
+To implement @code{count-leaves}, recall the recursive plan for computing
+@code{length}:
+
+@itemize @bullet
+
+@item
+@code{Length} of a list @code{x} is 1 plus @code{length} of the
+@code{cdr} of @code{x}.
+
+@item

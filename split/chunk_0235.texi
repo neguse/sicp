@@ -1,0 +1,100 @@
+@strong{@anchor{Exercise 4.7}Exercise 4.7:} @code{Let*} is similar to
+@code{let}, except that the bindings of the @code{let*} variables are performed
+sequentially from left to right, and each binding is made in an environment in
+which all of the preceding bindings are visible.  For example
+
+@lisp
+(let* ((x 3)
+       (y (+ x 2))
+       (z (+ x y 5)))
+  (* x z))
+@end lisp
+
+@noindent
+returns 39.  Explain how a @code{let*} expression can be rewritten as a set of
+nested @code{let} expressions, and write a procedure @code{let*->nested-lets}
+that performs this transformation.  If we have already implemented @code{let}
+(@ref{Exercise 4.6}) and we want to extend the evaluator to handle @code{let*},
+is it sufficient to add a clause to @code{eval} whose action is
+
+@lisp
+(eval (let*->nested-lets exp) env)
+@end lisp
+
+@noindent
+or must we explicitly expand @code{let*} in terms of non-derived expressions?
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.8}Exercise 4.8:} ``Named @code{let}'' is a variant
+of @code{let} that has the form 
+
+@lisp
+(let ⟨@var{var}⟩ ⟨@var{bindings}⟩ ⟨@var{body}⟩)
+@end lisp
+
+The @code{⟨}@var{bindings}@code{⟩} and @code{⟨}@var{body}@code{⟩} are just as in ordinary @code{let},
+except that @code{⟨}@var{var}@code{⟩} is bound within @code{⟨}@var{body}@code{⟩} to a procedure whose body
+is @code{⟨}@var{body}@code{⟩} and whose parameters are the variables in the @code{⟨}@var{bindings}@code{⟩}.
+Thus, one can repeatedly execute the @code{⟨}@var{body}@code{⟩} by invoking the procedure
+named @code{⟨}@var{var}@code{⟩}.  For example, the iterative Fibonacci procedure 
+(@ref{1.2.2}) can be rewritten using named @code{let} as follows:
+
+@lisp
+(define (fib n)
+  (let fib-iter ((a 1) (b 0) (count n))
+    (if (= count 0)
+        b
+        (fib-iter (+ a b) 
+                  a 
+                  (- count 1)))))
+@end lisp
+
+Modify @code{let->combination} of @ref{Exercise 4.6} to also support named
+@code{let}.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.9}Exercise 4.9:} Many languages support a variety of
+iteration constructs, such as @code{do}, @code{for}, @code{while}, and
+@code{until}.  In Scheme, iterative processes can be expressed in terms of
+ordinary procedure calls, so special iteration constructs provide no essential
+gain in computational power.  On the other hand, such constructs are often
+convenient.  Design some iteration constructs, give examples of their use, and
+show how to implement them as derived expressions.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.10}Exercise 4.10:} By using data abstraction, we
+were able to write an @code{eval} procedure that is independent of the
+particular syntax of the language to be evaluated.  To illustrate this, design
+and implement a new syntax for Scheme by modifying the procedures in this
+section, without changing @code{eval} or @code{apply}.
+@end quotation
+
+@node	4.1.3, 4.1.4, 4.1.2, 4.1
+@subsection Evaluator Data Structures
+
+In addition to defining the external syntax of expressions, the evaluator
+implementation must also define the data structures that the evaluator
+manipulates internally, as part of the execution of a program, such as the
+representation of procedures and environments and the representation of true
+and false.
+
+@subsubheading Testing of predicates
+
+For conditionals, we accept anything to be true that is not the explicit
+@code{false} object.
+
+@lisp
+(define (true? x)
+  (not (eq? x false)))
+
+(define (false? x)
+  (eq? x false))
+@end lisp
+
+@subsubheading Representing procedures
+
+To handle primitives, we assume that we have available the following
+procedures:

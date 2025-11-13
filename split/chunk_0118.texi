@@ -1,0 +1,100 @@
+@anchor{Figure 2.21}
+@ifinfo
+@quotation
+@strong{Figure 2.21:} Structure of the generic complex-arithmetic system.
+
+@example
+    +-------------------------------------------------+
+----| add-complex sub-complex mul-complex div-complex |----
+    +-------------------------------------------------+
+                Complex arithmetic package
+                 +-----------------------+
+                 | real-part   imag-part |
+-----------------|                       |------------------
+                 | magnitude   angle     |
+                 +-----------+-----------+
+           Rectangular       |          Polar
+          representation     |     representation
+-----------------------------+------------------------------
+       List structure and primitive machine arithmetic
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap2/Fig2.21a,147mm,,,.std.svg}
+@caption{@strong{Figure 2.21:} Structure of the generic complex-arithmetic system.}
+@end iftex
+@end float
+
+Since each data object is tagged with its type, the selectors operate on the
+data in a generic manner.  That is, each selector is defined to have a behavior
+that depends upon the particular type of data it is applied to.  Notice the
+general mechanism for interfacing the separate representations: Within a given
+representation implementation (say, Alyssa's polar package) a complex number is
+an untyped pair (magnitude, angle).  When a generic selector operates on a
+number of @code{polar} type, it strips off the tag and passes the contents on
+to Alyssa's code.  Conversely, when Alyssa constructs a number for general use,
+she tags it with a type so that it can be appropriately recognized by the
+higher-level procedures.  This discipline of stripping off and attaching tags
+as data objects are passed from level to level can be an important
+organizational strategy, as we shall see in @ref{2.5}.
+
+@node	2.4.3, 2.5, 2.3, 2.4
+@subsection Data-Directed Programming and Additivity
+
+The general strategy of checking the type of a datum and calling an appropriate
+procedure is called @newterm{dispatching on type}.  This is a powerful strategy
+for obtaining modularity in system design.  On the other hand, implementing the
+dispatch as in @ref{2.4.2} has two significant weaknesses.  One
+weakness is that the generic interface procedures (@code{real-part},
+@code{imag-part}, @code{magnitude}, and @code{angle}) must know about all the
+different representations.  For instance, suppose we wanted to incorporate a
+new representation for complex numbers into our complex-number system.  We
+would need to identify this new representation with a type, and then add a
+clause to each of the generic interface procedures to check for the new type
+and apply the appropriate selector for that representation.
+
+Another weakness of the technique is that even though the individual
+representations can be designed separately, we must guarantee that no two
+procedures in the entire system have the same name.  This is why Ben and Alyssa
+had to change the names of their original procedures from @ref{2.4.1}.
+
+The issue underlying both of these weaknesses is that the technique for
+implementing generic interfaces is not @newterm{additive}.  The person
+implementing the generic selector procedures must modify those procedures each
+time a new representation is installed, and the people interfacing the
+individual representations must modify their code to avoid name conflicts.  In
+each of these cases, the changes that must be made to the code are
+straightforward, but they must be made nonetheless, and this is a source of
+inconvenience and error.  This is not much of a problem for the complex-number
+system as it stands, but suppose there were not two but hundreds of different
+representations for complex numbers.  And suppose that there were many generic
+selectors to be maintained in the abstract-data interface.  Suppose, in fact,
+that no one programmer knew all the interface procedures or all the
+representations.  The problem is real and must be addressed in such programs as
+large-scale data-base-management systems.
+
+What we need is a means for modularizing the system design even further.  This
+is provided by the programming technique known as @newterm{data-directed programming}.  
+To understand how data-directed programming works, begin with
+the observation that whenever we deal with a set of generic operations that are
+common to a set of different types we are, in effect, dealing with a
+two-dimensional table that contains the possible operations on one axis and the
+possible types on the other axis.  The entries in the table are the procedures
+that implement each operation for each type of argument presented.  In the
+complex-number system developed in the previous section, the correspondence
+between operation name, data type, and actual procedure was spread out among
+the various conditional clauses in the generic interface procedures.  But the
+same information could have been organized in a table, as shown in @ref{Figure 2.22}.
+
+@float
+@anchor{Figure 2.22}
+@ifinfo
+@quotation
+@strong{Figure 2.22:} Table of operations for the complex-number system.
+
+@example
+           |               Types
+Operations | Polar           | Rectangular
+===========+=================+======================
+real-part  | real-part-polar | real-part-rectangular

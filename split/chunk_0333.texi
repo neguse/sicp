@@ -1,0 +1,100 @@
+@example
+             Just before garbage collection
+
+         +------------------------------------+
+the-cars |                                    | working
+         | mixture of useful data and garbage | memory
+the-cdrs |                                    |
+         +------------------------------------+
+                                            ^
+                                            | free
+
+         +------------------------------------+
+new-cars |                                    | free   
+         |            free memory             | memory
+new-cdrs |                                    |
+         +------------------------------------+
+
+             Just after garbage collection
+
+         +------------------------------------+
+new-cars |                                    | new  
+         |          discarded memory          | free  
+new-cdrs |                                    | memory
+         +------------------------------------+
+
+         +------------------+-----------------+
+the-cars |                  |                 | new
+         |   useful data    |    free area    | working
+the-cdrs |                  |                 | memory
+         +------------------+-----------------+
+                              ^
+                              | free
+@end example
+@end ifinfo
+@iftex
+@image{fig/chap5/Fig5.15c,142mm,,,.std.svg}
+@caption{@strong{Figure 5.15:} Reconfiguration of memory by the garbage-collection process.}
+@end iftex
+@end float
+
+@noindent
+The state of the garbage-collection process is controlled by maintaining two
+pointers: @code{free} and @code{scan}.  These are initialized to point to the
+beginning of the new memory.  The algorithm begins by relocating the pair
+pointed at by @code{root} to the beginning of the new memory.  The pair is
+copied, the @code{root} pointer is adjusted to point to the new location, and
+the @code{free} pointer is incremented.  In addition, the old location of the
+pair is marked to show that its contents have been moved.  This marking is done
+as follows: In the @code{car} position, we place a special tag that signals
+that this is an already-moved object.  (Such an object is traditionally called
+a @newterm{broken heart}.)@footnote{The term @emph{broken heart} was coined by
+David Cressey, who wrote a garbage collector for MDL, a dialect of Lisp
+developed at @abbr{MIT} during the early 1970s.}  In the @code{cdr} position
+we place a @newterm{forwarding address} that points at the location to which
+the object has been moved.
+
+After relocating the root, the garbage collector enters its basic cycle.  At
+each step in the algorithm, the @code{scan} pointer (initially pointing at the
+relocated root) points at a pair that has been moved to the new memory but
+whose @code{car} and @code{cdr} pointers still refer to objects in the old
+memory.  These objects are each relocated, and the @code{scan} pointer is
+incremented.  To relocate an object (for example, the object indicated by the
+@code{car} pointer of the pair we are scanning) we check to see if the object
+has already been moved (as indicated by the presence of a broken-heart tag in
+the @code{car} position of the object).  If the object has not already been
+moved, we copy it to the place indicated by @code{free}, update @code{free},
+set up a broken heart at the object's old location, and update the pointer to
+the object (in this example, the @code{car} pointer of the pair we are
+scanning) to point to the new location.  If the object has already been moved,
+its forwarding address (found in the @code{cdr} position of the broken heart)
+is substituted for the pointer in the pair being scanned.  Eventually, all
+accessible objects will have been moved and scanned, at which point the
+@code{scan} pointer will overtake the @code{free} pointer and the process will
+terminate.
+
+We can specify the stop-and-copy algorithm as a sequence of instructions for a
+register machine.  The basic step of relocating an object is accomplished by a
+subroutine called @code{relocate-old-result-in-new}.  This subroutine gets its
+argument, a pointer to the object to be relocated, from a register named
+@code{old}.  It relocates the designated object (incrementing @code{free} in
+the process), puts a pointer to the relocated object into a register called
+@code{new}, and returns by branching to the entry point stored in the register
+@code{relocate-continue}.  To begin garbage collection, we invoke this
+subroutine to relocate the @code{root} pointer, after initializing @code{free}
+and @code{scan}.  When the relocation of @code{root} has been accomplished, we
+install the new pointer as the new @code{root} and enter the main loop of the
+garbage collector.
+
+@lisp
+begin-garbage-collection
+  (assign free (const 0))
+  (assign scan (const 0))
+  (assign old (reg root))
+  (assign relocate-continue 
+          (label reassign-root))
+  (goto (label relocate-old-result-in-new))
+reassign-root
+  (assign root (reg new))
+  (goto (label gc-loop))
+@end lisp

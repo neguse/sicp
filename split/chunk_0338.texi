@@ -1,0 +1,100 @@
+operand, we place it in the @code{exp} register and go to @code{eval-dispatch},
+after setting @code{continue} so that execution will resume with the
+argument-accumulation phase.  But first we save the arguments accumulated so
+far (held in @code{argl}), the environment (held in @code{env}), and the
+remaining operands to be evaluated (held in @code{unev}).  A special case is
+made for the evaluation of the last operand, which is handled at
+@code{ev-appl-last-arg}.
+
+@lisp
+ev-appl-operand-loop
+  (save argl)
+  (assign exp
+          (op first-operand)
+          (reg unev))
+  (test (op last-operand?) (reg unev))
+  (branch (label ev-appl-last-arg))
+  (save env)
+  (save unev)
+  (assign continue 
+          (label ev-appl-accumulate-arg))
+  (goto (label eval-dispatch))
+@end lisp
+
+@noindent
+When an operand has been evaluated, the value is accumulated into the list held
+in @code{argl}.  The operand is then removed from the list of unevaluated
+operands in @code{unev}, and the argument-evaluation continues.
+
+@lisp
+ev-appl-accumulate-arg
+  (restore unev)
+  (restore env)
+  (restore argl)
+  (assign argl 
+          (op adjoin-arg)
+          (reg val)
+          (reg argl))
+  (assign unev
+          (op rest-operands)
+          (reg unev))
+  (goto (label ev-appl-operand-loop))
+@end lisp
+
+@noindent
+Evaluation of the last argument is handled differently.  There is no need to
+save the environment or the list of unevaluated operands before going to
+@code{eval-dispatch}, since they will not be required after the last operand is
+evaluated.  Thus, we return from the evaluation to a special entry point
+@code{ev-appl-accum-last-arg}, which restores the argument list, accumulates
+the new argument, restores the saved procedure, and goes off to perform the
+application.@footnote{The optimization of treating the last operand specially
+is known as @newterm{evlis tail recursion} (see @ref{Wand 1980}).  We could be
+somewhat more efficient in the argument evaluation loop if we made evaluation
+of the first operand a special case too.  This would permit us to postpone
+initializing @code{argl} until after evaluating the first operand, so as to
+avoid saving @code{argl} in this case.  The compiler in @ref{5.5}
+performs this optimization.  (Compare the @code{construct-arglist} procedure of
+@ref{5.5.3}.)}
+
+@lisp
+ev-appl-last-arg
+  (assign continue 
+          (label ev-appl-accum-last-arg))
+  (goto (label eval-dispatch))
+ev-appl-accum-last-arg
+  (restore argl)
+  (assign argl 
+          (op adjoin-arg)
+          (reg val)
+          (reg argl))
+  (restore proc)
+  (goto (label apply-dispatch))
+@end lisp
+
+@noindent
+The details of the argument-evaluation loop determine the order in which the
+interpreter evaluates the operands of a combination (e.g., left to right or
+right to left---see @ref{Exercise 3.8}).  This order is not determined by the
+metacircular evaluator, which inherits its control structure from the
+underlying Scheme in which it is implemented.@footnote{The order of operand
+evaluation in the metacircular evaluator is determined by the order of
+evaluation of the arguments to @code{cons} in the procedure
+@code{list-of-values} of @ref{4.1.1} (see @ref{Exercise 4.1}).} Because
+the @code{first-operand} selector (used in @code{ev-appl-operand-loop} to
+extract successive operands from @code{unev}) is implemented as @code{car} and
+the @code{rest-operands} selector is implemented as @code{cdr}, the
+explicit-control evaluator will evaluate the operands of a combination in
+left-to-right order.
+
+@subsubheading Procedure application
+
+The entry point @code{apply-dispatch} corresponds to the @code{apply} procedure
+of the metacircular evaluator.  By the time we get to @code{apply-dispatch},
+the @code{proc} register contains the procedure to apply and @code{argl}
+contains the list of evaluated arguments to which it must be applied.  The
+saved value of @code{continue} (originally passed to @code{eval-dispatch} and
+saved at @code{ev-application}), which tells where to return with the result of
+the procedure application, is on the stack.  When the application is complete,
+the controller transfers to the entry point specified by the saved
+@code{continue}, with the result of the application in @code{val}.  As with the

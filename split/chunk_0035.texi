@@ -1,0 +1,100 @@
+                 (- counter 1)
+                 (* b product))))
+@end lisp
+
+@noindent
+This version requires @math{{\Theta(n)}} steps and @math{{\Theta(1)}} space.
+
+We can compute exponentials in fewer steps by using successive squaring.  For
+instance, rather than computing @math{b^8} as
+@ifinfo
+
+@example
+b * (b * (b * (b * (b * (b * (b * b))))))
+@end example
+
+@end ifinfo
+@tex
+
+\[ % :14:
+  
+{b\cdot (b\cdot (b}\cdot {(b\cdot (b\cdot (b}\cdot {(b\cdot b)))))),}
+\]
+
+@end tex
+we can compute it using three multiplications:
+@ifinfo
+
+@example
+b^2 = b * b
+b^4 = b^2 * b^2
+b^8 = b^4 * b^4
+@end example
+
+@end ifinfo
+@tex
+
+\[ % :15:
+ 
+\begin{array}{l}
+  b^2 \,=\, b\cdot b, \\ 
+  b^4 \,=\, b^2\cdot b^2, \\
+  b^8 \,=\, b^4\cdot b^4.
+\end{array}
+\]
+
+@end tex
+This method works fine for exponents that are powers of 2.  We can also take
+advantage of successive squaring in computing exponentials in general if we use
+the rule
+@ifinfo
+
+@example
+b^n = (b^(n/2))^2    if n is even
+b^n = b * b^(n - 1)  if n is odd
+@end example
+
+@end ifinfo
+@tex
+
+\[ % :16:
+ 
+\begin{array}{ll}
+  b^n \,=\, (b^{n / 2})^2   & \text{if} \; n \; \text{is even}, \\
+  b^n \,=\, b\cdot b^{n-1}  & \text{if} \; n \; \text{is odd}.
+\end{array}
+\]
+
+@end tex
+We can express this method as a procedure:
+
+@lisp
+(define (fast-expt b n)
+  (cond ((= n 0) 
+         1)
+        ((even? n) 
+         (square (fast-expt b (/ n 2))))
+        (else 
+         (* b (fast-expt b (- n 1))))))
+@end lisp
+
+@noindent
+where the predicate to test whether an integer is even is defined in terms of
+the primitive procedure @code{remainder} by
+
+@lisp
+(define (even? n)
+  (= (remainder n 2) 0))
+@end lisp
+
+@noindent
+The process evolved by @code{fast-expt} grows logarithmically with @math{n} in
+both space and number of steps.  To see this, observe that computing
+@math{b^{2n}} using @code{fast-expt} requires only one more multiplication
+than computing @math{b^n}.  The size of the exponent we can compute therefore
+doubles (approximately) with every new multiplication we are allowed.  Thus,
+the number of multiplications required for an exponent of @math{n} grows about as
+fast as the logarithm of @math{n} to the base 2.  The process has
+@math{{\Theta(\log n)}} growth.@footnote{More precisely, the number of
+multiplications required is equal to 1 less than the log base 2 of @math{n} plus
+the number of ones in the binary representation of @math{n}.  This total is always

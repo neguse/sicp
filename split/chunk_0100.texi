@@ -1,0 +1,100 @@
+@end lisp
+
+@item
+The addend is the second item of the sum list:
+
+@lisp
+(define (addend s) (cadr s))
+@end lisp
+
+@item
+The augend is the third item of the sum list:
+
+@lisp
+(define (augend s) (caddr s))
+@end lisp
+
+@item
+A product is a list whose first element is the symbol @code{*}:
+@lisp
+(define (product? x)
+  (and (pair? x) (eq? (car x) '*)))
+@end lisp
+
+@item
+The multiplier is the second item of the product list:
+
+@lisp
+(define (multiplier p) (cadr p))
+@end lisp
+
+@item
+The multiplicand is the third item of the product list:
+
+@lisp
+(define (multiplicand p) (caddr p))
+@end lisp
+
+@end itemize
+
+@noindent
+Thus, we need only combine these with the algorithm as embodied by @code{deriv}
+in order to have a working symbolic-differentiation program.  Let us look at
+some examples of its behavior:
+
+@lisp
+(deriv '(+ x 3) 'x)
+@i{(+ 1 0)}
+
+(deriv '(* x y) 'x)
+@i{(+ (* x 0) (* 1 y))}
+
+(deriv '(* (* x y) (+ x 3)) 'x)
+@i{(+ (* (* x y) (+ 1 0))}
+   @i{(* (+ (* x 0) (* 1 y))}
+      @i{(+  x 3)))}
+@end lisp
+
+@noindent
+The program produces answers that are correct; however, they are unsimplified.
+It is true that
+@ifinfo
+
+@example
+d(xy)
+----- = x * 0 + 1 * y
+ dx
+@end example
+
+@end ifinfo
+@tex
+\[ % :44:
+  {d(xy) \over dx} \,=\, {x \cdot 0} + {1 \cdot y,}  \]
+@end tex
+@noindent
+but we would like the program to know that @math{{x \cdot 0 = 0}}, @math{{1 \cdot y = y}},
+and @math{{0 + y = y}}.  The answer for the second example should have been
+simply @code{y}.  As the third example shows, this becomes a serious issue when
+the expressions are complex.
+
+Our difficulty is much like the one we encountered with the rational-number
+implementation: we haven't reduced answers to simplest form.  To accomplish the
+rational-number reduction, we needed to change only the constructors and the
+selectors of the implementation.  We can adopt a similar strategy here.  We
+won't change @code{deriv} at all.  Instead, we will change @code{make-sum} so
+that if both summands are numbers, @code{make-sum} will add them and return
+their sum.  Also, if one of the summands is 0, then @code{make-sum} will return
+the other summand:
+
+@lisp
+(define (make-sum a1 a2)
+  (cond ((=number? a1 0) a2)
+        ((=number? a2 0) a1)
+        ((and (number? a1) (number? a2)) 
+         (+ a1 a2))
+        (else (list '+ a1 a2))))
+@end lisp
+
+@noindent
+This uses the procedure @code{=number?}, which checks whether an expression is
+equal to a given number:

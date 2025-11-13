@@ -1,0 +1,100 @@
+frame.
+
+We can exploit this fact by inventing a new kind of variable-lookup operation,
+@code{lexical-address-lookup}, that takes as arguments an environment and a
+@newterm{lexical address} that consists of two numbers: a @newterm{frame number}, 
+which specifies how many frames to pass over, and a
+@newterm{displacement number}, which specifies how many variables to pass over
+in that frame.  @code{Lexical-address-lookup} will produce the value of the
+variable stored at that lexical address relative to the current environment.
+If we add the @code{lexical-address-lookup} operation to our machine, we can
+make the compiler generate code that references variables using this operation,
+rather than @code{lookup-variable-value}.  Similarly, our compiled code can use
+a new @code{lexical-address-set!}  operation instead of
+@code{set-variable-value!}.
+
+In order to generate such code, the compiler must be able to determine the
+lexical address of a variable it is about to compile a reference to.  The
+lexical address of a variable in a program depends on where one is in the code.
+For example, in the following program, the address of @code{x} in expression
+@code{⟨}@var{e1}@code{⟩} is (2, 0)---two frames back and the first variable in the frame.  At
+that point @code{y} is at address (0, 0) and @code{c} is at address (1, 2).  In
+expression @code{⟨}@var{e2}@code{⟩}, @code{x} is at (1, 0), @code{y} is at (1, 1), and @code{c}
+is at (0, 2).
+
+@lisp
+((lambda (x y)
+   (lambda (a b c d e)
+     ((lambda (y z) ⟨@var{e1}⟩)
+      ⟨@var{e2}⟩
+      (+ c d x))))
+ 3
+ 4)
+@end lisp
+
+@noindent
+One way for the compiler to produce code that uses lexical addressing is to
+maintain a data structure called a @newterm{compile-time environment}.  This
+keeps track of which variables will be at which positions in which frames in
+the run-time environment when a particular variable-access operation is
+executed.  The compile-time environment is a list of frames, each containing a
+list of variables.  (There will of course be no values bound to the variables,
+since values are not computed at compile time.)  The compile-time environment
+becomes an additional argument to @code{compile} and is passed along to each
+code generator.  The top-level call to @code{compile} uses an empty
+compile-time environment.  When a @code{lambda} body is compiled,
+@code{compile-lambda-body} extends the compile-time environment by a frame
+containing the procedure's parameters, so that the sequence making up the body
+is compiled with that extended environment.  At each point in the compilation,
+@code{compile-variable} and @code{compile-assignment} use the compile-time
+environment in order to generate the appropriate lexical addresses.
+
+@ref{Exercise 5.39} through @ref{Exercise 5.43} describe how to complete this
+sketch of the lexical-addressing strategy in order to incorporate lexical
+lookup into the compiler.  @ref{Exercise 5.44} describes another use for the
+compile-time environment.
+
+@quotation
+@strong{@anchor{Exercise 5.39}Exercise 5.39:} Write a procedure
+@code{lexical-address-lookup} that implements the new lookup operation.  It
+should take two arguments---a lexical address and a run-time environment---and
+return the value of the variable stored at the specified lexical address.
+@code{Lexical-address-lookup} should signal an error if the value of the
+variable is the symbol @code{*unassigned*}.@footnote{This is the modification
+to variable lookup required if we implement the scanning method to eliminate
+internal definitions (@ref{Exercise 5.43}).  We will need to eliminate these
+definitions in order for lexical addressing to work.} Also write a procedure
+@code{lexical-address-set!} that implements the operation that changes the
+value of the variable at a specified lexical address.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.40}Exercise 5.40:} Modify the compiler to maintain
+the compile-time environment as described above.  That is, add a
+compile-time-environment argument to @code{compile} and the various code
+generators, and extend it in @code{compile-lambda-body}.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.41}Exercise 5.41:} Write a procedure
+@code{find-variable} that takes as arguments a variable and a compile-time
+environment and returns the lexical address of the variable with respect to
+that environment.  For example, in the program fragment that is shown above,
+the compile-time environment during the compilation of expression @code{⟨}@var{e1}@code{⟩} is
+@code{((y z) (a b c d e) (x y))}.  @code{Find-variable} should produce
+
+@lisp
+(find-variable 
+ 'c '((y z) (a b c d e) (x y)))
+@i{(1 2)}
+
+(find-variable 
+ 'x '((y z) (a b c d e) (x y)))
+@i{(2 0)}
+
+(find-variable 
+ 'w '((y z) (a b c d e) (x y)))
+@i{not-found}
+@end lisp
+@end quotation
+

@@ -1,0 +1,100 @@
+                (stream-cdr t))
+    (pairs (stream-cdr s)
+           (stream-cdr t)))))
+@end lisp
+
+@noindent
+In order to complete the procedure, we must choose some way to combine the two
+inner streams.  One idea is to use the stream analog of the @code{append}
+procedure from @ref{2.2.1}:
+
+@lisp
+(define (stream-append s1 s2)
+  (if (stream-null? s1)
+      s2
+      (cons-stream 
+       (stream-car s1)
+       (stream-append (stream-cdr s1) s2))))
+@end lisp
+
+@noindent
+This is unsuitable for infinite streams, however, because it takes all the
+elements from the first stream before incorporating the second stream.  In
+particular, if we try to generate all pairs of positive integers using
+
+@lisp
+(pairs integers integers)
+@end lisp
+
+@noindent
+our stream of results will first try to run through all pairs with the first
+integer equal to 1, and hence will never produce pairs with any other value of
+the first integer.
+
+To handle infinite streams, we need to devise an order of combination that
+ensures that every element will eventually be reached if we let our program run
+long enough.  An elegant way to accomplish this is with the following
+@code{interleave} procedure:@footnote{The precise statement of the required
+property on the order of combination is as follows: There should be a function
+@math{f} of two arguments such that the pair corresponding to element @math{i} of the
+first stream and element @math{j} of the second stream will appear as element
+number @math{{f(i, j)}} of the output stream.  The trick of using
+@code{interleave} to accomplish this was shown to us by David Turner, who
+employed it in the language KRC (@ref{Turner 1981}).}
+
+@lisp
+(define (interleave s1 s2)
+  (if (stream-null? s1)
+      s2
+      (cons-stream 
+       (stream-car s1)
+       (interleave s2 (stream-cdr s1)))))
+@end lisp
+
+@noindent
+Since @code{interleave} takes elements alternately from the two streams, every
+element of the second stream will eventually find its way into the interleaved
+stream, even if the first stream is infinite.
+
+We can thus generate the required stream of pairs as
+
+@lisp
+(define (pairs s t)
+  (cons-stream
+   (list (stream-car s) (stream-car t))
+   (interleave
+    (stream-map (lambda (x) 
+                  (list (stream-car s) x))
+                (stream-cdr t))
+    (pairs (stream-cdr s) (stream-cdr t)))))
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 3.66}Exercise 3.66:} Examine the stream @code{(pairs
+integers integers)}. Can you make any general comments about the order in which
+the pairs are placed into the stream? For example, approximately how many pairs precede
+the pair (1, 100)?  the pair (99, 100)? the pair (100, 100)? (If you can make
+precise mathematical statements here, all the better. But feel free to give
+more qualitative answers if you find yourself getting bogged down.)
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.67}Exercise 3.67:} Modify the @code{pairs} procedure
+so that @code{(pairs integers integers)} will produce the stream of @emph{all}
+pairs of integers @math{{(i, j)}} (without the condition @math{{i \le j}}).  Hint:
+You will need to mix in an additional stream.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.68}Exercise 3.68:} Louis Reasoner thinks that
+building a stream of pairs from three parts is unnecessarily complicated.
+Instead of separating the pair @math{{(S_0, T_0)}} from the rest of the pairs in
+the first row, he proposes to work with the whole first row, as follows:
+
+@lisp
+(define (pairs s t)
+  (interleave
+   (stream-map
+    (lambda (x) 
+      (list (stream-car s) x))
+    t)

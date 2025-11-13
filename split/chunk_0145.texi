@@ -1,0 +1,100 @@
+The heart of our program is a procedure @code{monte-carlo}, which takes as
+arguments the number of times to try an experiment, together with the
+experiment, represented as a no-argument procedure that will return either true
+or false each time it is run.  @code{Monte-carlo} runs the experiment for the
+designated number of trials and returns a number telling the fraction of the
+trials in which the experiment was found to be true.
+
+@lisp
+(define (estimate-pi trials)
+  (sqrt (/ 6 (monte-carlo trials 
+                          cesaro-test))))
+(define (cesaro-test)
+   (= (gcd (rand) (rand)) 1))
+
+(define (monte-carlo trials experiment)
+  (define (iter trials-remaining trials-passed)
+    (cond ((= trials-remaining 0)
+           (/ trials-passed trials))
+          ((experiment)
+           (iter (- trials-remaining 1) 
+                 (+ trials-passed 1)))
+          (else
+           (iter (- trials-remaining 1) 
+                 trials-passed))))
+  (iter trials 0))
+@end lisp
+
+@noindent
+Now let us try the same computation using @code{rand-update} directly rather
+than @code{rand}, the way we would be forced to proceed if we did not use
+assignment to model local state:
+
+@lisp
+(define (estimate-pi trials)
+  (sqrt (/ 6 (random-gcd-test trials 
+                              random-init))))
+
+(define (random-gcd-test trials initial-x)
+  (define (iter trials-remaining 
+                trials-passed 
+                x)
+    (let ((x1 (rand-update x)))
+      (let ((x2 (rand-update x1)))
+        (cond ((= trials-remaining 0)
+               (/ trials-passed trials))
+              ((= (gcd x1 x2) 1)
+               (iter (- trials-remaining 1)
+                     (+ trials-passed 1)
+                     x2))
+              (else
+               (iter (- trials-remaining 1)
+                     trials-passed
+                     x2))))))
+  (iter trials 0 initial-x))
+@end lisp
+
+@noindent
+While the program is still simple, it betrays some painful breaches of
+modularity.  In our first version of the program, using @code{rand}, we can
+express the Monte Carlo method directly as a general @code{monte-carlo}
+procedure that takes as an argument an arbitrary @code{experiment} procedure.
+In our second version of the program, with no local state for the random-number
+generator, @code{random-gcd-test} must explicitly manipulate the random numbers
+@code{x1} and @code{x2} and recycle @code{x2} through the iterative loop as the
+new input to @code{rand-update}.  This explicit handling of the random numbers
+intertwines the structure of accumulating test results with the fact that our
+particular experiment uses two random numbers, whereas other Monte Carlo
+experiments might use one random number or three.  Even the top-level procedure
+@code{estimate-pi} has to be concerned with supplying an initial random number.
+The fact that the random-number generator's insides are leaking out into other
+parts of the program makes it difficult for us to isolate the Monte Carlo idea
+so that it can be applied to other tasks.  In the first version of the program,
+assignment encapsulates the state of the random-number generator within the
+@code{rand} procedure, so that the details of random-number generation remain
+independent of the rest of the program.
+
+The general phenomenon illustrated by the Monte Carlo example is this: From the
+point of view of one part of a complex process, the other parts appear to
+change with time.  They have hidden time-varying local state.  If we wish to
+write computer programs whose structure reflects this decomposition, we make
+computational objects (such as bank accounts and random-number generators)
+whose behavior changes with time.  We model state with local state variables,
+and we model the changes of state with assignments to those variables.
+
+It is tempting to conclude this discussion by saying that, by introducing
+assignment and the technique of hiding state in local variables, we are able to
+structure systems in a more modular fashion than if all state had to be
+manipulated explicitly, by passing additional parameters.  Unfortunately, as we
+shall see, the story is not so simple.
+
+@quotation
+@strong{@anchor{Exercise 3.5}Exercise 3.5:} @newterm{Monte Carlo integration}
+is a method of estimating definite integrals by means of Monte Carlo
+simulation.  Consider computing the area of a region of space described by a
+predicate @math{{P(x, y)}} that is true for points @math{{(x, y)}} in the
+region and false for points not in the region.  For example, the region
+contained within a circle of radius 3 centered at (5, 7) is described by the
+predicate that tests whether @math{{(x - 5)^2} + {(y - 7)^2 \le 3^2}}.  To estimate
+the area of the region described by such a predicate, begin by choosing a
+rectangle that contains the region.  For example, a rectangle with diagonally

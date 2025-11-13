@@ -1,0 +1,100 @@
+|             |             |    |      |      |             |
+|  identity   +-------------+    +------+------+-------------+
+|             |             |    |             | right-split |
+|             | right-split |    |             |     n-1     |
+|             |             |    |  identity   +-------------+
+|             |     n-1     |    |             | right-split |
+|             |             |    |             |     n-1     |
++-------------+-------------+    +-------------+-------------+
+
+       right-split n                    corner-split n
+@end example
+
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap2/Fig2.13a,132mm,,,.std.svg}
+@caption{@strong{Figure 2.13:} Recursive plans for @code{right-split} and @code{corner-split}.}
+@end iftex
+@end float
+
+@noindent
+We can produce balanced patterns by branching upwards as well as towards the
+right (see @ref{Exercise 2.44}, @ref{Figure 2.13} and @ref{Figure 2.14}):
+
+@lisp
+(define (corner-split painter n)
+  (if (= n 0)
+      painter
+      (let ((up (up-split painter (- n 1)))
+            (right (right-split painter 
+                                (- n 1))))
+        (let ((top-left (beside up up))
+              (bottom-right (below right 
+                                   right))
+              (corner (corner-split painter 
+                                    (- n 1))))
+          (beside (below painter top-left)
+                  (below bottom-right 
+                         corner))))))
+@end lisp
+
+@float
+@anchor{Figure 2.14}
+@ifinfo
+@quotation
+@strong{Figure 2.14:} The recursive operations
+@code{right-split} and @code{corner-split} applied to the painters @code{wave}
+and @code{rogers}.  Combining four @code{corner-split} figures produces
+symmetric @code{square-limit} designs as shown in @ref{Figure 2.9}.
+
+[two graphic images not included]
+
+@lisp
+(right-split wave 4)         (right-split rogers 4)
+@end lisp
+
+[two graphic images not included]
+
+@lisp
+(corner-split wave 4)        (corner-split rogers 4)
+@end lisp
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap2/Fig2.14b,136mm,,,.std.svg}
+@caption{@strong{Figure 2.14:} The recursive operations @code{right-split} and @code{corner-split} applied to the painters @code{wave} and @code{rogers}.  Combining four @code{corner-split} figures produces symmetric @code{square-limit} designs as shown in @ref{Figure 2.9}.}
+@end iftex
+@end float
+
+By placing four copies of a @code{corner-split} appropriately, we obtain a
+pattern called @code{square-limit}, whose application to @code{wave} and
+@code{rogers} is shown in @ref{Figure 2.9}:
+
+@lisp
+(define (square-limit painter n)
+  (let ((quarter (corner-split painter n)))
+    (let ((half (beside (flip-horiz quarter) 
+                        quarter)))
+      (below (flip-vert half) half))))
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 2.44}Exercise 2.44:} Define the procedure
+@code{up-split} used by @code{corner-split}.  It is similar to
+@code{right-split}, except that it switches the roles of @code{below} and
+@code{beside}.
+@end quotation
+
+@subsubheading Higher-order operations
+
+In addition to abstracting patterns of combining painters, we can work at a
+higher level, abstracting patterns of combining painter operations.  That is,
+we can view the painter operations as elements to manipulate and can write
+means of combination for these elements---procedures that take painter
+operations as arguments and create new painter operations.
+
+For example, @code{flipped-pairs} and @code{square-limit} each arrange four
+copies of a painter's image in a square pattern; they differ only in how they
+orient the copies.  One way to abstract this pattern of painter combination is
+with the following procedure, which takes four one-argument painter operations

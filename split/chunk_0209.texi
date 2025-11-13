@@ -1,0 +1,100 @@
+@lisp
+(define exp-series
+  (cons-stream 
+   1 (integrate-series exp-series)))
+@end lisp
+
+Show how to generate the series for sine and cosine, starting from the facts
+that the derivative of sine is cosine and the derivative of cosine is the
+negative of sine:
+
+@lisp
+(define cosine-series 
+  (cons-stream 1 ⟨??⟩))
+
+(define sine-series
+  (cons-stream 0 ⟨??⟩))
+@end lisp
+@end enumerate
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.60}Exercise 3.60:} With power series represented as
+streams of coefficients as in @ref{Exercise 3.59}, adding series is implemented
+by @code{add-streams}.  Complete the definition of the following procedure for
+multiplying series:
+
+@lisp
+(define (mul-series s1 s2)
+  (cons-stream ⟨??⟩ (add-streams ⟨??⟩ ⟨??⟩)))
+@end lisp
+
+You can test your procedure by verifying that @math{{\sin^2x + \cos^2x = 1,}}
+using the series from @ref{Exercise 3.59}.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.61}Exercise 3.61:} Let @math{S} be a power series
+(@ref{Exercise 3.59}) whose constant term is 1.  Suppose we want to find the
+power series @math{{1 / S}}, that is, the series @math{X} such that @math{{SX = 1}}.
+Write @math{{S = 1 + S_R}} where @math{S_R} is the part of @math{S} after the
+constant term.  Then we can solve for @math{X} as follows:
+@ifinfo
+
+@example
+        S * X = 1
+(1 + S_R) * X = 1
+  X + S_R * X = 1
+            X = 1 - S_R * X
+@end example
+
+@end ifinfo
+@tex
+\[ % :65:
+\begin{eqnarray}
+  S \cdot X           &=&   1, \\
+  (1 + S_R) \cdot X   &=&   1, \\
+  X + S_R \cdot X     &=&   1, \\
+  X                   &=&   1 - S_R \cdot X.
+\end{eqnarray}
+\]
+@end tex
+In other words, @math{X} is the power series whose constant term is 1 and whose
+higher-order terms are given by the negative of @math{S_R} times @math{X}.  Use
+this idea to write a procedure @code{invert-unit-series} that computes @math{{1 / S}}
+for a power series @math{S} with constant term 1.  You will need to use
+@code{mul-series} from @ref{Exercise 3.60}.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.62}Exercise 3.62:} Use the results of @ref{Exercise 3.60} 
+and @ref{Exercise 3.61} to define a procedure @code{div-series} that
+divides two power series.  @code{Div-series} should work for any two series,
+provided that the denominator series begins with a nonzero constant term.  (If
+the denominator has a zero constant term, then @code{div-series} should signal
+an error.)  Show how to use @code{div-series} together with the result of
+@ref{Exercise 3.59} to generate the power series for tangent.
+@end quotation
+
+@node	3.5.3, 3.5.4, 3.5.2, 3.5
+@subsection Exploiting the Stream Paradigm
+
+Streams with delayed evaluation can be a powerful modeling tool, providing many
+of the benefits of local state and assignment.  Moreover, they avoid some of
+the theoretical tangles that accompany the introduction of assignment into a
+programming language.
+
+The stream approach can be illuminating because it allows us to build systems
+with different module boundaries than systems organized around assignment to
+state variables.  For example, we can think of an entire time series (or
+signal) as a focus of interest, rather than the values of the state variables
+at individual moments.  This makes it convenient to combine and compare
+components of state from different moments.
+
+@subsubheading Formulating iterations as stream processes
+
+In section @ref{1.2.1}, we introduced iterative processes, which proceed by
+updating state variables.  We know now that we can represent state as a
+``timeless'' stream of values rather than as a set of variables to be updated.
+Let's adopt this perspective in revisiting the square-root procedure from
+@ref{1.1.7}.  Recall that the idea is to generate a sequence of better

@@ -1,0 +1,100 @@
+
+@lisp
+(define w (id (id 10)))
+
+@i{;;; L-Eval input:}
+count
+
+@i{;;; L-Eval value:}
+⟨@var{response}⟩
+
+@i{;;; L-Eval input:}
+w
+
+@i{;;; L-Eval value:}
+⟨@var{response}⟩
+
+@i{;;; L-Eval input:}
+count
+
+@i{;;; L-Eval value:}
+⟨@var{response}⟩
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.28}Exercise 4.28:} @code{Eval} uses
+@code{actual-value} rather than @code{eval} to evaluate the operator before
+passing it to @code{apply}, in order to force the value of the operator.  Give
+an example that demonstrates the need for this forcing.
+
+@noindent
+@strong{@anchor{Exercise 4.29}Exercise 4.29:} Exhibit a program that you would
+expect to run much more slowly without memoization than with memoization.
+Also, consider the following interaction, where the @code{id} procedure is
+defined as in @ref{Exercise 4.27} and @code{count} starts at 0:
+
+@lisp
+(define (square x) (* x x))
+
+@i{;;; L-Eval input:}
+(square (id 10))
+
+@i{;;; L-Eval value:}
+⟨@var{response}⟩
+
+@i{;;; L-Eval input:}
+count
+
+@i{;;; L-Eval value:}
+⟨@var{response}⟩
+@end lisp
+
+Give the responses both when the evaluator memoizes and when it does not.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.30}Exercise 4.30:} Cy D. Fect, a reformed C
+programmer, is worried that some side effects may never take place, because the
+lazy evaluator doesn't force the expressions in a sequence.  Since the value of
+an expression in a sequence other than the last one is not used (the expression
+is there only for its effect, such as assigning to a variable or printing),
+there can be no subsequent use of this value (e.g., as an argument to a
+primitive procedure) that will cause it to be forced.  Cy thus thinks that when
+evaluating sequences, we must force all expressions in the sequence except the
+final one.  He proposes to modify @code{eval-sequence} from @ref{4.1.1}
+to use @code{actual-value} rather than @code{eval}:
+
+@lisp
+(define (eval-sequence exps env)
+  (cond ((last-exp? exps) 
+         (eval (first-exp exps) env))
+        (else 
+         (actual-value (first-exp exps) 
+                       env)
+         (eval-sequence (rest-exps exps) 
+                        env))))
+@end lisp
+
+@enumerate a
+
+@item
+Ben Bitdiddle thinks Cy is wrong.  He shows Cy the @code{for-each} procedure
+described in @ref{Exercise 2.23}, which gives an important example of a
+sequence with side effects:
+
+@lisp
+(define (for-each proc items)
+  (if (null? items)
+      'done
+      (begin (proc (car items))
+             (for-each proc 
+                       (cdr items)))))
+@end lisp
+
+He claims that the evaluator in the text (with the original
+@code{eval-sequence}) handles this correctly:
+
+@lisp
+@i{;;; L-Eval input:}
+(for-each

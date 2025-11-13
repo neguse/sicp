@@ -1,0 +1,100 @@
+   (pairs (stream-cdr s)
+          (stream-cdr t))))
+@end lisp
+
+Does this work?  Consider what happens if we evaluate @code{(pairs integers
+integers)} using Louis's definition of @code{pairs}.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.69}Exercise 3.69:} Write a procedure @code{triples}
+that takes three infinite streams, @math{S}, @math{T}, and @math{U}, and produces the
+stream of triples @math{{(S_i, T_j, U_k)}} such that @math{{i \le j \le k}}.  
+Use @code{triples} to generate the stream of all Pythagorean
+triples of positive integers, i.e., the triples @math{{(i, j, k)}} such that
+@math{{i \le j}} and @math{{i^2 + j^2 = k^2}}.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.70}Exercise 3.70:} It would be nice to be able to
+generate streams in which the pairs appear in some useful order, rather than in
+the order that results from an @emph{ad hoc} interleaving process.  We can use
+a technique similar to the @code{merge} procedure of @ref{Exercise 3.56}, if we
+define a way to say that one pair of integers is ``less than'' another.  One
+way to do this is to define a ``weighting function'' @math{{W(i, j)}} and
+stipulate that @math{{(i_1, j_1)}} is less than @math{{(i_2, j_2)}} if
+@math{{W(i_1, j_1) <} {W(i_2, j_2)}}.  Write a procedure
+@code{merge-weighted} that is like @code{merge}, except that
+@code{merge-weighted} takes an additional argument @code{weight}, which is a
+procedure that computes the weight of a pair, and is used to determine the
+order in which elements should appear in the resulting merged
+stream.@footnote{We will require that the weighting function be such that the
+weight of a pair increases as we move out along a row or down along a column of
+the array of pairs.}  Using this, generalize @code{pairs} to a procedure
+@code{weighted-pairs} that takes two streams, together with a procedure that
+computes a weighting function, and generates the stream of pairs, ordered
+according to weight.  Use your procedure to generate
+
+@enumerate a
+
+@item
+the stream of all pairs of positive integers @math{{(i, j)}} with @math{{i \le j}}
+ordered according to the sum @math{{i + j}},
+
+@item
+the stream of all pairs of positive integers @math{{(i, j)}} with @math{{i \le j}},
+where neither @math{i} nor @math{j} is divisible by 2, 3, or 5, and the pairs are
+ordered according to the sum @math{{2i + 3j + 5ij}}.
+
+@end enumerate
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.71}Exercise 3.71:} Numbers that can be expressed as
+the sum of two cubes in more than one way are sometimes called
+@newterm{Ramanujan numbers}, in honor of the mathematician Srinivasa
+Ramanujan.@footnote{To quote from G. H. Hardy's obituary of Ramanujan (@ref{Hardy 1921}): 
+``It was Mr. Littlewood (I believe) who remarked that `every positive
+integer was one of his friends.'  I remember once going to see him when he was
+lying ill at Putney.  I had ridden in taxi-cab No. 1729, and remarked that the
+number seemed to me a rather dull one, and that I hoped it was not an
+unfavorable omen.  `No,' he replied, `it is a very interesting number; it is
+the smallest number expressible as the sum of two cubes in two different ways.'
+'' The trick of using weighted pairs to generate the Ramanujan numbers was
+shown to us by Charles Leiserson.} Ordered streams of pairs provide an elegant
+solution to the problem of computing these numbers.  To find a number that can
+be written as the sum of two cubes in two different ways, we need only generate
+the stream of pairs of integers @math{{(i, j)}} weighted according to the sum
+@math{{i^3 + j^3}} (see @ref{Exercise 3.70}), then search the stream for two
+consecutive pairs with the same weight.  Write a procedure to generate the
+Ramanujan numbers.  The first such number is 1,729.  What are the next five?
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.72}Exercise 3.72:} In a similar way to @ref{Exercise 3.71} 
+generate a stream of all numbers that can be written as the sum of two
+squares in three different ways (showing how they can be so written).
+@end quotation
+
+@subsubheading Streams as signals
+
+We began our discussion of streams by describing them as computational analogs
+of the ``signals'' in signal-processing systems.  In fact, we can use streams
+to model signal-processing systems in a very direct way, representing the
+values of a signal at successive time intervals as consecutive elements of a
+stream.  For instance, we can implement an @newterm{integrator} or
+@newterm{summer} that, for an input stream @math{{x = (x_i)}}, an initial
+value @math{C}, and a small increment @math{{dt}}, accumulates the sum
+@ifinfo
+
+@example
+           i
+          ---
+S_i = C + >   x_j dt
+          ---
+          j=1
+@end example
+
+@end ifinfo
+@tex
+\[ % :73:

@@ -1,0 +1,100 @@
+the other hand, demonstrates how iteration can be accomplished using no special
+construct other than the ordinary ability to call a procedure.@footnote{Readers
+who are worried about the efficiency issues involved in using procedure calls
+to implement iteration should note the remarks on ``tail recursion'' in 
+@ref{1.2.1}.}
+
+@quotation
+@strong{@anchor{Exercise 1.6}Exercise 1.6:} Alyssa P. Hacker doesn't see why
+@code{if} needs to be provided as a special form.  ``Why can't I just define it
+as an ordinary procedure in terms of @code{cond}?'' she asks.  Alyssa's friend
+Eva Lu Ator claims this can indeed be done, and she defines a new version of
+@code{if}:
+
+@lisp
+(define (new-if predicate 
+                then-clause 
+                else-clause)
+  (cond (predicate then-clause)
+        (else else-clause)))
+@end lisp
+
+Eva demonstrates the program for Alyssa:
+
+@lisp
+(new-if (= 2 3) 0 5)
+@i{5}
+
+(new-if (= 1 1) 0 5)
+@i{0}
+@end lisp
+
+Delighted, Alyssa uses @code{new-if} to rewrite the square-root program:
+
+@lisp
+(define (sqrt-iter guess x)
+  (new-if (good-enough? guess x)
+          guess
+          (sqrt-iter (improve guess x) x)))
+@end lisp
+
+What happens when Alyssa attempts to use this to compute square roots?
+Explain.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.7}Exercise 1.7:} The @code{good-enough?} test used
+in computing square roots will not be very effective for finding the square
+roots of very small numbers.  Also, in real computers, arithmetic operations
+are almost always performed with limited precision.  This makes our test
+inadequate for very large numbers.  Explain these statements, with examples
+showing how the test fails for small and large numbers.  An alternative
+strategy for implementing @code{good-enough?} is to watch how @code{guess}
+changes from one iteration to the next and to stop when the change is a very
+small fraction of the guess.  Design a square-root procedure that uses this
+kind of end test.  Does this work better for small and large numbers?
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.8}Exercise 1.8:} Newton's method for cube roots is
+based on the fact that if @math{y} is an approximation to the cube root of @math{x},
+then a better approximation is given by the value
+@ifinfo
+
+@example
+x/y^2 + 2y
+----------
+    3
+@end example
+
+@end ifinfo
+@tex
+
+\[ % :4:
+ 
+{\frac{{x / y^2} + 2y}{3}.}
+\]
+
+@end tex
+@noindent
+Use this formula to implement a cube-root procedure analogous to the
+square-root procedure.  (In @ref{1.3.4} we will see how to implement
+Newton's method in general as an abstraction of these square-root and cube-root
+procedures.)
+@end quotation
+
+@node	1.1.8, 1.2, Chapter 1, 1.1
+@subsection Procedures as Black-Box Abstractions
+
+@code{Sqrt} is our first example of a process defined by a set of mutually
+defined procedures.  Notice that the definition of @code{sqrt-iter} is
+@newterm{recursive}; that is, the procedure is defined in terms of itself.  The
+idea of being able to define a procedure in terms of itself may be disturbing;
+it may seem unclear how such a ``circular'' definition could make sense at all,
+much less specify a well-defined process to be carried out by a computer.  This
+will be addressed more carefully in @ref{1.2}.  But first let's
+consider some other important points illustrated by the @code{sqrt} example.
+
+Observe that the problem of computing square roots breaks up naturally into a
+number of subproblems: how to tell whether a guess is good enough, how to
+improve a guess, and so on.  Each of these tasks is accomplished by a separate

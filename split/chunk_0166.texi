@@ -1,0 +1,100 @@
+(define (car z) (z 'car))
+(define (cdr z) (z 'cdr))
+
+(define (set-car! z new-value)
+  ((z 'set-car!) new-value)
+  z)
+
+(define (set-cdr! z new-value)
+  ((z 'set-cdr!) new-value)
+  z)
+@end lisp
+
+@noindent
+Assignment is all that is needed, theoretically, to account for the behavior of
+mutable data.  As soon as we admit @code{set!} to our language, we raise all
+the issues, not only of assignment, but of mutable data in general.@footnote{On
+the other hand, from the viewpoint of implementation, assignment requires us to
+modify the environment, which is itself a mutable data structure.  Thus,
+assignment and mutation are equipotent: Each can be implemented in terms of the
+other.}
+
+@quotation
+@strong{@anchor{Exercise 3.20}Exercise 3.20:} Draw environment diagrams to
+illustrate the evaluation of the sequence of expressions
+
+@lisp
+(define x (cons 1 2))
+(define z (cons x x))
+
+(set-car! (cdr z) 17)
+
+(car x)
+@i{17}
+@end lisp
+
+@noindent
+using the procedural implementation of pairs given above.  (Compare
+@ref{Exercise 3.11}.)
+@end quotation
+
+@node	3.3.2, 3.3.3, 3.3.1, 3.3
+@subsection Representing Queues
+
+The mutators @code{set-car!} and @code{set-cdr!} enable us to use pairs to
+construct data structures that cannot be built with @code{cons}, @code{car},
+and @code{cdr} alone.  This section shows how to use pairs to represent a data
+structure called a queue.  Section @ref{3.3.3} will show how to represent data
+structures called tables.
+
+A @newterm{queue} is a sequence in which items are inserted at one end (called
+the @newterm{rear} of the queue) and deleted from the other end (the
+@newterm{front}).  @ref{Figure 3.18} shows an initially empty queue in which
+the items @code{a} and @code{b} are inserted.  Then @code{a} is removed,
+@code{c} and @code{d} are inserted, and @code{b} is removed.  Because items are
+always removed in the order in which they are inserted, a queue is sometimes
+called a @newterm{FIFO} (first in, first out) buffer.
+
+@float
+@anchor{Figure 3.18}
+@ifinfo
+@quotation
+@strong{Figure 3.18:} Queue operations.
+
+@example
+Operation                Resulting Queue
+(define q (make-queue))
+(insert-queue! q 'a)     a
+(insert-queue! q 'b)     a b
+(delete-queue! q)        b
+(insert-queue! q 'c)     b c
+(insert-queue! q 'd)     b c d
+(delete-queue! q)        c d
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.18,119mm,,,.std.svg}
+@caption{@strong{Figure 3.18:} Queue operations.}
+@end iftex
+@end float
+
+@noindent
+In terms of data abstraction, we can regard a queue as defined by the following
+set of operations:
+
+@itemize @bullet
+
+@item
+a constructor: @code{(make-queue)} returns an empty queue (a queue containing
+no items).
+
+@item
+two selectors:
+
+@lisp
+(empty-queue? ⟨@var{queue}⟩)
+@end lisp
+
+@noindent
+tests if the queue is empty.

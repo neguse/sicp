@@ -1,0 +1,100 @@
+machine.
+
+@lisp
+(data-paths
+ (registers
+  ((name a)
+   (buttons ((name a<-b) 
+             (source (register b)))))
+  ((name b)
+   (buttons ((name b<-t)
+             (source (register t)))))
+  ((name t)
+   (buttons ((name t<-r)
+             (source (operation rem))))))
+ (operations
+  ((name rem)
+   (inputs (register a) (register b)))
+  ((name =)
+   (inputs (register b) (constant 0)))))
+
+(controller
+ test-b                @r{; label}
+   (test =)            @r{; test}
+   (branch 
+    (label gcd-done))  @r{; conditional branch}
+   (t<-r)              @r{; button push}
+   (a<-b)              @r{; button push}
+   (b<-t)              @r{; button push}
+   (goto 
+    (label test-b))    @r{; unconditional branch}
+ gcd-done)             @r{; label}
+@end lisp
+
+@end quotation
+
+Unfortunately, it is difficult to read such a description.  In order to
+understand the controller instructions we must constantly refer back to the
+definitions of the button names and the operation names, and to understand what
+the buttons do we may have to refer to the definitions of the operation names.
+We will thus transform our notation to combine the information from the
+data-path and controller descriptions so that we see it all together.
+
+To obtain this form of description, we will replace the arbitrary button and
+operation names by the definitions of their behavior.  That is, instead of
+saying (in the controller) ``Push button @code{t<-r}'' and separately saying
+(in the data paths) ``Button @code{t<-r} assigns the value of the @code{rem}
+operation to register @code{t}'' and ``The @code{rem} operation's inputs are
+the contents of registers @code{a} and @code{b},'' we will say (in the
+controller) ``Push the button that assigns to register @code{t} the value of
+the @code{rem} operation on the contents of registers @code{a} and @code{b}.''
+Similarly, instead of saying (in the controller) ``Perform the @code{=} test''
+and separately saying (in the data paths) ``The @code{=} test operates on the
+contents of register @code{b} and the constant 0,'' we will say ``Perform the
+@code{=} test on the contents of register @code{b} and the constant 0.''  We
+will omit the data-path description, leaving only the controller sequence.
+Thus, the @abbr{GCD} machine is described as follows:
+
+@lisp
+(controller
+ test-b
+   (test (op =) (reg b) (const 0))
+   (branch (label gcd-done))
+   (assign t (op rem) (reg a) (reg b))
+   (assign a (reg b))
+   (assign b (reg t))
+   (goto (label test-b))
+ gcd-done)
+@end lisp
+
+@noindent
+This form of description is easier to read than the kind illustrated in
+@ref{Figure 5.3}, but it also has disadvantages:
+
+@itemize @bullet
+
+@item
+It is more verbose for large machines, because complete descriptions of the
+data-path elements are repeated whenever the elements are mentioned in the
+controller instruction sequence.  (This is not a problem in the @abbr{GCD}
+example, because each operation and button is used only once.)  Moreover,
+repeating the data-path descriptions obscures the actual data-path structure of
+the machine; it is not obvious for a large machine how many registers,
+operations, and buttons there are and how they are interconnected.
+
+@item
+Because the controller instructions in a machine definition look like Lisp
+expressions, it is easy to forget that they are not arbitrary Lisp expressions.
+They can notate only legal machine operations.  For example, operations can
+operate directly only on constants and the contents of registers, not on the
+results of other operations.
+
+@end itemize
+
+@noindent
+In spite of these disadvantages, we will use this register-machine language
+throughout this chapter, because we will be more concerned with understanding
+controllers than with understanding the elements and connections in data paths.
+We should keep in mind, however, that data-path design is crucial in designing
+real machines.
+

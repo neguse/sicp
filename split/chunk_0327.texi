@@ -1,0 +1,100 @@
+@code{set-register-contents!}, and @code{start}.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.15}Exercise 5.15:} Add @newterm{instruction counting} 
+to the register machine simulation.  That is, have the machine model
+keep track of the number of instructions executed.  Extend the machine model's
+interface to accept a new message that prints the value of the instruction
+count and resets the count to zero.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.16}Exercise 5.16:} Augment the simulator to provide
+for @newterm{instruction tracing}.  That is, before each instruction is
+executed, the simulator should print the text of the instruction.  Make the
+machine model accept @code{trace-on} and @code{trace-off} messages to turn
+tracing on and off.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.17}Exercise 5.17:} Extend the instruction tracing of
+@ref{Exercise 5.16} so that before printing an instruction, the simulator
+prints any labels that immediately precede that instruction in the controller
+sequence.  Be careful to do this in a way that does not interfere with
+instruction counting (@ref{Exercise 5.15}).  You will have to make the
+simulator retain the necessary label information.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.18}Exercise 5.18:} Modify the @code{make-register}
+procedure of @ref{5.2.1} so that registers can be traced.  Registers
+should accept messages that turn tracing on and off.  When a register is
+traced, assigning a value to the register should print the name of the
+register, the old contents of the register, and the new contents being
+assigned.  Extend the interface to the machine model to permit you to turn
+tracing on and off for designated machine registers.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.19}Exercise 5.19:} Alyssa P. Hacker wants a
+@newterm{breakpoint} feature in the simulator to help her debug her machine
+designs.  You have been hired to install this feature for her.  She wants to be
+able to specify a place in the controller sequence where the simulator will
+stop and allow her to examine the state of the machine.  You are to implement a
+procedure
+
+@lisp
+(set-breakpoint ⟨@var{machine}⟩ ⟨@var{label}⟩ ⟨@var{n}⟩)
+@end lisp
+
+@noindent
+that sets a breakpoint just before the @math{n^{\text{th}}} instruction after the given
+label.  For example,
+
+@lisp
+(set-breakpoint gcd-machine 'test-b 4)
+@end lisp
+
+@noindent
+installs a breakpoint in @code{gcd-machine} just before the assignment to
+register @code{a}.  When the simulator reaches the breakpoint it should print
+the label and the offset of the breakpoint and stop executing instructions.
+Alyssa can then use @code{get-register-contents} and
+@code{set-register-contents!} to manipulate the state of the simulated machine.
+She should then be able to continue execution by saying
+
+@lisp
+(proceed-machine ⟨@var{machine}⟩)
+@end lisp
+
+She should also be able to remove a specific breakpoint by means of
+
+@lisp
+(cancel-breakpoint ⟨@var{machine}⟩ ⟨@var{label}⟩ ⟨@var{n}⟩)
+@end lisp
+
+@noindent
+or to remove all breakpoints by means of
+
+@lisp
+(cancel-all-breakpoints ⟨@var{machine}⟩)
+@end lisp
+@end quotation
+
+@node	5.3, 5.4, 5.2, Chapter 5
+@section Storage Allocation and Garbage Collection
+
+In section @ref{5.4}, we will show how to implement a Scheme evaluator as a
+register machine.  In order to simplify the discussion, we will assume that our
+register machines can be equipped with a @newterm{list-structured memory}, in
+which the basic operations for manipulating list-structured data are primitive.
+Postulating the existence of such a memory is a useful abstraction when one is
+focusing on the mechanisms of control in a Scheme interpreter, but this does
+not reflect a realistic view of the actual primitive data operations of
+contemporary computers.  To obtain a more complete picture of how a Lisp system
+operates, we must investigate how list structure can be represented in a way
+that is compatible with conventional computer memories.
+
+There are two considerations in implementing list structure.  The first is
+purely an issue of representation: how to represent the ``box-and-pointer''

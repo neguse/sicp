@@ -1,0 +1,100 @@
+@quotation
+@strong{@anchor{Exercise 2.47}Exercise 2.47:} Here are two possible
+constructors for frames:
+
+@lisp
+(define (make-frame origin edge1 edge2)
+  (list origin edge1 edge2))
+
+(define (make-frame origin edge1 edge2)
+  (cons origin (cons edge1 edge2)))
+@end lisp
+
+For each constructor supply the appropriate selectors to produce an
+implementation for frames.
+@end quotation
+
+@subsubheading Painters
+
+A painter is represented as a procedure that, given a frame as argument, draws
+a particular image shifted and scaled to fit the frame.  That is to say, if
+@code{p} is a painter and @code{f} is a frame, then we produce @code{p}'s image
+in @code{f} by calling @code{p} with @code{f} as argument.
+
+The details of how primitive painters are implemented depend on the particular
+characteristics of the graphics system and the type of image to be drawn.  For
+instance, suppose we have a procedure @code{draw-line} that draws a line on the
+screen between two specified points.  Then we can create painters for line
+drawings, such as the @code{wave} painter in @ref{Figure 2.10}, from lists of
+line segments as follows:@footnote{@code{Segments->painter} uses the
+representation for line segments described in @ref{Exercise 2.48} below.  It
+also uses the @code{for-each} procedure described in @ref{Exercise 2.23}.}
+
+@lisp
+(define (segments->painter segment-list)
+  (lambda (frame)
+    (for-each
+     (lambda (segment)
+       (draw-line
+        ((frame-coord-map frame) 
+         (start-segment segment))
+        ((frame-coord-map frame) 
+         (end-segment segment))))
+     segment-list)))
+@end lisp
+
+@noindent
+The segments are given using coordinates with respect to the unit square.  For
+each segment in the list, the painter transforms the segment endpoints with the
+frame coordinate map and draws a line between the transformed points.
+
+Representing painters as procedures erects a powerful abstraction barrier in
+the picture language.  We can create and intermix all sorts of primitive
+painters, based on a variety of graphics capabilities. The details of their
+implementation do not matter.  Any procedure can serve as a painter, provided
+that it takes a frame as argument and draws something scaled to fit the
+frame.@footnote{For example, the @code{rogers} painter of @ref{Figure 2.11} was
+constructed from a gray-level image.  For each point in a given frame, the
+@code{rogers} painter determines the point in the image that is mapped to it
+under the frame coordinate map, and shades it accordingly.  By allowing
+different types of painters, we are capitalizing on the abstract data idea
+discussed in @ref{2.1.3}, where we argued that a rational-number
+representation could be anything at all that satisfies an appropriate
+condition.  Here we're using the fact that a painter can be implemented in any
+way at all, so long as it draws something in the designated frame.  
+@ref{2.1.3} also showed how pairs could be implemented as procedures.  Painters
+are our second example of a procedural representation for data.}
+
+@quotation
+@strong{@anchor{Exercise 2.48}Exercise 2.48:} A directed line segment in the
+plane can be represented as a pair of vectors---the vector running from the
+origin to the start-point of the segment, and the vector running from the
+origin to the end-point of the segment.  Use your vector representation from
+@ref{Exercise 2.46} to define a representation for segments with a constructor
+@code{make-segment} and selectors @code{start-segment} and @code{end-segment}.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.49}Exercise 2.49:} Use @code{segments->painter}
+to define the following primitive painters:
+
+@enumerate a
+
+@item
+The painter that draws the outline of the designated frame.
+
+@item
+The painter that draws an ``X'' by connecting opposite corners of the frame.
+
+@item
+The painter that draws a diamond shape by connecting the midpoints of the sides
+of the frame.
+
+@item
+The @code{wave} painter.
+
+@end enumerate
+@end quotation
+
+@subsubheading Transforming and combining painters
+

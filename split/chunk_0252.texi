@@ -1,0 +1,100 @@
+@i{ok}
+
+@i{;;; L-Eval input:}
+(try 0 (/ 1 0))
+
+@i{;;; L-Eval value:}
+@i{1}
+@end lisp
+
+@subsubheading Representing thunks
+
+Our evaluator must arrange to create thunks when procedures are applied to
+arguments and to force these thunks later.  A thunk must package an expression
+together with the environment, so that the argument can be produced later.  To
+force the thunk, we simply extract the expression and environment from the
+thunk and evaluate the expression in the environment.  We use
+@code{actual-value} rather than @code{eval} so that in case the value of the
+expression is itself a thunk, we will force that, and so on, until we reach
+something that is not a thunk:
+
+@lisp
+(define (force-it obj)
+  (if (thunk? obj)
+      (actual-value (thunk-exp obj) 
+                    (thunk-env obj))
+      obj))
+@end lisp
+
+@noindent
+One easy way to package an expression with an environment is to make a list
+containing the expression and the environment.  Thus, we create a thunk as
+follows:
+
+@lisp
+(define (delay-it exp env)
+  (list 'thunk exp env))
+(define (thunk? obj) (tagged-list? obj 'thunk))
+(define (thunk-exp thunk) (cadr thunk))
+(define (thunk-env thunk) (caddr thunk))
+@end lisp
+
+@noindent
+Actually, what we want for our interpreter is not quite this, but rather thunks
+that have been memoized.  When a thunk is forced, we will turn it into an
+evaluated thunk by replacing the stored expression with its value and changing
+the @code{thunk} tag so that it can be recognized as already
+evaluated.@footnote{Notice that we also erase the @code{env} from the thunk
+once the expression's value has been computed.  This makes no difference in the
+values returned by the interpreter.  It does help save space, however, because
+removing the reference from the thunk to the @code{env} once it is no longer
+needed allows this structure to be @newterm{garbage-collected} and its space
+recycled, as we will discuss in @ref{5.3}.
+
+Similarly, we could have allowed unneeded environments in the memoized delayed
+objects of @ref{3.5.1} to be garbage-collected, by having
+@code{memo-proc} do something like @code{(set! proc '())} to discard the
+procedure @code{proc} (which includes the environment in which the @code{delay}
+was evaluated) after storing its value.}
+
+@lisp
+(define (evaluated-thunk? obj)
+  (tagged-list? obj 'evaluated-thunk))
+
+(define (thunk-value evaluated-thunk) 
+  (cadr evaluated-thunk))
+
+(define (force-it obj)
+  (cond ((thunk? obj)
+         (let ((result
+                (actual-value 
+                 (thunk-exp obj)
+                 (thunk-env obj))))
+           (set-car! obj 'evaluated-thunk)
+           ;; @r{replace @code{exp} with its value:}
+           (set-car! (cdr obj) result) 
+           ;; @r{forget unneeded @code{env}:}
+           (set-cdr! (cdr obj) '()) 
+           result))
+        ((evaluated-thunk? obj)
+         (thunk-value obj))
+        (else obj)))
+@end lisp
+
+@noindent
+Notice that the same @code{delay-it} procedure works both with and without
+memoization.
+
+@quotation
+@strong{@anchor{Exercise 4.27}Exercise 4.27:} Suppose we type in the following
+definitions to the lazy evaluator:
+
+@lisp
+(define count 0)
+(define (id x) (set! count (+ count 1)) x)
+@end lisp
+
+Give the missing values in the following sequence of interactions, and explain
+your answers.@footnote{This exercise demonstrates that the interaction between
+lazy evaluation and side effects can be very confusing.  This is just what you
+might expect from the discussion in @ref{Chapter 3}.}

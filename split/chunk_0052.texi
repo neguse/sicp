@@ -1,0 +1,100 @@
+           N_1
+f = ---------------------
+               N_2
+    D_1 + ---------------
+                   N_3
+          D_2 + ---------
+                D_3 + ...
+@end example
+
+@end ifinfo
+@tex
+
+\[ % :25:
+  
+f \,=\, {\frac{N_1}{D_1 + \frac{N_2}{D_2 + \frac{N_3}{D_3 + \dots}}}.}
+\]
+
+@end tex
+As an example, one can show that the infinite continued fraction expansion with
+the @math{N_i} and the @math{D_i} all equal to 1 produces @math{{1 / \varphi}}, where
+@math{\varphi} is the golden ratio (described in @ref{1.2.2}).  One way to
+approximate an infinite continued fraction is to truncate the expansion after a
+given number of terms.  Such a truncation---a so-called @newterm{@i{k}-term
+finite continued fraction}---has the form
+@ifinfo
+
+@example
+       N_1
+-----------------
+          N_2
+D_1 + -----------
+      ...    N_K
+          + -----
+             D_K
+@end example
+
+@end ifinfo
+@tex
+
+\[ % :26:
+  
+{\frac{N_1}{D_1 + \frac{N_2}{\ddots + \frac{N_k}{D_k}}}.}
+\]
+
+@end tex
+Suppose that @code{n} and @code{d} are procedures of one argument (the term
+index @math{i}) that return the @math{N_i} and @math{D_i} of the terms of the
+continued fraction.  Define a procedure @code{cont-frac} such that evaluating
+@code{(cont-frac n d k)} computes the value of the @math{k}-term finite continued
+fraction.  Check your procedure by approximating @math{{1 / \varphi}} using
+
+@lisp
+(cont-frac (lambda (i) 1.0)
+           (lambda (i) 1.0)
+           k)
+@end lisp
+
+@noindent
+for successive values of @code{k}.  How large must you make @code{k} in order
+to get an approximation that is accurate to 4 decimal places?
+
+@item
+If your @code{cont-frac} procedure generates a recursive process, write one
+that generates an iterative process.  If it generates an iterative process,
+write one that generates a recursive process.
+
+@end enumerate
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.38}Exercise 1.38:} In 1737, the Swiss mathematician
+Leonhard Euler published a memoir @cite{De Fractionibus Continuis}, which
+included a continued fraction expansion for @math{{e - 2}}, where @math{e} is the base
+of the natural logarithms.  In this fraction, the @math{N_i} are all 1, and
+the @math{D_i} are successively 1, 2, 1, 1, 4, 1, 1, 6, 1, 1, 8, @dots{}.
+Write a program that uses your @code{cont-frac} procedure from @ref{Exercise 1.37} 
+to approximate @math{e}, based on Euler's expansion.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.39}Exercise 1.39:} A continued fraction
+representation of the tangent function was published in 1770 by the German
+mathematician J.H. Lambert:
+@ifinfo
+
+@example
+              x
+tan x = ---------------
+                x^2
+        1 - -----------
+                  x^2
+            3 - -------
+                5 - ...
+@end example
+
+@end ifinfo
+@tex
+
+\[ % :27:
+  

@@ -1,0 +1,100 @@
+
+(define (imag-part-polar z)
+  (* (magnitude-polar z) 
+     (sin (angle-polar z))))
+
+(define (magnitude-polar z) (car z))
+(define (angle-polar z) (cdr z))
+
+(define (make-from-real-imag-polar x y)
+  (attach-tag 
+   'polar
+   (cons (sqrt (+ (square x) (square y)))
+         (atan y x))))
+
+(define (make-from-mag-ang-polar r a)
+  (attach-tag 'polar (cons r a)))
+@end lisp
+
+@noindent
+Each generic selector is implemented as a procedure that checks the tag of its
+argument and calls the appropriate procedure for handling data of that type.
+For example, to obtain the real part of a complex number, @code{real-part}
+examines the tag to determine whether to use Ben's @code{real-part-rectangular}
+or Alyssa's @code{real-part-polar}.  In either case, we use @code{contents} to
+extract the bare, untagged datum and send this to the rectangular or polar
+procedure as required:
+
+@lisp
+(define (real-part z)
+  (cond ((rectangular? z)
+         (real-part-rectangular (contents z)))
+        ((polar? z)
+         (real-part-polar (contents z)))
+        (else (error "Unknown type: 
+               REAL-PART" z))))
+
+(define (imag-part z)
+  (cond ((rectangular? z)
+         (imag-part-rectangular (contents z)))
+        ((polar? z)
+         (imag-part-polar (contents z)))
+        (else (error "Unknown type: 
+               IMAG-PART" z))))
+
+(define (magnitude z)
+  (cond ((rectangular? z)
+         (magnitude-rectangular (contents z)))
+        ((polar? z)
+         (magnitude-polar (contents z)))
+        (else (error "Unknown type: 
+               MAGNITUDE" z))))
+
+(define (angle z)
+  (cond ((rectangular? z)
+         (angle-rectangular (contents z)))
+        ((polar? z)
+         (angle-polar (contents z)))
+        (else (error "Unknown type: 
+               ANGLE" z))))
+@end lisp
+
+@noindent
+To implement the complex-number arithmetic operations, we can use the same
+procedures @code{add-complex}, @code{sub-complex}, @code{mul-complex}, and
+@code{div-complex} from @ref{2.4.1}, because the selectors they call
+are generic, and so will work with either representation.  For example, the
+procedure @code{add-complex} is still
+
+@lisp
+(define (add-complex z1 z2)
+  (make-from-real-imag 
+   (+ (real-part z1) (real-part z2))
+   (+ (imag-part z1) (imag-part z2))))
+@end lisp
+
+@noindent
+Finally, we must choose whether to construct complex numbers using Ben's
+representation or Alyssa's representation.  One reasonable choice is to
+construct rectangular numbers whenever we have real and imaginary parts and to
+construct polar numbers whenever we have magnitudes and angles:
+
+@lisp
+(define (make-from-real-imag x y)
+  (make-from-real-imag-rectangular x y))
+
+(define (make-from-mag-ang r a)
+  (make-from-mag-ang-polar r a))
+@end lisp
+
+@noindent
+The resulting complex-number system has the structure shown in @ref{Figure 2.21}.  
+The system has been decomposed into three relatively independent parts:
+the complex-number-arithmetic operations, Alyssa's polar implementation, and
+Ben's rectangular implementation.  The polar and rectangular implementations
+could have been written by Ben and Alyssa working separately, and both of these
+can be used as underlying representations by a third programmer implementing
+the complex-arithmetic procedures in terms of the abstract constructor/selector
+interface.
+
+@float

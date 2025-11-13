@@ -1,0 +1,100 @@
+@code{(?x ?x)} and @code{(?y ⟨@var{expression involving @code{?y}}⟩)} in a
+frame where both @code{?x} and @code{?y} are unbound.  First @code{?x} is
+matched against @code{?y}, making a binding of @code{?x} to @code{?y}.  Next,
+the same @code{?x} is matched against the given expression involving @code{?y}.
+Since @code{?x} is already bound to @code{?y}, this results in matching
+@code{?y} against the expression.  If we think of the unifier as finding a set
+of values for the pattern variables that make the patterns the same, then these
+patterns imply instructions to find a @code{?y} such that @code{?y} is equal to
+the expression involving @code{?y}.  There is no general method for solving
+such equations, so we reject such bindings; these cases are recognized by the
+predicate @code{depends-on?}.@footnote{In general, unifying @code{?y} with an
+expression involving @code{?y} would require our being able to find a fixed
+point of the equation @code{?y} = @code{⟨}@var{expression involving @code{?y}}@code{⟩}.  It
+is sometimes possible to syntactically form an expression that appears to be
+the solution.  For example, @code{?y} = @code{(f ?y)} seems to have the fixed
+point @code{(f (f (f @r{…} )))}, which we can produce by beginning with the
+expression @code{(f ?y)} and repeatedly substituting @code{(f ?y)} for
+@code{?y}.  Unfortunately, not every such equation has a meaningful fixed
+point.  The issues that arise here are similar to the issues of manipulating
+infinite series in mathematics.  For example, we know that 2 is the solution to
+the equation @math{{y = 1 + y / 2}}.  Beginning with the expression @math{{1 + y / 2}}
+and repeatedly substituting @math{{1 + y / 2}} for @math{y} gives
+@ifinfo
+
+@example
+2 = y = 1 + y/2 = 1 + (1 + y/2)/2 = 1 + 1/2 + y/4 = ...
+@end example
+
+@end ifinfo
+@tex
+\[ % :78:
+  2 = y = 1 + {y \over 2} = 1 + {{1\over2}\left(1 + {y \over 2}\right)} = 
+  1 + {1\over2} + {y \over 4} = {\dots,}  \]
+@end tex
+@noindent
+which leads to
+@ifinfo
+
+@example
+2 = 1 + 1/2 + 1/4 + 1/8 + ...
+@end example
+
+@end ifinfo
+@tex
+\[ % :79:
+  2 = 1 + {1\over2} + {1\over4} + {1\over8} + {\dots.}  \]
+@end tex
+@noindent
+However, if we try the same manipulation beginning with the observation that @math{{−1}} 
+is the solution to the equation @math{{y = 1 + 2y}}, we obtain
+@ifinfo
+
+@example
+-1 = y = 1 + 2y = 1 + 2(1 + 2y) = 1 + 2 + 4y = ...
+@end example
+
+@end ifinfo
+@tex
+\[ % :80:
+  {-1} = y = 1 + {2y} = 1 + {2(1 + 2y)} = 1 + 2 + {4y} = {\dots,}  \]
+@end tex
+@noindent
+which leads to
+@ifinfo
+
+@example
+-1 = 1 + 2 + 4 + 8 + ...
+@end example
+
+@end ifinfo
+@tex
+\[ % :81:
+  -1 = 1 + 2 + 4 + 8 + {\dots.}  \]
+@end tex
+@noindent
+Although the formal manipulations used in deriving these two equations are
+identical, the first result is a valid assertion about infinite series but the
+second is not.  Similarly, for our unification results, reasoning with an
+arbitrary syntactically constructed expression may lead to errors.}  On the
+other hand, we do not want to reject attempts to bind a variable to itself.
+For example, consider unifying @code{(?x ?x)} and @code{(?y ?y)}.  The second
+attempt to bind @code{?x} to @code{?y} matches @code{?y} (the stored value of
+@code{?x}) against @code{?y} (the new value of @code{?x}).  This is taken care
+of by the @code{equal?}  clause of @code{unify-match}.
+
+@lisp
+(define (extend-if-possible var val frame)
+  (let ((binding (binding-in-frame var frame)))
+    (cond (binding
+           (unify-match
+            (binding-value binding) val frame))
+          ((var? val)                   @r{; ***}
+           (let ((binding 
+                  (binding-in-frame 
+                   val
+                   frame)))
+             (if binding
+                 (unify-match
+                  var 
+                  (binding-value binding) 

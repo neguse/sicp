@@ -1,0 +1,100 @@
+combination of argument and result data types that might be specified for a
+@code{proc}.  Maintaining a practical notion of ``data type'' in the presence
+of higher-order procedures raises many difficult issues.  One way of dealing
+with this problem is illustrated by the language ML (@ref{Gordon et al. 1979}), 
+whose ``polymorphic data types'' include templates for
+higher-order transformations between data types.  Moreover, data types for most
+procedures in ML are never explicitly declared by the programmer.  Instead, ML
+includes a @newterm{type-inferencing} mechanism that uses information in the
+environment to deduce the data types for newly defined procedures.}
+
+One way to avoid the need for two different classes of procedures is to make
+all procedures take delayed arguments.  We could adopt a model of evaluation in
+which all arguments to procedures are automatically delayed and arguments are
+forced only when they are actually needed (for example, when they are required
+by a primitive operation).  This would transform our language to use
+normal-order evaluation, which we first described when we introduced the
+substitution model for evaluation in @ref{1.1.5}.  Converting to
+normal-order evaluation provides a uniform and elegant way to simplify the use
+of delayed evaluation, and this would be a natural strategy to adopt if we were
+concerned only with stream processing.  In @ref{4.2}, after we have
+studied the evaluator, we will see how to transform our language in just this
+way.  Unfortunately, including delays in procedure calls wreaks havoc with our
+ability to design programs that depend on the order of events, such as programs
+that use assignment, mutate data, or perform input or output.  Even the single
+@code{delay} in @code{cons-stream} can cause great confusion, as illustrated by
+@ref{Exercise 3.51} and @ref{Exercise 3.52}.  As far as anyone knows,
+mutability and delayed evaluation do not mix well in programming languages, and
+devising ways to deal with both of these at once is an active area of research.
+
+@node 3.5.5, Chapter 4, 3.4, 3.5
+@subsection Modularity of Functional Programs and Modularity of Objects
+
+As we saw in @ref{3.1.2}, one of the major benefits of introducing
+assignment is that we can increase the modularity of our systems by
+encapsulating, or ``hiding,'' parts of the state of a large system within local
+variables.  Stream models can provide an equivalent modularity without the use
+of assignment.  As an illustration, we can reimplement the Monte Carlo
+estimation of @math{\pi}, which we examined in @ref{3.1.2}, from a
+stream-processing point of view.
+
+The key modularity issue was that we wished to hide the internal state of a
+random-number generator from programs that used random numbers.  We began with
+a procedure @code{rand-update}, whose successive values furnished our supply of
+random numbers, and used this to produce a random-number generator:
+
+@lisp
+(define rand
+  (let ((x random-init))
+    (lambda ()
+      (set! x (rand-update x))
+      x)))
+@end lisp
+
+@noindent
+In the stream formulation there is no random-number generator @emph{per se},
+just a stream of random numbers produced by successive calls to
+@code{rand-update}:
+
+@lisp
+(define random-numbers
+  (cons-stream random-init
+               (stream-map rand-update 
+                           random-numbers)))
+@end lisp
+
+@noindent
+We use this to construct the stream of outcomes of the Ces@`aro experiment
+performed on consecutive pairs in the @code{random-numbers} stream:
+
+@lisp
+(define cesaro-stream
+  (map-successive-pairs
+   (lambda (r1 r2) (= (gcd r1 r2) 1))
+   random-numbers))
+
+(define (map-successive-pairs f s)
+  (cons-stream
+   (f (stream-car s) 
+      (stream-car (stream-cdr s)))
+   (map-successive-pairs 
+    f (stream-cdr (stream-cdr s)))))
+@end lisp
+
+@noindent
+The @code{cesaro-stream} is now fed to a @code{monte-carlo} procedure, which
+produces a stream of estimates of probabilities.  The results are then
+converted into a stream of estimates of @math{\pi}.  This version of the program
+doesn't need a parameter telling how many trials to perform.  Better estimates
+of @math{\pi} (from performing more experiments) are obtained by looking farther
+into the @code{pi} stream:
+
+@lisp
+(define (monte-carlo experiment-stream 
+                     passed 
+                     failed)
+  (define (next passed failed)
+    (cons-stream
+     (/ passed (+ passed failed))
+     (monte-carlo
+      (stream-cdr experiment-stream) 

@@ -1,0 +1,100 @@
+  S_i \,=\, C + {\sum_{j=1}^i x_j \, dt}  \]
+@end tex
+@noindent
+and returns the stream of values @math{{S = (S_i)}}.  The following
+@code{integral} procedure is reminiscent of the ``implicit style'' definition
+of the stream of integers (@ref{3.5.2}):
+
+@lisp
+(define (integral integrand initial-value dt)
+  (define int
+    (cons-stream 
+     initial-value
+     (add-streams (scale-stream integrand dt)
+                  int)))
+  int)
+@end lisp
+
+@noindent
+@ref{Figure 3.32} is a picture of a signal-processing system that corresponds
+to the @code{integral} procedure.  The input stream is scaled by @math{{dt}} and
+passed through an adder, whose output is passed back through the same adder.
+The self-reference in the definition of @code{int} is reflected in the figure
+by the feedback loop that connects the output of the adder to one of the
+inputs.
+
+@float
+@anchor{Figure 3.32}
+@ifinfo
+@strong{Figure 3.32:} The @code{integral} procedure viewed as a signal-processing system.
+
+@example
+                             initial-value
+                                  |
+       +-----------+              |   |\__
+input  |           |      |\__    +-->|   \_  integral
+------>| scale: dt +----->|   \_      |cons_>--*------->
+       |           |      | add_>---->| __/    |
+       +-----------+  +-->| __/       |/       |
+                      |   |/                   |
+                      |                        |
+                      +------------------------+
+@end example
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.32a,143mm,,,.std.svg}
+@caption{@strong{Figure 3.32:} The @code{integral} procedure viewed as a signal-processing system.}
+@end iftex
+@end float
+
+@quotation
+@strong{@anchor{Exercise 3.73}Exercise 3.73:} We can model electrical circuits
+using streams to represent the values of currents or voltages at a sequence of
+times.  For instance, suppose we have an @newterm{RC circuit} consisting of a
+resistor of resistance @math{R} and a capacitor of capacitance @math{C} in series.
+The voltage response @math{v} of the circuit to an injected current @math{i} is
+determined by the formula in @ref{Figure 3.33}, whose structure is shown by the
+accompanying signal-flow diagram.
+
+@float
+@anchor{Figure 3.33}
+@ifinfo
+@strong{Figure 3.33:} An RC circuit and the associated signal-flow diagram.
+
+@example
+  +        v        -
+
+ ->----'\/\/\,---| |---
+  i       R         C
+
+
+                  / t
+               1  |
+ v  =  v   +  --- |  i dt  +  R i
+        0      C  |
+                  / 0
+
+         +--------------+
+     +-->|   scale: R   |---------------------+   |\_
+     |   +--------------+                     |   |  \_
+     |                                        +-->|    \   v
+  i  |   +--------------+     +------------+      | add >--->
+ ----+-->|  scale: 1/C  |---->|  integral  |----->|   _/
+         +--------------+     +------------+      | _/
+                                    |             |/
+				   v
+				    0
+@end example
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.33a,125mm,,,.std.svg}
+@caption{@strong{Figure 3.33:} An RC circuit and the associated signal-flow diagram.}
+@end iftex
+@end float
+
+Write a procedure @code{RC} that models this circuit.  @code{RC} should take as
+inputs the values of @math{R}, @math{C}, and @math{{dt}} and should return a procedure
+that takes as inputs a stream representing the current @math{i} and an initial
+value for the capacitor voltage @math{v_0} and produces as output the stream of
+voltages @math{v}.  For example, you should be able to use @code{RC} to model an
+RC circuit with @math{R} = 5 ohms, @math{C} = 1 farad, and a 0.5-second time step by

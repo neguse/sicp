@@ -1,0 +1,100 @@
+@quotation
+@strong{@anchor{Exercise 5.2}Exercise 5.2:} Use the register-machine language
+to describe the iterative factorial machine of @ref{Exercise 5.1}.
+@end quotation
+
+@subsubheading Actions
+
+Let us modify the @abbr{GCD} machine so that we can type in the numbers
+whose @abbr{GCD} we want and get the answer printed at our terminal.  We
+will not discuss how to make a machine that can read and print, but will assume
+(as we do when we use @code{read} and @code{display} in Scheme) that they are
+available as primitive operations.@footnote{This assumption glosses over a
+great deal of complexity.  Usually a large portion of the implementation of a
+Lisp system is dedicated to making reading and printing work.}
+
+@code{Read} is like the operations we have been using in that it produces a
+value that can be stored in a register.  But @code{read} does not take inputs
+from any registers; its value depends on something that happens outside the
+parts of the machine we are designing.  We will allow our machine's operations
+to have such behavior, and thus will draw and notate the use of @code{read}
+just as we do any other operation that computes a value.
+
+@code{Print}, on the other hand, differs from the operations we have been using
+in a fundamental way: It does not produce an output value to be stored in a
+register.  Though it has an effect, this effect is not on a part of the machine
+we are designing.  We will refer to this kind of operation as an
+@newterm{action}.  We will represent an action in a data-path diagram just as
+we represent an operation that computes a value---as a trapezoid that contains
+the name of the action.  Arrows point to the action box from any inputs
+(registers or constants).  We also associate a button with the action.  Pushing
+the button makes the action happen.  To make a controller push an action button
+we use a new kind of instruction called @code{perform}.  Thus, the action of
+printing the contents of register @code{a} is represented in a controller
+sequence by the instruction
+
+@lisp
+(perform (op print) (reg a))
+@end lisp
+
+@noindent
+@ref{Figure 5.4} shows the data paths and controller for the new @abbr{GCD}
+machine.  Instead of having the machine stop after printing the answer, we have
+made it start over, so that it repeatedly reads a pair of numbers, computes
+their @abbr{GCD}, and prints the result.  This structure is like the driver
+loops we used in the interpreters of @ref{Chapter 4}.
+
+@float
+@anchor{Figure 5.4}
+@ifinfo
+@strong{Figure 5.4:} A @abbr{GCD} machine that reads inputs and prints results.
+
+@example
+                   .--------.
+                    \ read /
+                     \____/
+                       |
+               +-------*------+
+               |              |
+        a<-rd (X)            (X) b<-rd
+               |              |
+               V              V           ___
+            +-----+        +-----+       /   \
+            |  a  |<--(X)--+  b  +----->|  =  |
+            +-+-+-+  a<-b  +-+---+       \___/
+              | |            |  ^          ^
+           +--+ +----+    +--+  |          |
+           |         |    |    (X) b<-t   / \
+           V         V    V     |        / O \
+      .---------.  .---------.  |       /_____\
+--(X)->\ print /    \  rem  /   |
+   P    \_____/      \_____/    |
+                        |       |
+                       (X) t<-r |
+                        |       |
+                        V       |
+                     +-----+    |
+                     |  t  +----+
+                     +-----+
+@end example
+
+@lisp
+ (controller
+  gcd-loop
+    (assign a (op read))
+    (assign b (op read))
+  test-b
+    (test (op =) (reg b) (const 0))
+    (branch (label gcd-done))
+    (assign t (op rem) (reg a) (reg b))
+    (assign a (reg b))
+    (assign b (reg t))
+    (goto (label test-b))
+  gcd-done
+    (perform (op print) (reg a))
+    (goto (label gcd-loop)))
+@end lisp
+
+@end ifinfo
+@iftex
+@image{fig/chap5/Fig5.4c,147mm,,,.std.svg}

@@ -1,0 +1,100 @@
+(define (operator exp) (car exp))
+(define (operands exp) (cdr exp))
+(define (no-operands? ops) (null? ops))
+(define (first-operand ops) (car ops))
+(define (rest-operands ops) (cdr ops))
+@end lisp
+
+@end itemize
+
+@subsubheading Derived expressions
+
+Some special forms in our language can be defined in terms of expressions
+involving other special forms, rather than being implemented directly.  One
+example is @code{cond}, which can be implemented as a nest of @code{if}
+expressions.  For example, we can reduce the problem of evaluating the
+expression
+
+@lisp
+(cond ((> x 0) x)
+      ((= x 0) (display 'zero) 0)
+      (else (- x)))
+@end lisp
+
+@noindent
+to the problem of evaluating the following expression involving @code{if} and
+@code{begin} expressions:
+
+@lisp
+(if (> x 0)
+    x
+    (if (= x 0)
+        (begin (display 'zero) 0)
+        (- x)))
+@end lisp
+
+@noindent
+Implementing the evaluation of @code{cond} in this way simplifies the evaluator
+because it reduces the number of special forms for which the evaluation process
+must be explicitly specified.
+
+We include syntax procedures that extract the parts of a @code{cond}
+expression, and a procedure @code{cond->if} that transforms @code{cond}
+expressions into @code{if} expressions.  A case analysis begins with
+@code{cond} and has a list of predicate-action clauses.  A clause is an
+@code{else} clause if its predicate is the symbol @code{else}.@footnote{The
+value of a @code{cond} expression when all the predicates are false and there
+is no @code{else} clause is unspecified in Scheme; we have chosen here to make
+it false.}
+
+@lisp
+(define (cond? exp) 
+  (tagged-list? exp 'cond))
+(define (cond-clauses exp) (cdr exp))
+(define (cond-else-clause? clause)
+  (eq? (cond-predicate clause) 'else))
+(define (cond-predicate clause) 
+  (car clause))
+(define (cond-actions clause) 
+  (cdr clause))
+(define (cond->if exp)
+  (expand-clauses (cond-clauses exp)))
+(define (expand-clauses clauses)
+  (if (null? clauses)
+      'false     @r{; no @code{else} clause}
+      (let ((first (car clauses))
+            (rest (cdr clauses)))
+        (if (cond-else-clause? first)
+            (if (null? rest)
+                (sequence->exp 
+                 (cond-actions first))
+                (error "ELSE clause isn't 
+                        last: COND->IF"
+                       clauses))
+            (make-if (cond-predicate first)
+                     (sequence->exp 
+                      (cond-actions first))
+                     (expand-clauses 
+                      rest))))))
+@end lisp
+
+@noindent
+Expressions (such as @code{cond}) that we choose to implement as syntactic
+transformations are called @newterm{derived expressions}.  @code{Let}
+expressions are also derived expressions (see 
+@ref{Exercise 4.6}).@footnote{Practical Lisp systems provide a mechanism that allows a user
+to add new derived expressions and specify their implementation as syntactic
+transformations without modifying the evaluator.  Such a user-defined
+transformation is called a @newterm{macro}.  Although it is easy to add an
+elementary mechanism for defining macros, the resulting language has subtle
+name-conflict problems.  There has been much research on mechanisms for macro
+definition that do not cause these difficulties.  See, for example, @ref{Kohlbecker 1986}, 
+@ref{Clinger and Rees 1991}, and @ref{Hanson 1991}.}
+
+@quotation
+@strong{@anchor{Exercise 4.2}Exercise 4.2:} Louis Reasoner plans to reorder the
+@code{cond} clauses in @code{eval} so that the clause for procedure
+applications appears before the clause for assignments.  He argues that this
+will make the interpreter more efficient: Since programs usually contain more
+applications than assignments, definitions, and so on, his modified @code{eval}
+will usually check fewer clauses than the original @code{eval} before

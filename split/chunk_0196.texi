@@ -1,0 +1,100 @@
+problem of arranging a mechanism that permits concurrent processes to safely
+share resources is called the mutual exclusion problem.  Our mutex is a simple
+variant of the @newterm{semaphore} mechanism (see @ref{Exercise 3.47}), which
+was introduced in the ``THE'' Multiprogramming System developed at the
+Technological University of Eindhoven and named for the university's initials
+in Dutch (@ref{Dijkstra 1968a}).  The acquire and release operations were originally
+called P and V, from the Dutch words @emph{passeren} (to pass) and
+@emph{vrijgeven} (to release), in reference to the semaphores used on railroad
+systems.  Dijkstra's classic exposition (@ref{1968b}) was one of the first to clearly
+present the issues of concurrency control, and showed how to use semaphores to
+handle a variety of concurrency problems.} In our implementation, each
+serializer has an associated mutex.  Given a procedure @code{p}, the serializer
+returns a procedure that acquires the mutex, runs @code{p}, and then releases
+the mutex.  This ensures that only one of the procedures produced by the
+serializer can be running at once, which is precisely the serialization
+property that we need to guarantee.
+
+@lisp
+(define (make-serializer)
+  (let ((mutex (make-mutex)))
+    (lambda (p)
+      (define (serialized-p . args)
+        (mutex 'acquire)
+        (let ((val (apply p args)))
+          (mutex 'release)
+          val))
+      serialized-p)))
+@end lisp
+
+@noindent
+The mutex is a mutable object (here we'll use a one-element list, which we'll
+refer to as a @newterm{cell}) that can hold the value true or false.  When the
+value is false, the mutex is available to be acquired.  When the value is true,
+the mutex is unavailable, and any process that attempts to acquire the mutex
+must wait.
+
+Our mutex constructor @code{make-mutex} begins by initializing the cell
+contents to false.  To acquire the mutex, we test the cell.  If the mutex is
+available, we set the cell contents to true and proceed.  Otherwise, we wait in
+a loop, attempting to acquire over and over again, until we find that the mutex
+is available.@footnote{In most time-shared operating systems, processes that
+are blocked by a mutex do not waste time ``busy-waiting'' as above.  Instead,
+the system schedules another process to run while the first is waiting, and the
+blocked process is awakened when the mutex becomes available.}  To release the
+mutex, we set the cell contents to false.
+
+@lisp
+(define (make-mutex)
+  (let ((cell (list false)))
+    (define (the-mutex m)
+      (cond ((eq? m 'acquire)
+             (if (test-and-set! cell)
+                 (the-mutex 'acquire))) @r{; retry}
+            ((eq? m 'release) (clear! cell))))
+    the-mutex))
+(define (clear! cell) (set-car! cell false))
+@end lisp
+
+@noindent
+@code{Test-and-set!} tests the cell and returns the result of the test.  In
+addition, if the test was false, @code{test-and-set!} sets the cell contents to
+true before returning false.  We can express this behavior as the following
+procedure:
+
+@lisp
+(define (test-and-set! cell)
+  (if (car cell)
+      true
+      (begin (set-car! cell true)
+             false)))
+@end lisp
+
+@noindent
+However, this implementation of @code{test-and-set!} does not suffice as it
+stands.  There is a crucial subtlety here, which is the essential place where
+concurrency control enters the system: The @code{test-and-set!} operation must
+be performed @newterm{atomically}.  That is, we must guarantee that, once a
+process has tested the cell and found it to be false, the cell contents will
+actually be set to true before any other process can test the cell.  If we do
+not make this guarantee, then the mutex can fail in a way similar to the
+bank-account failure in @ref{Figure 3.29}.  (See @ref{Exercise 3.46}.)
+
+The actual implementation of @code{test-and-set!} depends on the details of how
+our system runs concurrent processes.  For example, we might be executing
+concurrent processes on a sequential processor using a time-slicing mechanism
+that cycles through the processes, permitting each process to run for a short
+time before interrupting it and moving on to the next process.  In that case,
+@code{test-and-set!}  can work by disabling time slicing during the testing and
+setting.@footnote{In @abbr{MIT} Scheme for a single processor, which uses a
+time-slicing model, @code{test-and-set!} can be implemented as follows:
+
+@lisp
+(define (test-and-set! cell)
+  (without-interrupts
+   (lambda ()
+     (if (car cell)
+         true
+         (begin (set-car! cell true)
+                false)))))
+@end lisp

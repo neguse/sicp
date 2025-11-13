@@ -1,0 +1,100 @@
+
+@noindent
+In the main loop of the garbage collector we must determine whether there are
+any more objects to be scanned.  We do this by testing whether the @code{scan}
+pointer is coincident with the @code{free} pointer.  If the pointers are equal,
+then all accessible objects have been relocated, and we branch to
+@code{gc-flip}, which cleans things up so that we can continue the interrupted
+computation.  If there are still pairs to be scanned, we call the relocate
+subroutine to relocate the @code{car} of the next pair (by placing the
+@code{car} pointer in @code{old}).  The @code{relocate-continue} register is
+set up so that the subroutine will return to update the @code{car} pointer.
+
+@lisp
+gc-loop
+  (test (op =) (reg scan) (reg free))
+  (branch (label gc-flip))
+  (assign old 
+          (op vector-ref)
+          (reg new-cars)
+          (reg scan))
+  (assign relocate-continue 
+          (label update-car))
+  (goto (label relocate-old-result-in-new))
+@end lisp
+
+@noindent
+At @code{update-car}, we modify the @code{car} pointer of the pair being
+scanned, then proceed to relocate the @code{cdr} of the pair.  We return to
+@code{update-cdr} when that relocation has been accomplished.  After relocating
+and updating the @code{cdr}, we are finished scanning that pair, so we continue
+with the main loop.
+
+@lisp
+update-car
+  (perform (op vector-set!)
+           (reg new-cars)
+           (reg scan)
+           (reg new))
+  (assign  old 
+           (op vector-ref)
+           (reg new-cdrs)
+           (reg scan))
+  (assign  relocate-continue
+           (label update-cdr))
+  (goto (label relocate-old-result-in-new))
+update-cdr
+  (perform (op vector-set!)
+           (reg new-cdrs)
+           (reg scan)
+           (reg new))
+  (assign  scan (op +) (reg scan) (const 1))
+  (goto (label gc-loop))
+@end lisp
+
+@noindent
+The subroutine @code{relocate-old-result-in-new} relocates objects as follows:
+If the object to be relocated (pointed at by @code{old}) is not a pair, then we
+return the same pointer to the object unchanged (in @code{new}).  (For example,
+we may be scanning a pair whose @code{car} is the number 4.  If we represent
+the @code{car} by @code{n4}, as described in @ref{5.3.1}, then we want
+the ``relocated'' @code{car} pointer to still be @code{n4}.)  Otherwise, we
+must perform the relocation.  If the @code{car} position of the pair to be
+relocated contains a broken-heart tag, then the pair has in fact already been
+moved, so we retrieve the forwarding address (from the @code{cdr} position of
+the broken heart) and return this in @code{new}.  If the pointer in @code{old}
+points at a yet-unmoved pair, then we move the pair to the first free cell in
+new memory (pointed at by @code{free}) and set up the broken heart by storing a
+broken-heart tag and forwarding address at the old location.
+@code{Relocate-old-result-in-new} uses a register @code{oldcr} to hold the
+@code{car} or the @code{cdr} of the object pointed at by
+@code{old}.@footnote{The garbage collector uses the low-level predicate
+@code{pointer-to-pair?} instead of the list-structure @code{pair?}  operation
+because in a real system there might be various things that are treated as
+pairs for garbage-collection purposes.  For example, in a Scheme system that
+conforms to the @abbr{IEEE} standard a procedure object may be implemented
+as a special kind of ``pair'' that doesn't satisfy the @code{pair?} predicate.
+For simulation purposes, @code{pointer-to-pair?} can be implemented as
+@code{pair?}.}
+
+@lisp
+relocate-old-result-in-new
+  (test (op pointer-to-pair?) (reg old))
+  (branch (label pair))
+  (assign new (reg old))
+  (goto (reg relocate-continue))
+pair
+  (assign  oldcr 
+           (op vector-ref)
+           (reg the-cars)
+           (reg old))
+  (test (op broken-heart?) (reg oldcr))
+  (branch  (label already-moved))
+  (assign  new (reg free)) @r{; new location for pair}
+  @r{;; Update @code{free} pointer.}
+  (assign free (op +) (reg free) (const 1))
+  @r{;; Copy the @code{car} and @code{cdr} to new memory.}
+  (perform (op vector-set!)
+           (reg new-cars)
+           (reg new)
+           (reg oldcr))

@@ -1,0 +1,100 @@
+evaluating @code{(define RC1 (RC 5 1 0.5))}.  This defines @code{RC1} as a
+procedure that takes a stream representing the time sequence of currents and an
+initial capacitor voltage and produces the output stream of voltages.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.74}Exercise 3.74:} Alyssa P. Hacker is designing a
+system to process signals coming from physical sensors.  One important feature
+she wishes to produce is a signal that describes the @newterm{zero crossings}
+of the input signal.  That is, the resulting signal should be @math{{+1}} whenever the
+input signal changes from negative to positive, @math{{-1}} whenever the input signal
+changes from positive to negative, and @math{0} otherwise.  (Assume that the sign of a
+@math{0} input is positive.)  For example, a typical input signal with its associated
+zero-crossing signal would be
+
+@lisp
+@r{…} 1 2 1.5 1 0.5 -0.1 -2 -3 -2 -0.5 0.2 3 4 @r{…}
+@r{…} 0 0  0  0  0   -1   0  0  0   0   1  0 0 @r{…}
+@end lisp
+
+In Alyssa's system, the signal from the sensor is represented as a stream
+@code{sense-data} and the stream @code{zero-crossings} is the corresponding
+stream of zero crossings.  Alyssa first writes a procedure
+@code{sign-change-detector} that takes two values as arguments and compares the
+signs of the values to produce an appropriate @math{0}, @math{1}, or @math{{-1}}.  She then
+constructs her zero-crossing stream as follows:
+
+@lisp
+(define (make-zero-crossings
+         input-stream last-value)
+  (cons-stream
+   (sign-change-detector 
+    (stream-car input-stream) 
+    last-value)
+   (make-zero-crossings 
+    (stream-cdr input-stream)
+    (stream-car input-stream))))
+
+(define zero-crossings 
+  (make-zero-crossings sense-data 0))
+@end lisp
+
+Alyssa's boss, Eva Lu Ator, walks by and suggests that this program is
+approximately equivalent to the following one, which uses the generalized
+version of @code{stream-map} from @ref{Exercise 3.50}:
+
+@lisp
+(define zero-crossings
+  (stream-map sign-change-detector 
+              sense-data 
+              ⟨@var{expression}⟩))
+@end lisp
+
+Complete the program by supplying the indicated @code{⟨}@var{expression}@code{⟩}.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.75}Exercise 3.75:} Unfortunately, Alyssa's
+zero-crossing detector in @ref{Exercise 3.74} proves to be insufficient,
+because the noisy signal from the sensor leads to spurious zero crossings.  Lem
+E.  Tweakit, a hardware specialist, suggests that Alyssa smooth the signal to
+filter out the noise before extracting the zero crossings.  Alyssa takes his
+advice and decides to extract the zero crossings from the signal constructed by
+averaging each value of the sense data with the previous value.  She explains
+the problem to her assistant, Louis Reasoner, who attempts to implement the
+idea, altering Alyssa's program as follows:
+
+@lisp
+(define (make-zero-crossings 
+         input-stream last-value)
+  (let ((avpt 
+         (/ (+ (stream-car input-stream) 
+               last-value) 
+            2)))
+    (cons-stream 
+     (sign-change-detector avpt last-value)
+     (make-zero-crossings 
+      (stream-cdr input-stream) avpt))))
+@end lisp
+
+This does not correctly implement Alyssa's plan.  Find the bug that Louis has
+installed and fix it without changing the structure of the program.  (Hint: You
+will need to increase the number of arguments to @code{make-zero-crossings}.)
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.76}Exercise 3.76:} Eva Lu Ator has a criticism of
+Louis's approach in @ref{Exercise 3.75}.  The program he wrote is not modular,
+because it intermixes the operation of smoothing with the zero-crossing
+extraction.  For example, the extractor should not have to be changed if Alyssa
+finds a better way to condition her input signal.  Help Louis by writing a
+procedure @code{smooth} that takes a stream as input and produces a stream in
+which each element is the average of two successive input stream elements.
+Then use @code{smooth} as a component to implement the zero-crossing detector
+in a more modular style.
+@end quotation
+
+@node	3.5.4, 3.5.5, 3.5.3, 3.5
+@subsection Streams and Delayed Evaluation
+

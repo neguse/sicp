@@ -1,0 +1,100 @@
+the source to ``flow'' into the designated register.  The label next to each
+button is the name we will use to refer to the button.  The names are
+arbitrary, and can be chosen to have mnemonic value (for example, @code{a<-b}
+denotes pushing the button that assigns the contents of register @code{b} to
+register @code{a}).  The source of data for a register can be another register
+(as in the @code{a<-b} assignment), an operation result (as in the @code{t<-r}
+assignment), or a constant (a built-in value that cannot be changed,
+represented in a data-path diagram by a triangle containing the constant).
+
+@float
+@anchor{Figure 5.1}
+@ifinfo
+@quotation
+@strong{Figure 5.1:} Data paths for a @abbr{GCD} machine.
+
+@example
+                              ___
++-----+          +-----+     /   \
+|  a  |<--(X)----|  b  +--->|  =  |
++--+--+   a<-b   +-+---+     \___/
+   |               |  ^        ^
+   +------+   +----+  |        |
+          |   |      (X) b<-t  |
+       .--+---+--.    |       / \
+        \  rem  /     |      / O \
+         \_____/      |     +-----+
+            |         |
+           (X) t<-r   |
+            |         |
+            V         |
+         +-----+      |
+         |  t  +------+
+         +-----+
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap5/Fig5.1a,105mm,,,.std.svg}
+@caption{@strong{Figure 5.1:} Data paths for a @abbr{GCD} machine.}
+@end iftex
+@end float
+
+An operation that computes a value from constants and the contents of registers
+is represented in a data-path diagram by a trapezoid containing a name for the
+operation.  For example, the box marked @code{rem} in @ref{Figure 5.1}
+represents an operation that computes the remainder of the contents of the
+registers @code{a} and @code{b} to which it is attached.  Arrows (without
+buttons) point from the input registers and constants to the box, and arrows
+connect the operation's output value to registers.  A test is represented by a
+circle containing a name for the test.  For example, our @abbr{GCD} machine
+has an operation that tests whether the contents of register @code{b} is zero.
+A test also has arrows from its input registers and constants, but it has no
+output arrows; its value is used by the controller rather than by the data
+paths.  Overall, the data-path diagram shows the registers and operations that
+are required for the machine and how they must be connected.  If we view the
+arrows as wires and the @code{X} buttons as switches, the data-path diagram is
+very like the wiring diagram for a machine that could be constructed from
+electrical components.
+
+@noindent
+In order for the data paths to actually compute @abbr{GCD}s, the buttons
+must be pushed in the correct sequence.  We will describe this sequence in
+terms of a controller diagram, as illustrated in @ref{Figure 5.2}.  The
+elements of the controller diagram indicate how the data-path components should
+be operated.  The rectangular boxes in the controller diagram identify
+data-path buttons to be pushed, and the arrows describe the sequencing from one
+step to the next.  The diamond in the diagram represents a decision.  One of
+the two sequencing arrows will be followed, depending on the value of the
+data-path test identified in the diamond.  We can interpret the controller in
+terms of a physical analogy: Think of the diagram as a maze in which a marble
+is rolling.  When the marble rolls into a box, it pushes the data-path button
+that is named by the box.  When the marble rolls into a decision node (such as
+the test for @code{b} = 0), it leaves the node on the path determined by the
+result of the indicated test.  Taken together, the data paths and the
+controller completely describe a machine for computing @abbr{GCD}s.  We
+start the controller (the rolling marble) at the place marked @code{start},
+after placing numbers in registers @code{a} and @code{b}.  When the controller
+reaches @code{done}, we will find the value of the @abbr{GCD} in register
+@code{a}.
+
+@float
+@anchor{Figure 5.2}
+@ifinfo
+@quotation
+@strong{Figure 5.2:} Controller for a @abbr{GCD} machine.
+
+@example
+     start
+       |
+       V
+      / \ yes
++--->< = >-----> done
+|     \ /
+|      | no
+|      V
+|  +------+
+|  | t<-r |
+|  +---+--+
+|      |
+|      V

@@ -1,0 +1,100 @@
+(define (instruction-execution-proc inst)
+  (cdr inst))
+(define (set-instruction-execution-proc!
+         inst
+         proc)
+  (set-cdr! inst proc))
+@end lisp
+
+@noindent
+The instruction text is not used by our simulator, but it is handy to keep
+around for debugging (see @ref{Exercise 5.16}).
+
+Elements of the label table are pairs:
+
+@lisp
+(define (make-label-entry label-name insts)
+  (cons label-name insts))
+@end lisp
+
+@noindent
+Entries will be looked up in the table with
+
+@lisp
+(define (lookup-label labels label-name)
+  (let ((val (assoc label-name labels)))
+    (if val
+        (cdr val)
+        (error "Undefined label: ASSEMBLE" 
+               label-name))))
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 5.8}Exercise 5.8:} The following register-machine code
+is ambiguous, because the label @code{here} is defined more than once:
+
+@lisp
+start
+  (goto (label here))
+here
+  (assign a (const 3))
+  (goto (label there))
+here
+  (assign a (const 4))
+  (goto (label there))
+there
+@end lisp
+
+With the simulator as written, what will the contents of register @code{a} be
+when control reaches @code{there}?  Modify the @code{extract-labels} procedure
+so that the assembler will signal an error if the same label name is used to
+indicate two different locations.
+@end quotation
+
+@node	5.2.3, 5.2.4, 5.2.2, 5.2
+@subsection Generating Execution Procedures for Instructions
+
+The assembler calls @code{make-execution-procedure} to generate the execution
+procedure for an instruction.  Like the @code{analyze} procedure in the
+evaluator of @ref{4.1.7}, this dispatches on the type of instruction to
+generate the appropriate execution procedure.
+
+@lisp
+(define (make-execution-procedure 
+         inst labels machine pc flag stack ops)
+  (cond ((eq? (car inst) 'assign)
+         (make-assign 
+          inst machine labels ops pc))
+        ((eq? (car inst) 'test)
+         (make-test 
+          inst machine labels ops flag pc))
+        ((eq? (car inst) 'branch)
+         (make-branch 
+          inst machine labels flag pc))
+        ((eq? (car inst) 'goto)
+         (make-goto inst machine labels pc))
+        ((eq? (car inst) 'save)
+         (make-save inst machine stack pc))
+        ((eq? (car inst) 'restore)
+         (make-restore inst machine stack pc))
+        ((eq? (car inst) 'perform)
+         (make-perform
+          inst machine labels ops pc))
+        (else (error "Unknown instruction 
+                      type: ASSEMBLE"
+                     inst))))
+@end lisp
+
+@noindent
+For each type of instruction in the register-machine language, there is a
+generator that builds an appropriate execution procedure.  The details of these
+procedures determine both the syntax and meaning of the individual instructions
+in the register-machine language.  We use data abstraction to isolate the
+detailed syntax of register-machine expressions from the general execution
+mechanism, as we did for evaluators in @ref{4.1.2}, by using syntax
+procedures to extract and classify the parts of an instruction.
+
+@subsubheading @code{Assign} instructions
+
+The @code{make-assign} procedure handles @code{assign} instructions:
+

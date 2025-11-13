@@ -1,0 +1,100 @@
+is, the primitive numbers of our language.  We will tag these with the symbol
+@code{scheme-number}.  The arithmetic operations in this package are the
+primitive arithmetic procedures (so there is no need to define extra procedures
+to handle the untagged numbers).  Since these operations each take two
+arguments, they are installed in the table keyed by the list
+@code{(scheme-number scheme-number)}:
+
+@lisp
+(define (install-scheme-number-package)
+  (define (tag x)
+    (attach-tag 'scheme-number x))
+  (put 'add '(scheme-number scheme-number)
+       (lambda (x y) (tag (+ x y))))
+  (put 'sub '(scheme-number scheme-number)
+       (lambda (x y) (tag (- x y))))
+  (put 'mul '(scheme-number scheme-number)
+       (lambda (x y) (tag (* x y))))
+  (put 'div '(scheme-number scheme-number)
+       (lambda (x y) (tag (/ x y))))
+  (put 'make 'scheme-number
+       (lambda (x) (tag x)))
+  'done)
+@end lisp
+
+@noindent
+Users of the Scheme-number package will create (tagged) ordinary numbers by
+means of the procedure:
+
+@lisp
+(define (make-scheme-number n)
+  ((get 'make 'scheme-number) n))
+@end lisp
+
+@noindent
+Now that the framework of the generic arithmetic system is in place, we can
+readily include new kinds of numbers.  Here is a package that performs rational
+arithmetic.  Notice that, as a benefit of additivity, we can use without
+modification the rational-number code from @ref{2.1.1} as the internal
+procedures in the package:
+
+@lisp
+(define (install-rational-package)
+  @r{;; internal procedures}
+  (define (numer x) (car x))
+  (define (denom x) (cdr x))
+  (define (make-rat n d)
+    (let ((g (gcd n d)))
+      (cons (/ n g) (/ d g))))
+  (define (add-rat x y)
+    (make-rat (+ (* (numer x) (denom y))
+                 (* (numer y) (denom x)))
+              (* (denom x) (denom y))))
+  (define (sub-rat x y)
+    (make-rat (- (* (numer x) (denom y))
+                 (* (numer y) (denom x)))
+              (* (denom x) (denom y))))
+  (define (mul-rat x y)
+    (make-rat (* (numer x) (numer y))
+              (* (denom x) (denom y))))
+  (define (div-rat x y)
+    (make-rat (* (numer x) (denom y))
+              (* (denom x) (numer y))))
+  @r{;; interface to rest of the system}
+  (define (tag x) (attach-tag 'rational x))
+  (put 'add '(rational rational)
+       (lambda (x y) (tag (add-rat x y))))
+  (put 'sub '(rational rational)
+       (lambda (x y) (tag (sub-rat x y))))
+  (put 'mul '(rational rational)
+       (lambda (x y) (tag (mul-rat x y))))
+  (put 'div '(rational rational)
+       (lambda (x y) (tag (div-rat x y))))
+  (put 'make 'rational
+       (lambda (n d) (tag (make-rat n d))))
+  'done)
+
+(define (make-rational n d)
+  ((get 'make 'rational) n d))
+@end lisp
+
+@noindent
+We can install a similar package to handle complex numbers, using the tag
+@code{complex}.  In creating the package, we extract from the table the
+operations @code{make-from-real-imag} and @code{make-from-mag-ang} that were
+defined by the rectangular and polar packages.  Additivity permits us to use,
+as the internal operations, the same @code{add-complex}, @code{sub-complex},
+@code{mul-complex}, and @code{div-complex} procedures from @ref{2.4.1}.
+
+@lisp
+(define (install-complex-package)
+  @r{;; imported procedures from rectangular} 
+  @r{;; and polar packages}
+  (define (make-from-real-imag x y)
+    ((get 'make-from-real-imag 
+          'rectangular) 
+     x y))
+  (define (make-from-mag-ang r a)
+    ((get 'make-from-mag-ang 'polar) 
+     r a))
+  @r{;; internal procedures}

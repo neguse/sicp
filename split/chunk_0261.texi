@@ -1,0 +1,100 @@
+@item
+Kitty: ``I came out second.  Mary was only fourth.''
+
+@item
+Mary: ``I was fourth.  Top place was taken by Betty.''
+
+@end itemize
+
+What in fact was the order in which the five girls were placed?
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.43}Exercise 4.43:} Use the @code{amb} evaluator to
+solve the following puzzle:@footnote{This is taken from a booklet called
+``Problematical Recreations,'' published in the 1960s by Litton Industries,
+where it is attributed to the @cite{Kansas State Engineer}.}
+
+@quotation
+Mary Ann Moore's father has a yacht and so has each of his four friends:
+Colonel Downing, Mr. Hall, Sir Barnacle Hood, and Dr.  Parker.  Each of the
+five also has one daughter and each has named his yacht after a daughter of one
+of the others.  Sir Barnacle's yacht is the Gabrielle, Mr. Moore owns the
+Lorna; Mr. Hall the Rosalind.  The Melissa, owned by Colonel Downing, is named
+after Sir Barnacle's daughter.  Gabrielle's father owns the yacht that is named
+after Dr.  Parker's daughter.  Who is Lorna's father?
+@end quotation
+
+Try to write the program so that it runs efficiently (see @ref{Exercise 4.40}).
+Also determine how many solutions there are if we are not told that Mary Ann's
+last name is Moore.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.44}Exercise 4.44:} @ref{Exercise 2.42} described the
+``eight-queens puzzle'' of placing queens on a chessboard so that no two attack
+each other.  Write a nondeterministic program to solve this puzzle.
+@end quotation
+
+@subsubheading Parsing natural language
+
+Programs designed to accept natural language as input usually start by
+attempting to @newterm{parse} the input, that is, to match the input against
+some grammatical structure.  For example, we might try to recognize simple
+sentences consisting of an article followed by a noun followed by a verb, such
+as ``The cat eats.''  To accomplish such an analysis, we must be able to
+identify the parts of speech of individual words.  We could start with some
+lists that classify various words:@footnote{Here we use the convention that the
+first element of each list designates the part of speech for the rest of the
+words in the list.}
+
+@lisp
+(define nouns 
+  '(noun student professor cat class))
+
+(define verbs 
+  '(verb studies lectures eats sleeps))
+
+(define articles '(article the a))
+@end lisp
+
+@noindent
+We also need a @newterm{grammar}, that is, a set of rules describing how
+grammatical elements are composed from simpler elements.  A very simple grammar
+might stipulate that a sentence always consists of two pieces---a noun phrase
+followed by a verb---and that a noun phrase consists of an article followed by
+a noun.  With this grammar, the sentence ``The cat eats'' is parsed as follows:
+
+@lisp
+(sentence
+ (noun-phrase (article the) (noun cat))
+ (verb eats))
+@end lisp
+
+@noindent
+We can generate such a parse with a simple program that has separate procedures
+for each of the grammatical rules.  To parse a sentence, we identify its two
+constituent pieces and return a list of these two elements, tagged with the
+symbol @code{sentence}:
+
+@lisp
+(define (parse-sentence)
+  (list 'sentence
+         (parse-noun-phrase)
+         (parse-word verbs)))
+@end lisp
+
+@noindent
+A noun phrase, similarly, is parsed by finding an article followed by a
+noun:
+
+@lisp
+(define (parse-noun-phrase)
+  (list 'noun-phrase
+        (parse-word articles)
+        (parse-word nouns)))
+@end lisp
+
+@noindent
+At the lowest level, parsing boils down to repeatedly checking that the next
+unparsed word is a member of the list of words for the required part of speech.

@@ -1,0 +1,100 @@
+
+Contrast this with making two calls to @code{make-simplified-withdraw}:
+
+@lisp
+(define W1 (make-simplified-withdraw 25))
+(define W2 (make-simplified-withdraw 25))
+@end lisp
+
+@noindent
+Are @code{W1} and @code{W2} the same?  Surely not, because calls to @code{W1}
+and @code{W2} have distinct effects, as shown by the following sequence of
+interactions:
+
+@lisp
+(W1 20)
+@i{5}
+
+(W1 20)
+@i{-15}
+
+(W2 20)
+@i{5}
+@end lisp
+
+@noindent
+Even though @code{W1} and @code{W2} are ``equal'' in the sense that they are
+both created by evaluating the same expression, @code{(make-simplified-withdraw
+25)}, it is not true that @code{W1} could be substituted for @code{W2} in any
+expression without changing the result of evaluating the expression.
+
+A language that supports the concept that ``equals can be substituted for
+equals'' in an expression without changing the value of the expression is said
+to be @newterm{referentially transparent}.  Referential transparency is
+violated when we include @code{set!} in our computer language.  This makes it
+tricky to determine when we can simplify expressions by substituting equivalent
+expressions.  Consequently, reasoning about programs that use assignment
+becomes drastically more difficult.
+
+Once we forgo referential transparency, the notion of what it means for
+computational objects to be ``the same'' becomes difficult to capture in a
+formal way.  Indeed, the meaning of ``same'' in the real world that our
+programs model is hardly clear in itself.  In general, we can determine that
+two apparently identical objects are indeed ``the same one'' only by modifying
+one object and then observing whether the other object has changed in the same
+way.  But how can we tell if an object has ``changed'' other than by observing
+the ``same'' object twice and seeing whether some property of the object
+differs from one observation to the next?  Thus, we cannot determine ``change''
+without some @emph{a priori} notion of ``sameness,'' and we cannot determine
+sameness without observing the effects of change.
+
+As an example of how this issue arises in programming, consider the situation
+where Peter and Paul have a bank account with $100 in it.  There is a
+substantial difference between modeling this as
+
+@lisp
+(define peter-acc (make-account 100))
+(define paul-acc (make-account 100))
+@end lisp
+
+@noindent
+and modeling it as
+
+@lisp
+(define peter-acc (make-account 100))
+(define paul-acc peter-acc)
+@end lisp
+
+@noindent
+In the first situation, the two bank accounts are distinct.  Transactions made
+by Peter will not affect Paul's account, and vice versa.  In the second
+situation, however, we have defined @code{paul-acc} to be @emph{the same thing}
+as @code{peter-acc}.  In effect, Peter and Paul now have a joint bank account,
+and if Peter makes a withdrawal from @code{peter-acc} Paul will observe less
+money in @code{paul-acc}.  These two similar but distinct situations can cause
+confusion in building computational models.  With the shared account, in
+particular, it can be especially confusing that there is one object (the bank
+account) that has two different names (@code{peter-acc} and @code{paul-acc});
+if we are searching for all the places in our program where @code{paul-acc} can
+be changed, we must remember to look also at things that change
+@code{peter-acc}.@footnote{The phenomenon of a single computational object
+being accessed by more than one name is known as @newterm{aliasing}.  The joint
+bank account situation illustrates a very simple example of an alias.  In
+@ref{3.3} we will see much more complex examples, such as ``distinct''
+compound data structures that share parts.  Bugs can occur in our programs if
+we forget that a change to an object may also, as a ``side effect,'' change a
+``different'' object because the two ``different'' objects are actually a
+single object appearing under different aliases.  These so-called
+@newterm{side-effect bugs} are so difficult to locate and to analyze that some
+people have proposed that programming languages be designed in such a way as to
+not allow side effects or aliasing (@ref{Lampson et al. 1981}; 
+@ref{Morris et al. 1980}).}
+
+With reference to the above remarks on ``sameness'' and ``change,'' observe
+that if Peter and Paul could only examine their bank balances, and could not
+perform operations that changed the balance, then the issue of whether the two
+accounts are distinct would be moot.  In general, so long as we never modify
+data objects, we can regard a compound data object to be precisely the totality
+of its pieces.  For example, a rational number is determined by giving its
+numerator and its denominator.  But this view is no longer valid in the
+presence of change, where a compound data object has an ``identity'' that is

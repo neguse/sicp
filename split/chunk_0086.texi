@@ -1,0 +1,100 @@
+permutations of @math{{S - x}},@footnote{The set @math{{S - x}} is the set of all
+elements of @math{S}, excluding @math{x}.} and adjoin @math{x} to the front of each one.
+This yields, for each @math{x} in @math{S}, the sequence of permutations of @math{S}
+that begin with @math{x}.  Combining these sequences for all @math{x} gives all the
+permutations of @math{S}:@footnote{Semicolons in Scheme code are used to introduce
+@newterm{comments}.  Everything from the semicolon to the end of the line is
+ignored by the interpreter.  In this book we don't use many comments; we try to
+make our programs self-documenting by using descriptive names.}
+
+@lisp
+(define (permutations s)
+  (if (null? s)   @r{; empty set?}
+      (list nil)  @r{; sequence containing empty set}
+      (flatmap (lambda (x)
+                 (map (lambda (p) 
+                        (cons x p))
+                      (permutations 
+                       (remove x s))))
+               s)))
+@end lisp
+
+@noindent
+Notice how this strategy reduces the problem of generating permutations of
+@math{S} to the problem of generating the permutations of sets with fewer elements
+than @math{S}.  In the terminal case, we work our way down to the empty list,
+which represents a set of no elements.  For this, we generate @code{(list
+nil)}, which is a sequence with one item, namely the set with no elements.  The
+@code{remove} procedure used in @code{permutations} returns all the items in a
+given sequence except for a given item.  This can be expressed as a simple
+filter:
+
+@lisp
+(define (remove item sequence)
+  (filter (lambda (x) (not (= x item)))
+          sequence))
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 2.40}Exercise 2.40:} Define a procedure
+@code{unique-pairs} that, given an integer @math{n}, generates the sequence of
+pairs @math{{(i, j)}} with @math{{1 \le j} < {i \le n}}.  Use @code{unique-pairs}
+to simplify the definition of @code{prime-sum-pairs} given above.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.41}Exercise 2.41:} Write a procedure to find all
+ordered triples of distinct positive integers @math{i}, @math{j}, and @math{k} less than
+or equal to a given integer @math{n} that sum to a given integer @math{s}.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 2.42}Exercise 2.42:} The ``eight-queens puzzle'' asks
+how to place eight queens on a chessboard so that no queen is in check from any
+other (i.e., no two queens are in the same row, column, or diagonal).  One
+possible solution is shown in @ref{Figure 2.8}.  One way to solve the puzzle is
+to work across the board, placing a queen in each column.  Once we have placed
+@math{{k - 1}} queens, we must place the @math{k^{\text{th}}} queen in a position where it does
+not check any of the queens already on the board.  We can formulate this
+approach recursively: Assume that we have already generated the sequence of all
+possible ways to place @math{{k - 1}} queens in the first @math{{k - 1}} columns of the
+board.  For each of these ways, generate an extended set of positions by
+placing a queen in each row of the @math{k^{\text{th}}} column.  Now filter these, keeping
+only the positions for which the queen in the @math{k^{\text{th}}} column is safe with
+respect to the other queens.  This produces the sequence of all ways to place
+@math{k} queens in the first @math{k} columns.  By continuing this process, we will
+produce not only one solution, but all solutions to the puzzle.
+
+@float
+@anchor{Figure 2.8}
+@ifinfo
+@strong{Figure 2.8:} A solution to the eight-queens puzzle.
+
+@example
++---+---+---+---+---+---+---+---+
+|   |   |   |   |   | Q |   |   |
++---+---+---+---+---+---+---+---+
+|   |   | Q |   |   |   |   |   |
++---+---+---+---+---+---+---+---+
+| Q |   |   |   |   |   |   |   |
++---+---+---+---+---+---+---+---+
+|   |   |   |   |   |   | Q |   |
++---+---+---+---+---+---+---+---+
+|   |   |   |   | Q |   |   |   |
++---+---+---+---+---+---+---+---+
+|   |   |   |   |   |   |   | Q |
++---+---+---+---+---+---+---+---+
+|   | Q |   |   |   |   |   |   |
++---+---+---+---+---+---+---+---+
+|   |   |   | Q |   |   |   |   |
++---+---+---+---+---+---+---+---+
+@end example
+@end ifinfo
+@iftex
+@image{fig/chap2/Fig2.8c,73mm,,,.std.svg}
+@caption{@strong{Figure 2.8:} A solution to the eight-queens puzzle.}
+@end iftex
+@end float
+
+We implement this solution as a procedure @code{queens}, which returns a
+sequence of all solutions to the problem of placing @math{n} queens on an

@@ -1,0 +1,100 @@
+  (let ((serializer1 (account1 'serializer))
+        (serializer2 (account2 'serializer)))
+    ((serializer1 (serializer2 exchange))
+     account1
+     account2)))
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 3.43}Exercise 3.43:} Suppose that the balances in
+three accounts start out as $10, $20, and $30, and that multiple processes run,
+exchanging the balances in the accounts.  Argue that if the processes are run
+sequentially, after any number of concurrent exchanges, the account balances
+should be $10, $20, and $30 in some order.  Draw a timing diagram like the one
+in @ref{Figure 3.29} to show how this condition can be violated if the
+exchanges are implemented using the first version of the account-exchange
+program in this section.  On the other hand, argue that even with this
+@code{exchange} program, the sum of the balances in the accounts will be
+preserved.  Draw a timing diagram to show how even this condition would be
+violated if we did not serialize the transactions on individual accounts.
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.44}Exercise 3.44:} Consider the problem of
+transferring an amount from one account to another.  Ben Bitdiddle claims that
+this can be accomplished with the following procedure, even if there are
+multiple people concurrently transferring money among multiple accounts, using
+any account mechanism that serializes deposit and withdrawal transactions, for
+example, the version of @code{make-account} in the text above.
+
+@lisp
+(define 
+  (transfer from-account to-account amount)
+  ((from-account 'withdraw) amount)
+  ((to-account 'deposit) amount))
+@end lisp
+
+Louis Reasoner claims that there is a problem here, and that we need to use a
+more sophisticated method, such as the one required for dealing with the
+exchange problem.  Is Louis right?  If not, what is the essential difference
+between the transfer problem and the exchange problem?  (You should assume that
+the balance in @code{from-account} is at least @code{amount}.)
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.45}Exercise 3.45:} Louis Reasoner thinks our
+bank-account system is unnecessarily complex and error-prone now that deposits
+and withdrawals aren't automatically serialized.  He suggests that
+@code{make-account-and-serializer} should have exported the serializer (for use
+by such procedures as @code{serialized-exchange}) in addition to (rather than
+instead of) using it to serialize accounts and deposits as @code{make-account}
+did.  He proposes to redefine accounts as follows:
+
+@lisp
+(define 
+  (make-account-and-serializer balance)
+  (define (withdraw amount)
+    (if (>= balance amount)
+        (begin (set! balance 
+                     (- balance amount))
+               balance)
+        "Insufficient funds"))
+  (define (deposit amount)
+    (set! balance (+ balance amount))
+    balance)
+  (let ((balance-serializer 
+         (make-serializer)))
+    (define (dispatch m)
+      (cond ((eq? m 'withdraw) 
+             (balance-serializer withdraw))
+            ((eq? m 'deposit) 
+             (balance-serializer deposit))
+            ((eq? m 'balance) 
+             balance)
+            ((eq? m 'serializer) 
+             balance-serializer)
+            (else (error "Unknown request: 
+                          MAKE-ACCOUNT"
+                         m))))
+    dispatch))
+@end lisp
+
+Then deposits are handled as with the original @code{make-account}:
+
+@lisp
+(define (deposit account amount)
+  ((account 'deposit) amount))
+@end lisp
+
+Explain what is wrong with Louis's reasoning.  In particular, consider what
+happens when @code{serialized-exchange} is called.
+@end quotation
+
+@subsubheading Implementing serializers
+
+We implement serializers in terms of a more primitive synchronization mechanism
+called a @newterm{mutex}.  A mutex is an object that supports two
+operations---the mutex can be @newterm{acquired}, and the mutex can be
+@newterm{released}.  Once a mutex has been acquired, no other acquire
+operations on that mutex may proceed until the mutex is released.@footnote{The
+term ``mutex'' is an abbreviation for @newterm{mutual exclusion}.  The general

@@ -1,0 +1,100 @@
+(meeting administration (Friday 1pm))
+@end lisp
+
+Each of the above assertions is for a meeting of an entire division.  Ben also
+adds an entry for the company-wide meeting that spans all the divisions.  All
+of the company's employees attend this meeting.
+
+@lisp
+(meeting whole-company (Wednesday 4pm))
+@end lisp
+
+@enumerate a
+
+@item
+On Friday morning, Ben wants to query the data base for all the meetings that
+occur that day.  What query should he use?
+
+@item
+Alyssa P. Hacker is unimpressed.  She thinks it would be much more useful to be
+able to ask for her meetings by specifying her name.  So she designs a rule
+that says that a person's meetings include all @code{whole-company} meetings
+plus all meetings of that person's division.  Fill in the body of Alyssa's
+rule.
+
+@lisp
+(rule (meeting-time ?person ?day-and-time)
+      ⟨@var{rule-body}⟩)
+@end lisp
+
+@item
+Alyssa arrives at work on Wednesday morning and wonders what meetings she has
+to attend that day.  Having defined the above rule, what query should she make
+to find this out?
+
+@end enumerate
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 4.60}Exercise 4.60:} By giving the query
+
+@lisp
+(lives-near ?person (Hacker Alyssa P))
+@end lisp
+
+Alyssa P. Hacker is able to find people who live near her, with whom she can
+ride to work.  On the other hand, when she tries to find all pairs of people
+who live near each other by querying
+
+@lisp
+(lives-near ?person-1 ?person-2)
+@end lisp
+
+@noindent
+she notices that each pair of people who live near each other is listed twice;
+for example,
+
+@lisp
+(lives-near (Hacker Alyssa P) (Fect Cy D))
+(lives-near (Fect Cy D) (Hacker Alyssa P))
+@end lisp
+
+Why does this happen?  Is there a way to find a list of people who live near
+each other, in which each pair appears only once?  Explain.
+@end quotation
+
+@subsubheading Logic as programs
+
+We can regard a rule as a kind of logical implication: @emph{If} an assignment
+of values to pattern variables satisfies the body, @emph{then} it satisfies the
+conclusion.  Consequently, we can regard the query language as having the
+ability to perform @newterm{logical deductions} based upon the rules.  As an
+example, consider the @code{append} operation described at the beginning of
+@ref{4.4}.  As we said, @code{append} can be characterized by the
+following two rules:
+
+@itemize @bullet
+
+@item
+For any list @code{y}, the empty list and @code{y} @code{append} to form
+@code{y}.
+
+@item
+For any @code{u}, @code{v}, @code{y}, and @code{z}, @code{(cons u v)} and
+@code{y} @code{append} to form @code{(cons u z)} if @code{v} and @code{y}
+@code{append} to form @code{z}.
+
+@end itemize
+
+@noindent
+To express this in our query language, we define two rules for a relation
+
+@lisp
+(append-to-form x y z)
+@end lisp
+
+@noindent
+which we can interpret to mean ``@code{x} and @code{y} @code{append} to form
+@code{z}'':
+
+@lisp

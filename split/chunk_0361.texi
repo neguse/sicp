@@ -1,0 +1,100 @@
+addition to the registers needed by @code{seq1}, and modifies the registers
+modified by @code{seq1} except for the ones being saved and restored.  This
+augmented sequence and @code{seq2} are then appended in the usual way.  The
+following procedure implements this strategy recursively, walking down the list
+of registers to be preserved:@footnote{Note that @code{preserving} calls
+@code{append} with three arguments.  Though the definition of @code{append}
+shown in this book accepts only two arguments, Scheme standardly provides an
+@code{append} procedure that takes an arbitrary number of arguments.}
+
+@lisp
+(define (preserving regs seq1 seq2)
+  (if (null? regs)
+      (append-instruction-sequences seq1 seq2)
+      (let ((first-reg (car regs)))
+        (if (and 
+             (needs-register? seq2 first-reg)
+             (modifies-register? seq1 
+                                 first-reg))
+            (preserving 
+             (cdr regs)
+             (make-instruction-sequence
+              (list-union 
+               (list first-reg)
+               (registers-needed seq1))
+              (list-difference
+               (registers-modified seq1)
+               (list first-reg))
+              (append `((save ,first-reg))
+                      (statements seq1)
+                      `((restore ,first-reg))))
+             seq2)
+            (preserving 
+             (cdr regs)
+             seq1
+             seq2)))))
+@end lisp
+
+@noindent
+Another sequence combiner, @code{tack-on-instruction-sequence}, is used by
+@code{compile-lambda} to append a procedure body to another sequence.  Because
+the procedure body is not ``in line'' to be executed as part of the combined
+sequence, its register use has no impact on the register use of the sequence in
+which it is embedded.  We thus ignore the procedure body's sets of needed and
+modified registers when we tack it onto the other sequence.
+
+@lisp
+(define (tack-on-instruction-sequence 
+         seq body-seq)
+  (make-instruction-sequence
+   (registers-needed seq)
+   (registers-modified seq)
+   (append (statements seq)
+           (statements body-seq))))
+@end lisp
+
+@noindent
+@code{Compile-if} and @code{compile-procedure-call} use a special combiner
+called @code{parallel-instruction-sequences} to append the two alternative
+branches that follow a test.  The two branches will never be executed
+sequentially; for any particular evaluation of the test, one branch or the
+other will be entered.  Because of this, the registers needed by the second
+branch are still needed by the combined sequence, even if these are modified by
+the first branch.
+
+@lisp
+(define (parallel-instruction-sequences 
+         seq1 seq2)
+  (make-instruction-sequence
+   (list-union (registers-needed seq1)
+               (registers-needed seq2))
+   (list-union (registers-modified seq1)
+               (registers-modified seq2))
+   (append (statements seq1)
+           (statements seq2))))
+@end lisp
+
+@node	5.5.5, 5.5.6, 5.5.4, 5.5
+@subsection An Example of Compiled Code
+
+Now that we have seen all the elements of the compiler, let us examine an
+example of compiled code to see how things fit together.  We will compile the
+definition of a recursive @code{factorial} procedure by calling @code{compile}:
+
+@lisp
+(compile
+ '(define (factorial n)
+    (if (= n 1)
+        1
+        (* (factorial (- n 1)) n)))
+ 'val
+ 'next)
+@end lisp
+
+@noindent
+We have specified that the value of the @code{define} expression should be
+placed in the @code{val} register.  We don't care what the compiled code does
+after executing the @code{define}, so our choice of @code{next} as the linkage
+descriptor is arbitrary.
+
+@code{Compile} determines that the expression is a definition, so it calls

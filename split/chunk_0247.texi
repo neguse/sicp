@@ -1,0 +1,100 @@
+@code{Analyze-assignment} also must defer actually setting the variable until
+the execution, when the environment has been supplied.  However, the fact that
+the @code{assignment-value} expression can be analyzed (recursively) during
+analysis is a major gain in efficiency, because the @code{assignment-value}
+expression will now be analyzed only once.  The same holds true for
+definitions.
+
+@lisp
+(define (analyze-assignment exp)
+  (let ((var (assignment-variable exp))
+        (vproc (analyze 
+                (assignment-value exp))))
+    (lambda (env)
+      (set-variable-value! 
+       var (vproc env) env)
+      'ok)))
+
+(define (analyze-definition exp)
+  (let ((var (definition-variable exp))
+        (vproc (analyze 
+                (definition-value exp))))
+    (lambda (env)
+      (define-variable! var (vproc env) env)
+      'ok)))
+@end lisp
+
+@noindent
+For @code{if} expressions, we extract and analyze the predicate, consequent,
+and alternative at analysis time.
+
+@lisp
+(define (analyze-if exp)
+  (let ((pproc (analyze (if-predicate exp)))
+        (cproc (analyze (if-consequent exp)))
+        (aproc (analyze (if-alternative exp))))
+    (lambda (env)
+      (if (true? (pproc env))
+          (cproc env)
+          (aproc env)))))
+@end lisp
+
+@noindent
+Analyzing a @code{lambda} expression also achieves a major gain in efficiency:
+We analyze the @code{lambda} body only once, even though procedures resulting
+from evaluation of the @code{lambda} may be applied many times.
+
+@lisp
+(define (analyze-lambda exp)
+  (let ((vars (lambda-parameters exp))
+        (bproc (analyze-sequence 
+                (lambda-body exp))))
+    (lambda (env) 
+      (make-procedure vars bproc env))))
+@end lisp
+
+@noindent
+Analysis of a sequence of expressions (as in a @code{begin} or the body of a
+@code{lambda} expression) is more involved.@footnote{See @ref{Exercise 4.23}
+for some insight into the processing of sequences.} Each expression in the
+sequence is analyzed, yielding an execution procedure.  These execution
+procedures are combined to produce an execution procedure that takes an
+environment as argument and sequentially calls each individual execution
+procedure with the environment as argument.
+
+@lisp
+(define (analyze-sequence exps)
+  (define (sequentially proc1 proc2)
+    (lambda (env) (proc1 env) (proc2 env)))
+  (define (loop first-proc rest-procs)
+    (if (null? rest-procs)
+        first-proc
+        (loop (sequentially first-proc 
+                            (car rest-procs))
+              (cdr rest-procs))))
+  (let ((procs (map analyze exps)))
+    (if (null? procs)
+        (error "Empty sequence: ANALYZE"))
+    (loop (car procs) (cdr procs))))
+@end lisp
+
+@noindent
+To analyze an application, we analyze the operator and operands and construct
+an execution procedure that calls the operator execution procedure (to obtain
+the actual procedure to be applied) and the operand execution procedures (to
+obtain the actual arguments).  We then pass these to
+@code{execute-application}, which is the analog of @code{apply} in 
+@ref{4.1.1}.  @code{Execute-application} differs from @code{apply} in that the
+procedure body for a compound procedure has already been analyzed, so there is
+no need to do further analysis.  Instead, we just call the execution procedure
+for the body on the extended environment.
+
+@lisp
+(define (analyze-application exp)
+  (let ((fproc (analyze (operator exp)))
+        (aprocs (map analyze (operands exp))))
+    (lambda (env)
+      (execute-application 
+       (fproc env)
+       (map (lambda (aproc) (aproc env))
+            aprocs)))))

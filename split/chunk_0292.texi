@@ -1,0 +1,100 @@
+             (error 
+              "Unknown pat var: LISP-VALUE" 
+              v))))
+         (singleton-stream frame)
+         the-empty-stream))
+   frame-stream))
+(put 'lisp-value 'qeval lisp-value)
+@end lisp
+
+@noindent
+@code{Execute}, which applies the predicate to the arguments, must @code{eval}
+the predicate expression to get the procedure to apply.  However, it must not
+evaluate the arguments, since they are already the actual arguments, not
+expressions whose evaluation (in Lisp) will produce the arguments.  Note that
+@code{execute} is implemented using @code{eval} and @code{apply} from the
+underlying Lisp system.
+
+@lisp
+(define (execute exp)
+  (apply (eval (predicate exp) 
+               user-initial-environment)
+         (args exp)))
+@end lisp
+
+@noindent
+The @code{always-true} special form provides for a query that is always
+satisfied.  It ignores its contents (normally empty) and simply passes through
+all the frames in the input stream.  @code{Always-true} is used by the
+@code{rule-body} selector (@ref{4.4.4.7}) to provide bodies for rules
+that were defined without bodies (that is, rules whose conclusions are always
+satisfied).
+
+@lisp
+(define (always-true ignore frame-stream) 
+  frame-stream)
+(put 'always-true 'qeval always-true)
+@end lisp
+
+@noindent
+The selectors that define the syntax of @code{not} and @code{lisp-value} are
+given in @ref{4.4.4.7}.
+
+@node 4.4.4.3, 4.4.4.4, 4.4.4.2, 4.4.4
+@subsubsection Finding Assertions by Pattern Matching
+
+@code{Find-assertions}, called by @code{simple-query} (@ref{4.4.4.2}),
+takes as input a pattern and a frame.  It returns a stream of frames, each
+extending the given one by a data-base match of the given pattern.  It uses
+@code{fetch-assertions} (@ref{4.4.4.5}) to get a stream of all the
+assertions in the data base that should be checked for a match against the
+pattern and the frame.  The reason for @code{fetch-assertions} here is that we
+can often apply simple tests that will eliminate many of the entries in the
+data base from the pool of candidates for a successful match.  The system would
+still work if we eliminated @code{fetch-assertions} and simply checked a stream
+of all assertions in the data base, but the computation would be less efficient
+because we would need to make many more calls to the matcher.
+
+@lisp
+(define (find-assertions pattern frame)
+  (stream-flatmap 
+    (lambda (datum) 
+      (check-an-assertion datum pattern frame))
+    (fetch-assertions pattern frame)))
+@end lisp
+
+@noindent
+@code{Check-an-assertion} takes as arguments a pattern, a data object
+(assertion), and a frame and returns either a one-element stream containing the
+extended frame or @code{the-empty-stream} if the match fails.
+
+@lisp
+(define (check-an-assertion 
+         assertion query-pat query-frame)
+  (let ((match-result
+         (pattern-match 
+          query-pat assertion query-frame)))
+    (if (eq? match-result 'failed)
+        the-empty-stream
+        (singleton-stream match-result))))
+@end lisp
+
+@noindent
+The basic pattern matcher returns either the symbol @code{failed} or an
+extension of the given frame.  The basic idea of the matcher is to check the
+pattern against the data, element by element, accumulating bindings for the
+pattern variables.  If the pattern and the data object are the same, the match
+succeeds and we return the frame of bindings accumulated so far.  Otherwise, if
+the pattern is a variable we extend the current frame by binding the variable
+to the data, so long as this is consistent with the bindings already in the
+frame.  If the pattern and the data are both pairs, we (recursively) match the
+@code{car} of the pattern against the @code{car} of the data to produce a
+frame; in this frame we then match the @code{cdr} of the pattern against the
+@code{cdr} of the data.  If none of these cases are applicable, the match fails
+and we return the symbol @code{failed}.
+
+@lisp
+(define (pattern-match pat dat frame)
+  (cond ((eq? frame 'failed) 'failed)
+        ((equal? pat dat) frame)
+        ((var? pat) 

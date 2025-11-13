@@ -1,0 +1,100 @@
+@lisp
+(define (analyze-require exp)
+  (let ((pproc (analyze 
+                (require-predicate exp))))
+    (lambda (env succeed fail)
+      (pproc env
+             (lambda (pred-value fail2)
+               (if ⟨??⟩
+                   ⟨??⟩
+                   (succeed 'ok fail2)))
+             fail))))
+@end lisp
+@end quotation
+
+@node	4.4, Chapter 5, 4.3, Chapter 4
+@section Logic Programming
+
+In @ref{Chapter 1} we stressed that computer science deals with imperative (how
+to) knowledge, whereas mathematics deals with declarative (what is) knowledge.
+Indeed, programming languages require that the programmer express knowledge in
+a form that indicates the step-by-step methods for solving particular problems.
+On the other hand, high-level languages provide, as part of the language
+implementation, a substantial amount of methodological knowledge that frees the
+user from concern with numerous details of how a specified computation will
+progress.
+
+Most programming languages, including Lisp, are organized around computing the
+values of mathematical functions.  Expression-oriented languages (such as Lisp,
+Fortran, and Algol) capitalize on the ``pun'' that an expression that describes
+the value of a function may also be interpreted as a means of computing that
+value.  Because of this, most programming languages are strongly biased toward
+unidirectional computations (computations with well-defined inputs and
+outputs).  There are, however, radically different programming languages that
+relax this bias.  We saw one such example in @ref{3.3.5}, where the
+objects of computation were arithmetic constraints.  In a constraint system the
+direction and the order of computation are not so well specified; in carrying
+out a computation the system must therefore provide more detailed ``how to''
+knowledge than would be the case with an ordinary arithmetic computation.  This
+does not mean, however, that the user is released altogether from the
+responsibility of providing imperative knowledge.  There are many constraint
+networks that implement the same set of constraints, and the user must choose
+from the set of mathematically equivalent networks a suitable network to
+specify a particular computation.
+
+The nondeterministic program evaluator of @ref{4.3} also moves away
+from the view that programming is about constructing algorithms for computing
+unidirectional functions.  In a nondeterministic language, expressions can have
+more than one value, and, as a result, the computation is dealing with
+relations rather than with single-valued functions.  Logic programming extends
+this idea by combining a relational vision of programming with a powerful kind
+of symbolic pattern matching called @newterm{unification}.@footnote{Logic
+programming has grown out of a long history of research in automatic theorem
+proving.  Early theorem-proving programs could accomplish very little, because
+they exhaustively searched the space of possible proofs.  The major
+breakthrough that made such a search plausible was the discovery in the early
+1960s of the @newterm{unification algorithm} and the @newterm{resolution principle} 
+(@ref{Robinson 1965}).  Resolution was used, for example, by 
+@ref{Green and Raphael (1968)} (see also @ref{Green 1969}) as the basis for a deductive
+question-answering system.  During most of this period, researchers
+concentrated on algorithms that are guaranteed to find a proof if one exists.
+Such algorithms were difficult to control and to direct toward a proof.  
+@ref{Hewitt (1969)} recognized the possibility of merging the control structure of a
+programming language with the operations of a logic-manipulation system,
+leading to the work in automatic search mentioned in @ref{4.3.1}
+(@ref{Footnote 250}).  At the same time that this was being done,
+Colmerauer, in Marseille, was developing rule-based systems for manipulating
+natural language (see @ref{Colmerauer et al. 1973}).  He invented a programming
+language called Prolog for representing those rules.  @ref{Kowalski (1973; 1979)}, in
+Edinburgh, recognized that execution of a Prolog program could be interpreted
+as proving theorems (using a proof technique called linear Horn-clause
+resolution).  The merging of the last two strands led to the logic-programming
+movement.  Thus, in assigning credit for the development of logic programming,
+the French can point to Prolog's genesis at the University of Marseille, while
+the British can highlight the work at the University of Edinburgh.  According
+to people at @abbr{MIT}, logic programming was developed by these groups in
+an attempt to figure out what Hewitt was talking about in his brilliant but
+impenetrable Ph.D. thesis.  For a history of logic programming, see 
+@ref{Robinson 1983}.}
+
+This approach, when it works, can be a very powerful way to write programs.
+Part of the power comes from the fact that a single ``what is'' fact can be
+used to solve a number of different problems that would have different ``how
+to'' components.  As an example, consider the @code{append} operation, which
+takes two lists as arguments and combines their elements to form a single list.
+In a procedural language such as Lisp, we could define @code{append} in terms
+of the basic list constructor @code{cons}, as we did in @ref{2.2.1}:
+
+@lisp
+(define (append x y)
+  (if (null? x) 
+      y 
+      (cons (car x) (append (cdr x) y))))
+@end lisp
+
+@noindent
+This procedure can be regarded as a translation into Lisp of the following two
+rules, the first of which covers the case where the first list is empty and the
+second of which handles the case of a nonempty list, which is a @code{cons} of
+two parts:
+

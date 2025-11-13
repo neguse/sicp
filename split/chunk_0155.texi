@@ -1,0 +1,100 @@
+(define (make-withdraw balance)
+  (lambda (amount)
+    (if (>= balance amount)
+        (begin (set! balance 
+                     (- balance amount))
+               balance)
+        "Insufficient funds")))
+@end lisp
+
+@noindent
+Let us describe the evaluation of
+
+@lisp
+(define W1 (make-withdraw 100))
+@end lisp
+
+@noindent
+followed by
+
+@lisp
+(W1 50)
+@i{50}
+@end lisp
+
+@noindent
+@ref{Figure 3.6} shows the result of defining the @code{make-withdraw}
+procedure in the global environment.  This produces a procedure object that
+contains a pointer to the global environment.  So far, this is no different
+from the examples we have already seen, except that the body of the procedure
+is itself a λ-expression.
+
+@float
+@anchor{Figure 3.6}
+@ifinfo
+@quotation
+@strong{Figure 3.6:} Result of defining @code{make-withdraw} in the global environment.
+
+@example
+          +---------------------------+
+global -->| make-withdraw: --+        |
+env       +------------------|--------+
+                             |      ^
+                             V      |
+                         .---.---.  |
+                         | O | O-+--+
+                         `-|-^---'
+                           |
+                           V
+         parameters: balance
+         body: (lambda (amount)
+                 (if (>= balance amount)
+                     (begin (set! balance
+                                  (- balance amount))
+                            balance)
+                     "Insufficient funds"))
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.6c,128mm,,,.std.svg}
+@caption{@strong{Figure 3.6:} Result of defining @code{make-withdraw} in the global environment.}
+@end iftex
+@end float
+
+@noindent
+The interesting part of the computation happens when we apply the procedure
+@code{make-withdraw} to an argument:
+
+@lisp
+(define W1 (make-withdraw 100))
+@end lisp
+
+@noindent
+We begin, as usual, by setting up an environment E1 in which the formal
+parameter @code{balance} is bound to the argument 100.  Within this
+environment, we evaluate the body of @code{make-withdraw}, namely the
+λ-expression.  This constructs a new procedure object, whose code
+is as specified by the @code{lambda} and whose environment is E1, the
+environment in which the @code{lambda} was evaluated to produce the procedure.
+The resulting procedure object is the value returned by the call to
+@code{make-withdraw}.  This is bound to @code{W1} in the global environment,
+since the @code{define} itself is being evaluated in the global environment.
+@ref{Figure 3.7} shows the resulting environment structure.
+
+@float
+@anchor{Figure 3.7}
+@ifinfo
+@strong{Figure 3.7:} Result of evaluating @code{(define W1 (make-withdraw 100))}.
+
+@example
+          +-----------------------------------------------+
+          | make-withdraw: -----------------------+       |
+global -->|                                       |       |
+          | W1: --+                               |       |
+          +-------|-------------------------------|-------+
+                  |                ^              |     ^
+                  |                |              V     |
+                  |        +-------+------+   .---.---. |
+                  |  E1 -->| balance: 100 |   | O | O-+-+
+                  |        +--------------+   `-|-^---'

@@ -1,0 +1,100 @@
+which holds the result of the factorial computation, is not saved before the
+recursive call, because the old contents of @code{val} is not useful after the
+subroutine returns.  Only the new value, which is the value produced by the
+subcomputation, is needed.
+
+@float
+@anchor{Figure 5.11}
+@ifinfo
+@strong{Figure 5.11:} A recursive factorial machine.
+
+@example
+                             ___
+                            /   \
+    +----------*-----------|  =  |
+    |          |            \___/
+   (X)         |              ^
+    |          |              |
+    V          |          +---+---+   sn    +-------+
++-------+      |          |       +---(X)-->|       |
+|  val  |<-(X)-|----------+   n   |         | stack |
++-----+-+      |          |       |<--(X)---+       |
+  ^   |        |          +-------+   rn    +-+-----+
+  |   |        |            ^                 |   ^
+ (X)  |        |            |                 |   |
+  |   |   +----|--------*  (X)                |  (X) sc
+  |   |   |    |        |   |             rc (X)  |
+  |   |   |    *----.   |   |                 |   |
+  |   V   V    |    V   V   |                 V   |
+  |  -------   |   -------  |              +------+-+
+  |  \  *  /   |   \  -  /  |              |continue+--> controller
+  |   --+--    |    --+--   |              +--------+
+  |     |      |      |     |               ^      ^
+  +-----+      |      +-----+               |      |
+               |                           (X)    (X)
+               |                            |      |
+              / \                   after- / \    / \  fact-
+             /_1_\                  fact  /___\  /___\ done
+@end example
+
+@lisp
+(controller
+   (assign continue (label fact-done))     @r{; set up final return address}
+ fact-loop
+   (test (op =) (reg n) (const 1))
+   (branch (label base-case))
+   @r{;; Set up for the recursive call by saving @code{n} and @code{continue}.}
+   @r{;; Set up @code{continue} so that the computation will continue}
+   @r{;; at @code{after-fact} when the subroutine returns.}
+   (save continue)
+   (save n)
+   (assign n (op -) (reg n) (const 1))
+   (assign continue (label after-fact))
+   (goto (label fact-loop))
+ after-fact
+   (restore n)
+   (restore continue)
+   (assign val (op *) (reg n) (reg val))   @r{; @code{val} now contains @emph{n}(@emph{n} − 1)!}
+   (goto (reg continue))                   @r{; return to caller}
+ base-case
+   (assign val (const 1))                  @r{; base case: }1! = 1
+   (goto (reg continue))                   @r{; return to caller}
+ fact-done)
+@end lisp
+
+@end ifinfo
+@iftex
+@image{fig/chap5/Fig5.11b,147mm,,,.std.svg}
+@caption{@strong{Figure 5.11:} A recursive factorial machine.}
+@end iftex
+@end float
+
+Although in principle the factorial computation requires an infinite machine,
+the machine in @ref{Figure 5.11} is actually finite except for the stack, which
+is potentially unbounded.  Any particular physical implementation of a stack,
+however, will be of finite size, and this will limit the depth of recursive
+calls that can be handled by the machine.  This implementation of factorial
+illustrates the general strategy for realizing recursive algorithms as ordinary
+register machines augmented by stacks.  When a recursive subproblem is
+encountered, we save on the stack the registers whose current values will be
+required after the subproblem is solved, solve the recursive subproblem, then
+restore the saved registers and continue execution on the main problem.  The
+@code{continue} register must always be saved.  Whether there are other
+registers that need to be saved depends on the particular machine, since not
+all recursive computations need the original values of registers that are
+modified during solution of the subproblem (see @ref{Exercise 5.4}).
+
+@subsubheading A double recursion
+
+Let us examine a more complex recursive process, the tree-recursive computation
+of the Fibonacci numbers, which we introduced in @ref{1.2.2}:
+
+@lisp
+(define (fib n)
+  (if (< n 2) 
+      n 
+      (+ (fib (- n 1)) (fib (- n 2)))))
+@end lisp
+
+@noindent
+Just as with factorial, we can implement the recursive Fibonacci computation as

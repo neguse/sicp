@@ -1,0 +1,100 @@
+The @code{integral} procedure at the end of the preceding section shows how we
+can use streams to model signal-processing systems that contain feedback loops.
+The feedback loop for the adder shown in @ref{Figure 3.32} is modeled by the
+fact that @code{integral}'s internal stream @code{int} is defined in terms of
+itself:
+
+@lisp
+(define int
+  (cons-stream 
+   initial-value
+   (add-streams 
+    (scale-stream integrand dt) int)))
+@end lisp
+
+@noindent
+The interpreter's ability to deal with such an implicit definition depends on
+the @code{delay} that is incorporated into @code{cons-stream}.  Without this
+@code{delay}, the interpreter could not construct @code{int} before evaluating
+both arguments to @code{cons-stream}, which would require that @code{int}
+already be defined.  In general, @code{delay} is crucial for using streams to
+model signal-processing systems that contain loops.  Without @code{delay}, our
+models would have to be formulated so that the inputs to any signal-processing
+component would be fully evaluated before the output could be produced.  This
+would outlaw loops.
+
+@noindent
+Unfortunately, stream models of systems with loops may require uses of
+@code{delay} beyond the ``hidden'' @code{delay} supplied by @code{cons-stream}.
+For instance, @ref{Figure 3.34} shows a signal-processing system for solving
+the differential equation @math{{dy / dt = f(y)}} where @math{f} is a given
+function.  The figure shows a mapping component, which applies @math{f} to its
+input signal, linked in a feedback loop to an integrator in a manner very
+similar to that of the analog computer circuits that are actually used to solve
+such equations.
+
+@float
+@anchor{Figure 3.34}
+@ifinfo
+@quotation
+@strong{Figure 3.34:} An ``analog computer circuit'' that solves the equation @math{{dy / dt = f(y)}}.
+
+@example
+                            y_0
+                             |
+                             V
+    +----------+  dy   +----------+     y
++-->|  map: f  +------>| integral +--*----->
+|   +----------+       +----------+  |
+|                                    |
++------------------------------------+
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.34,110mm,,,.std.svg}
+@caption{@strong{Figure 3.34:} An ``analog computer circuit'' that solves the equation @math{{dy / dt = f(y)}}.}
+@end iftex
+@end float
+
+Assuming we are given an initial value @math{y_0} for @math{y}, we could try to model
+this system using the procedure
+
+@lisp
+(define (solve f y0 dt)
+  (define y (integral dy y0 dt))
+  (define dy (stream-map f y))
+  y)
+@end lisp
+
+@noindent
+This procedure does not work, because in the first line of @code{solve} the
+call to @code{integral} requires that the input @code{dy} be defined, which
+does not happen until the second line of @code{solve}.
+
+On the other hand, the intent of our definition does make sense, because we
+can, in principle, begin to generate the @code{y} stream without knowing
+@code{dy}.  Indeed, @code{integral} and many other stream operations have
+properties similar to those of @code{cons-stream}, in that we can generate part
+of the answer given only partial information about the arguments.  For
+@code{integral}, the first element of the output stream is the specified
+@code{initial-value}.  Thus, we can generate the first element of the output
+stream without evaluating the integrand @code{dy}.  Once we know the first
+element of @code{y}, the @code{stream-map} in the second line of @code{solve}
+can begin working to generate the first element of @code{dy}, which will
+produce the next element of @code{y}, and so on.
+
+To take advantage of this idea, we will redefine @code{integral} to expect the
+integrand stream to be a @newterm{delayed argument}.  @code{Integral} will
+@code{force} the integrand to be evaluated only when it is required to generate
+more than the first element of the output stream:
+
+@lisp
+(define (integral
+         delayed-integrand initial-value dt)
+  (define int
+    (cons-stream 
+     initial-value
+     (let ((integrand 
+            (force delayed-integrand)))
+       (add-streams 

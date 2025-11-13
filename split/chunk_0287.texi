@@ -1,0 +1,100 @@
+consistency with mathematical logic without unduly sacrificing expressive
+power.}
+
+@subsubheading Infinite loops
+
+A consequence of the procedural interpretation of logic programs is that it is
+possible to construct hopelessly inefficient programs for solving certain
+problems.  An extreme case of inefficiency occurs when the system falls into
+infinite loops in making deductions.  As a simple example, suppose we are
+setting up a data base of famous marriages, including
+
+@lisp
+(assert! (married Minnie Mickey))
+@end lisp
+
+@noindent
+If we now ask
+
+@lisp
+(married Mickey ?who)
+@end lisp
+
+@noindent
+we will get no response, because the system doesn't know that if @math{A} is
+married to @math{B}, then @math{B} is married to @math{A}.  So we assert the rule
+
+@lisp
+(assert! (rule (married ?x ?y)
+               (married ?y ?x)))
+@end lisp
+
+@noindent
+and again query
+
+@lisp
+(married Mickey ?who)
+@end lisp
+
+Unfortunately, this will drive the system into an infinite loop, as follows:
+
+@itemize @bullet
+
+@item
+The system finds that the @code{married} rule is applicable; that is, the rule
+conclusion @code{(married ?x ?y)} successfully unifies with the query pattern
+@code{(married Mickey ?who)} to produce a frame in which @code{?x} is bound to
+@code{Mickey} and @code{?y} is bound to @code{?who}.  So the interpreter
+proceeds to evaluate the rule body @code{(married ?y ?x)} in this frame---in
+effect, to process the query @code{(married ?who Mickey)}.
+
+@item
+One answer appears directly as an assertion in the data base: @code{(married
+Minnie Mickey)}.
+
+@item
+The @code{married} rule is also applicable, so the interpreter again evaluates
+the rule body, which this time is equivalent to @code{(married Mickey ?who)}.
+
+@end itemize
+
+@noindent
+The system is now in an infinite loop.  Indeed, whether the system will find
+the simple answer @code{(married Minnie Mickey)} before it goes into the loop
+depends on implementation details concerning the order in which the system
+checks the items in the data base.  This is a very simple example of the kinds
+of loops that can occur.  Collections of interrelated rules can lead to loops
+that are much harder to anticipate, and the appearance of a loop can depend on
+the order of clauses in an @code{and} (see @ref{Exercise 4.64}) or on low-level
+details concerning the order in which the system processes
+queries.@footnote{This is not a problem of the logic but one of the procedural
+interpretation of the logic provided by our interpreter.  We could write an
+interpreter that would not fall into a loop here.  For example, we could
+enumerate all the proofs derivable from our assertions and our rules in a
+breadth-first rather than a depth-first order.  However, such a system makes it
+more difficult to take advantage of the order of deductions in our programs.
+One attempt to build sophisticated control into such a program is described in
+@ref{deKleer et al. 1977}.  Another technique, which does not lead to such serious
+control problems, is to put in special knowledge, such as detectors for
+particular kinds of loops (@ref{Exercise 4.67}).  However, there can be no
+general scheme for reliably preventing a system from going down infinite paths
+in performing deductions.  Imagine a diabolical rule of the form ``To show
+@math{{P(x)}} is true, show that @math{{P(f(x))}} is true,'' for some
+suitably chosen function @math{f}.}
+
+@subsubheading Problems with @code{not}
+
+Another quirk in the query system concerns @code{not}.  Given the data base of
+@ref{4.4.1}, consider the following two queries:
+
+@lisp
+(and (supervisor ?x ?y)
+     (not (job ?x (computer programmer))))
+
+(and (not (job ?x (computer programmer)))
+     (supervisor ?x ?y))
+@end lisp
+
+@noindent
+These two queries do not produce the same result.  The first query begins by
+finding all entries in the data base that match @code{(supervisor ?x ?y)}, and

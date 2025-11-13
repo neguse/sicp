@@ -1,0 +1,100 @@
+P. Hacker disagree over the importance of lazy evaluation for implementing
+things such as @code{unless}.  Ben points out that it's possible to implement
+@code{unless} in applicative order as a special form.  Alyssa counters that, if
+one did that, @code{unless} would be merely syntax, not a procedure that could
+be used in conjunction with higher-order procedures.  Fill in the details on
+both sides of the argument.  Show how to implement @code{unless} as a derived
+expression (like @code{cond} or @code{let}), and give an example of a situation
+where it might be useful to have @code{unless} available as a procedure, rather
+than as a special form.
+@end quotation
+
+@node	4.2.2, 4.2.3, 4.2.1, 4.2
+@subsection An Interpreter with Lazy Evaluation
+
+In this section we will implement a normal-order language that is the same as
+Scheme except that compound procedures are non-strict in each argument.
+Primitive procedures will still be strict.  It is not difficult to modify the
+evaluator of @ref{4.1.1} so that the language it interprets behaves
+this way.  Almost all the required changes center around procedure application.
+
+The basic idea is that, when applying a procedure, the interpreter must
+determine which arguments are to be evaluated and which are to be delayed.  The
+delayed arguments are not evaluated; instead, they are transformed into objects
+called @newterm{thunks}.@footnote{The word @newterm{thunk} was invented by an
+informal working group that was discussing the implementation of call-by-name
+in Algol 60.  They observed that most of the analysis of (``thinking about'')
+the expression could be done at compile time; thus, at run time, the expression
+would already have been ``thunk'' about (@ref{Ingerman et al. 1960}).} The thunk must
+contain the information required to produce the value of the argument when it
+is needed, as if it had been evaluated at the time of the application.  Thus,
+the thunk must contain the argument expression and the environment in which the
+procedure application is being evaluated.
+
+The process of evaluating the expression in a thunk is called
+@newterm{forcing}.@footnote{This is analogous to the use of @code{force} on the
+delayed objects that were introduced in @ref{Chapter 3} to represent streams.
+The critical difference between what we are doing here and what we did in
+@ref{Chapter 3} is that we are building delaying and forcing into the
+evaluator, and thus making this uniform and automatic throughout the language.}
+In general, a thunk will be forced only when its value is needed: when it is
+passed to a primitive procedure that will use the value of the thunk; when it
+is the value of a predicate of a conditional; and when it is the value of an
+operator that is about to be applied as a procedure.  One design choice we have
+available is whether or not to @newterm{memoize} thunks, as we did with delayed
+objects in @ref{3.5.1}.  With memoization, the first time a thunk is
+forced, it stores the value that is computed.  Subsequent forcings simply
+return the stored value without repeating the computation.  We'll make our
+interpreter memoize, because this is more efficient for many applications.
+There are tricky considerations here, however.@footnote{Lazy evaluation
+combined with memoization is sometimes referred to as @newterm{call-by-need}
+argument passing, in contrast to @newterm{call-by-name} argument passing.
+(Call-by-name, introduced in Algol 60, is similar to non-memoized lazy
+evaluation.)  As language designers, we can build our evaluator to memoize, not
+to memoize, or leave this an option for programmers (@ref{Exercise 4.31}).  As
+you might expect from @ref{Chapter 3}, these choices raise issues that become
+both subtle and confusing in the presence of assignments.  (See @ref{Exercise 4.27} 
+and @ref{Exercise 4.29}.)  An excellent article by @ref{Clinger (1982)}
+attempts to clarify the multiple dimensions of confusion that arise here.}
+
+@subsubheading Modifying the evaluator
+
+The main difference between the lazy evaluator and the one in @ref{4.1}
+is in the handling of procedure applications in @code{eval} and @code{apply}.
+
+The @code{application?} clause of @code{eval} becomes
+
+@lisp
+((application? exp)
+ (apply (actual-value (operator exp) env)
+        (operands exp)
+        env))
+@end lisp
+
+@noindent
+This is almost the same as the @code{application?} clause of @code{eval} in
+@ref{4.1.1}.  For lazy evaluation, however, we call @code{apply} with
+the operand expressions, rather than the arguments produced by evaluating them.
+Since we will need the environment to construct thunks if the arguments are to
+be delayed, we must pass this as well.  We still evaluate the operator, because
+@code{apply} needs the actual procedure to be applied in order to dispatch on
+its type (primitive versus compound) and apply it.
+
+Whenever we need the actual value of an expression, we use
+
+@lisp
+(define (actual-value exp env)
+  (force-it (eval exp env)))
+@end lisp
+
+@noindent
+instead of just @code{eval}, so that if the expression's value is a thunk, it
+will be forced.
+
+Our new version of @code{apply} is also almost the same as the version in
+@ref{4.1.1}.  The difference is that @code{eval} has passed in
+unevaluated operand expressions: For primitive procedures (which are strict),
+we evaluate all the arguments before applying the primitive; for compound
+procedures (which are non-strict) we delay all the arguments before applying
+the procedure.
+

@@ -1,0 +1,24 @@
+sicp-pocket-ja.texi:11806: misplaced }
+sicp-pocket-ja.texi:14511: unmatched `@end'
+sicp-pocket-ja.texi:16154: misplaced {
+sicp-pocket-ja.texi:16154: misplaced {
+sicp-pocket-ja.texi:16154: misplaced }
+sicp-pocket-ja.texi:16154: misplaced }
+sicp-pocket-ja.texi:16563: unmatched `@end lisp'
+sicp-pocket-ja.texi:16566: unmatched `@end quotation'
+sicp-pocket-ja.texi:19974: unknown command `footnoteref'
+sicp-pocket-ja.texi:19974: misplaced {
+sicp-pocket-ja.texi:19974: misplaced }
+sicp-pocket-ja.texi:19984: unmatched `@end lisp'
+sicp-pocket-ja.texi:19987: unmatched `@end quotation'
+sicp-pocket-ja.texi:28018: unmatched `@end lisp'
+sicp-pocket-ja.texi:30859: unmatched `@end lisp'
+sicp-pocket-ja.texi:30860: unmatched `@end quotation'
+sicp-pocket-ja.texi:3150: @ref reference to nonexistent node `Hardy and Wright (1960)'
+sicp-pocket-ja.texi:5880: @ref reference to nonexistent node `Moses 1970'
+sicp-pocket-ja.texi:5881: @ref reference to nonexistent node `Moses 2012'
+sicp-pocket-ja.texi:5883: @ref reference to nonexistent node `MacDonald 1967'
+sicp-pocket-ja.texi:5886: @ref reference to nonexistent node `Macsyma 2012'
+sicp-pocket-ja.texi:5887: @ref reference to nonexistent node `Fateman 1979'
+sicp-pocket-ja.texi:5887: @ref reference to nonexistent node `Martin and Fateman 1971'
+sicp-pocket-ja.texi:19898: @ref reference to nonexistent node `Marc Feeley 1986'

@@ -10256,34 +10256,25 @@ Angle(z_1 / z_2) = Angle(z_1) - Angle(z_2)
 @end quotation
 
 @quotation
-@strong{@anchor{Exercise 2.74}Exercise 2.74:} Insatiable Enterprises, Inc. は非常に分散化された企業で、多くの独立した部門を持っています。企業の各部門は個別のファイル管理システムを持っており、ファイル管理システムの実装に適した方法で自分たちの人事記録を保持しています。
-@iftex
-@image{fig/chap2/Fig2.20,147mm,,,.std.svg}
-@caption{@strong{Figure 2.20:} 平面上の点としての複素数。}
-@end iftex
-@end float
+@strong{@anchor{Exercise 2.74}Exercise 2.74:} Insatiable Enterprises, Inc. は非常に分散化された企業で、多くの独立した部門を持っています。企業の各部門は個別のファイル管理システムを持っており、ファイル管理システムの実装に適した方法で自分たちの人事記録を保持しています。会社のコンピュータ設備は、ネットワーク全体をあらゆるユーザーにとって単一のコンピュータのように見せるネットワークインターフェーシングスキームによって相互接続されました。Insatiableの社長は、ネットワークの能力を利用して部門ファイルから管理情報を抽出しようとする最初の試みで、すべての部門ファイルがSchemeのデータ構造として実装されているにもかかわらず、使用される特定のデータ構造が部門ごとに異なることを発見して落胆しました。部門管理者の会議が急遽召集され、本社のニーズを満たしながら、既存の部門の自律性を維持するファイルを統合する戦略を探します。
 
-@noindent
-複素数を乗算する場合、複素数を極形式、つまり大きさと角度として表現する(@ref{Figure 2.20}の@math{r}と@math{A})ことで考える方が自然です。2つの複素数の積は、一方の複素数を他方の長さで引き伸ばし、次にそれを他方の角度だけ回転させることによって得られるベクトルです：
-@ifinfo
+データ指向プログラミングを使ってそのような戦略を実装する方法を示してください。例として、各部門の人事記録が従業員の名前をキーとする単一のファイルから構成されているとします。セットの構造は部門ごとに異なります。さらに、各従業員の記録自体が（部門ごとに異なる構造の）セットであり、@code{address}や@code{salary}などの識別子の下にキー付けされた情報を含んでいます。特に：
 
-@example
-Magnitude(z_1 * z_2) = Magnitude(z_1) * Magnitude(z_2)
+@enumerate a
 
-Angle(z_1 * z_2) = Angle(z_1) + Angle(z_2)
-@end example
+@item
+本社のために、指定された人事ファイルから指定された従業員の記録を取得する@code{get-record}手続きを実装してください。この手続きは、任意の部門のファイルに適用できる必要があります。個々の部門のファイルをどのように構造化すべきかを説明してください。特に、どのような型情報を提供する必要がありますか？
 
-@end ifinfo
-@tex
-\[ % :47:
-\begin{eqnarray}
-  \text{Magnitude} (z_1 \cdot z_2)  &=&
-    \text{Magnitude} (z_1) \cdot \text{Magnitude} (z_2), \\
-  \text{Angle} (z_1 \cdot z_2)      &=&
-    \text{Angle} (z_1) + \text{Angle} (z_2).
-\end{eqnarray}
-\]
-@end tex
+@item
+本社のために、指定された従業員の記録から指定された情報（給与など）を取得する@code{get-salary}手続きを実装してください。この手続きをどのように動作させるべきですか？（つまり、追加情報をどのように構造化すべきですか？）
+
+@item
+本社のために、指定された名前を持つ従業員の記録を、すべての部門のファイルのリストから見つける@code{find-employee-record}手続きを実装してください。この手続きは、個々の部門のファイルが互いに独立した方法で実装されているという事実にどのように対処することを想定していますか？
+
+@item
+会社が新しい会社を買収したとき、ファイルを既存のシステムに組み込むために何をする必要がありますか？
+@end enumerate
+@end quotation
 
 @noindent
 したがって、複素数には、異なる操作に適した2つの異なる表現があります。しかし、複素数を使用するプログラムを書く人の観点から見ると、データ抽象の原則は、複素数を操作するすべての操作が、コンピュータがどの表現を使用するかに関係なく利用可能であるべきだと示唆しています。たとえば、直交座標で指定された複素数の大きさを見つけることができると便利な場合がよくあります。同様に、極座標で指定された複素数の実部を決定できると便利な場合がよくあります。
@@ -19980,7 +19971,7 @@ phase.
 
 @noindent
 Looking up a variable value must still be done in the execution phase, since
-this depends upon knowing the environment.@footnote{@footnoteref{footnote-6b}}
+this depends upon knowing the environment.
 
 @lisp
 (define (analyze-variable exp)

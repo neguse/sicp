@@ -1,0 +1,77 @@
+
+\begin{eqnarray}
+{n_1 \over d_1} + {n_2 \over d_2}       &=& {n_1 d_2 + n_2 d_1 \over d_1 d_2}, \\
+{n_1 \over d_1} - {n_2 \over d_2} 	&=& {n_1 d_2 - n_2 d_1 \over d_1 d_2}, \\
+{n_1 \over d_1} \times {n_2 \over d_2} 	&=& {n_1 n_2 \over d_1 d_2}, \\
+{n_1 \,/\, d_1} \over {n_2 \,/\, d_2} 	&=& {n_1 d_2 \over d_1 n_2}, \\
+{n_1 \over d_1} 			&=& {n_2 \over d_2} \quad
+						{\rm\ if\ and\ only\ if\quad}
+						n_1 d_2 = n_2 d_1.
+\end{eqnarray}
+\]
+@end tex
+@noindent
+これらの規則を手続きとして表現できます：
+
+@lisp
+(define (add-rat x y)
+  (make-rat (+ (* (numer x) (denom y))
+               (* (numer y) (denom x)))
+            (* (denom x) (denom y))))
+
+(define (sub-rat x y)
+  (make-rat (- (* (numer x) (denom y))
+               (* (numer y) (denom x)))
+            (* (denom x) (denom y))))
+
+(define (mul-rat x y)
+  (make-rat (* (numer x) (numer y))
+            (* (denom x) (denom y))))
+
+(define (div-rat x y)
+  (make-rat (* (numer x) (denom y))
+            (* (denom x) (numer y))))
+
+(define (equal-rat? x y)
+  (= (* (numer x) (denom y))
+     (* (numer y) (denom x))))
+@end lisp
+
+@noindent
+これで、有理数に対する演算がセレクタとコンストラクタの手続き@code{numer}、@code{denom}、@code{make-rat}の観点で定義されました。しかし、これらはまだ定義していません。必要なのは、分子と分母を接着して有理数を形成する何らかの方法です。
+
+@subsubheading ペア
+
+データ抽象化の具体的なレベルを実装できるようにするために、言語は@newterm{ペア}と呼ばれる複合構造を提供します。これはプリミティブ手続き@code{cons}で構築できます。この手続きは2つの引数を受け取り、2つの引数を部分として含む複合データオブジェクトを返します。ペアが与えられると、プリミティブ手続き@code{car}と@code{cdr}を使用して部分を抽出できます。@footnote{@code{cons}という名前は「construct（構築）」を表します。@code{car}と@code{cdr}という名前は、IBM 704でのLispの元の実装に由来します。そのマシンには、メモリ位置の「アドレス」部分と「デクリメント」部分を参照できるアドレッシング方式がありました。@code{Car}は「Contents of Address part of Register（レジスタのアドレス部分の内容）」を表し、@code{cdr}（「could-er」と発音）は「Contents of Decrement part of Register（レジスタのデクリメント部分の内容）」を表します。}したがって、@code{cons}、@code{car}、@code{cdr}を次のように使用できます：
+
+@lisp
+(define x (cons 1 2))
+
+(car x)
+@i{1}
+
+(cdr x)
+@i{2}
+@end lisp
+
+@noindent
+ペアは、プリミティブデータオブジェクトと同様に、名前を付けて操作できるデータオブジェクトであることに注意してください。さらに、@code{cons}は、要素がペアであるペアを形成するために使用でき、以下同様です：
+
+@lisp
+(define x (cons 1 2))
+(define y (cons 3 4))
+(define z (cons x y))
+
+(car (car z))
+@i{1}
+
+(car (cdr z))
+@i{3}
+@end lisp
+
+@noindent
+@ref{2.2}では、ペアを組み合わせるこの能力により、ペアがあらゆる種類の複雑なデータ構造を作成するための汎用目的の構成要素として使用できる方法を見ます。手続き@code{cons}、@code{car}、@code{cdr}によって実装される単一の複合データプリミティブ@newterm{ペア}が、必要な唯一の接着剤です。ペアから構築されたデータオブジェクトは、@newterm{リスト構造}データと呼ばれます。
+
+@subsubheading 有理数の表現
+
+ペアは、有理数システムを完成させるための自然な方法を提供します。単純に、有理数を2つの整数、つまり分子と分母のペアとして表現します。

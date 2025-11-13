@@ -1,0 +1,52 @@
+データ構造に含めることができる。@footnote{この例は、@ref{Chapter 2,,@w{第2章}}でデータ構造を導入した後に見ます。}
+
+@end itemize
+
+@noindent
+Lispは、他の一般的なプログラミング言語とは異なり、手続きに完全な第一級の地位を与えています。これは効率的な実装に課題をもたらしますが、結果として得られる表現力の向上は莫大です。@footnote{第一級手続きの主な実装コストは、手続きを値として返すことを許可すると、手続きが実行されていない間でも手続きの自由変数のためのストレージを確保しておく必要があることです。@ref{4.1}で学ぶScheme実装では、これらの変数は手続きの環境に格納されます。}
+
+@quotation
+@strong{@anchor{Exercise 1.40}練習問題 1.40:} @code{newtons-method}手続きと一緒に次の形式の式で使用できる手続き@code{cubic}を定義してください：
+
+@lisp
+(newtons-method (cubic a b c) 1)
+@end lisp
+
+@noindent
+これは三次式@math{{x^3 + ax^2 + bx + c}}の零点を近似します。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.41}練習問題 1.41:} 1つの引数を取る手続きを引数として受け取り、元の手続きを2回適用する手続きを返す手続き@code{double}を定義してください。例えば、@code{inc}が引数に1を加える手続きである場合、@code{(double inc)}は2を加える手続きであるべきです。次の式はどんな値を返しますか？
+
+@lisp
+(((double (double double)) inc) 5)
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.42}練習問題 1.42:} @math{f}と@math{g}を2つの1引数関数とします。@math{f}の@math{g}の後の@newterm{合成}は、関数@math{{x \mapsto f(g(x))}}として定義されます。合成を実装する手続き@code{compose}を定義してください。例えば、@code{inc}が引数に1を加える手続きである場合、
+
+@lisp
+((compose square inc) 6)
+@i{49}
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.43}練習問題 1.43:} @math{f}が数値関数で@math{n}が正の整数である場合、@math{f}の@math{n^{\text{th}}}回の反復適用を形成できます。これは、@math{x}での値が@math{{f(f(\dots (f(x))\dots ))}}である関数として定義されます。例えば、@math{f}が関数@math{{x \mapsto x + 1}}である場合、@math{f}の@math{n^{\text{th}}}回の反復適用は関数@math{{x \mapsto x + n}}です。@math{f}が数を二乗する演算である場合、@math{f}の@math{n^{\text{th}}}回の反復適用は引数を@math{{2^n\text{-th}}}乗する関数です。@math{f}を計算する手続きと正の整数@math{n}を入力として受け取り、@math{f}の@math{n^{\text{th}}}回の反復適用を計算する手続きを返す手続きを書いてください。この手続きは次のように使用できるべきです：
+
+@lisp
+((repeated square 2) 5)
+@i{625}
+@end lisp
+
+ヒント：@ref{Exercise 1.42}の@code{compose}を使うと便利かもしれません。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.44}練習問題 1.44:} 関数を@newterm{平滑化}するという考え方は、信号処理における重要な概念です。@math{f}が関数で@math{{dx}}が小さな数である場合、@math{f}の平滑化バージョンは、点@math{x}での値が@math{{f(x - dx)}}、@math{{f(x)}}、@math{{f(x + dx)}}の平均である関数です。@math{f}を計算する手続きを入力として受け取り、平滑化された@math{f}を計算する手続きを返す手続き@code{smooth}を書いてください。関数を繰り返し平滑化する（つまり、平滑化された関数を平滑化する、などを繰り返す）ことで、@newterm{@i{n}重平滑化関数}を得ることが時には価値があります。@code{smooth}と@ref{Exercise 1.43}の@code{repeated}を使用して、任意の与えられた関数の@i{n}重平滑化関数を生成する方法を示してください。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 1.45}練習問題 1.45:} @ref{1.3.3}で、素朴に@math{{y \mapsto x / y}}の不動点を見つけることで平方根を計算しようとしても収束しないこと、そしてこれが平均減衰で修正できることを見ました。立方根を見つける場合も、平均減衰された@math{{y \mapsto x / y^2}}の不動点として同じ方法が機能します。残念ながら、このプロセスは4乗根には機能しません---1回の平均減衰では@math{{y \mapsto x / y^3}}の不動点探索を収束させるのに十分ではありません。一方、平均減衰を2回行う（つまり、@math{{y \mapsto x / y^3}}の平均減衰の平均減衰を使用する）と、不動点探索は収束します。@math{n^{\text{th}}}乗根を@math{{y \mapsto x / y^{\kern0.1em n-1}}}の反復平均減衰に基づく不動点探索として計算するために、いくつの平均減衰が必要かを決定する実験を行ってください。

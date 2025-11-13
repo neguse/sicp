@@ -1,0 +1,79 @@
+f(x) = x - -----
+           Dg(x)
+@end example
+
+@end ifinfo
+@tex
+
+\[ % :28:
+
+{f(x)} \,=\, x - \frac{g(x)}{D g(x)}
+\]
+
+@end tex
+@noindent
+であり、@math{{Dg(x)}}は@math{x}で評価された@math{g}の導関数です。ニュートン法とは、上で見た不動点法を用いて、関数@math{{f}}の不動点を見つけることで方程式の解を近似する方法です。@footnote{初等微積分の教科書では通常、ニュートン法を近似列@math{x_{n+1} = x_n - {g(x_n)\,/ Dg(x_n)}}の形で説明します。プロセスについて語るための言語を持ち、不動点という考え方を用いることで、この手法の説明が簡潔になります。}
+
+多くの関数@math{g}と@math{x}の十分に良い初期推測値に対して、ニュートン法は@math{{g(x) = 0}}の解に非常に急速に収束します。@footnote{ニュートン法は常に解に収束するわけではありませんが、好都合な場合には、各反復が解への近似の精度の桁数を2倍にすることが示されています。そのような場合、ニュートン法は二分法よりもはるかに速く収束します。}
+
+ニュートン法を手続きとして実装するには、まず導関数という考え方を表現する必要があります。「導関数」は平均減衰と同様に、ある関数を別の関数に変換するものであることに注意してください。例えば、関数@math{{x \mapsto x^3}}の導関数は関数@math{{x \mapsto 3x^2}}です。一般に、@math{g}が関数で@math{{dx}}が小さな数である場合、@math{g}の導関数@math{{Dg}}は、任意の数@math{x}での値が（小さな@math{{dx}}の極限で）次のように与えられる関数です：
+@ifinfo
+
+@example
+        g(x + dx) - g(x)
+Dg(x) = ----------------
+               dx
+@end example
+
+@end ifinfo
+@tex
+
+\[ % :29:
+
+Dg(x) \,=\, {\frac{g(x + dx) - g(x)}{dx}.}
+\]
+
+@end tex
+@noindent
+したがって、導関数という考え方を（@math{{dx}}を例えば0.00001として）次の手続きとして表現できます：
+
+@lisp
+(define (deriv g)
+  (lambda (x)
+    (/ (- (g (+ x dx)) (g x))
+       dx)))
+@end lisp
+
+@noindent
+これに次の定義を加えます：
+
+@lisp
+(define dx 0.00001)
+@end lisp
+
+@noindent
+@code{average-damp}と同様に、@code{deriv}は手続きを引数として受け取り、手続きを値として返す手続きです。例えば、@math{{x \mapsto x^3}}の5における導関数（正確な値は75）を近似するには、次のように評価できます：
+
+@lisp
+(define (cube x) (* x x x))
+
+((deriv cube) 5)
+@i{75.00014999664018}
+@end lisp
+
+@noindent
+@code{deriv}を用いることで、ニュートン法を不動点プロセスとして表現できます：
+
+@lisp
+(define (newton-transform g)
+  (lambda (x)
+    (- x (/ (g x)
+            ((deriv g) x)))))
+
+(define (newtons-method g guess)
+  (fixed-point (newton-transform g)
+               guess))
+@end lisp
+
+@noindent
+@code{newton-transform}手続きは、このセクションの冒頭の式を表現し、@code{newtons-method}はこれを用いて容易に定義されます。

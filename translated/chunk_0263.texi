@@ -1,0 +1,101 @@
+     1→
+     2→@lisp
+     3→(define (parse-simple-noun-phrase)
+     4→  (list 'simple-noun-phrase
+     5→        (parse-word articles)
+     6→        (parse-word nouns)))
+     7→
+     8→(define (parse-noun-phrase)
+     9→  (define (maybe-extend noun-phrase)
+    10→    (amb
+    11→     noun-phrase
+    12→     (maybe-extend
+    13→      (list 'noun-phrase
+    14→            noun-phrase
+    15→            (parse-prepositional-phrase)))))
+    16→  (maybe-extend (parse-simple-noun-phrase)))
+    17→@end lisp
+    18→
+    19→@noindent
+    20→新しい文法により、より複雑な文を解析できます。例えば
+    21→
+    22→@lisp
+    23→(parse '(the student with the cat
+    24→         sleeps in the class))
+    25→@end lisp
+    26→
+    27→@noindent
+    28→は次を生成します
+    29→
+    30→@lisp
+    31→(sentence
+    32→ (noun-phrase
+    33→  (simple-noun-phrase (article the)
+    34→                      (noun student))
+    35→  (prep-phrase (prep with)
+    36→               (simple-noun-phrase
+    37→                (article the)
+    38→                (noun cat))))
+    39→ (verb-phrase
+    40→  (verb sleeps)
+    41→  (prep-phrase (prep in)
+    42→               (simple-noun-phrase
+    43→                (article the)
+    44→                (noun class)))))
+    45→@end lisp
+    46→
+    47→@noindent
+    48→与えられた入力が複数の正当な解析を持つ可能性があることに注意してください。文「The professor lectures to the student with the cat」では、教授が猫と一緒に講義をしているのか、学生が猫を持っているのかもしれません。私たちの非決定性プログラムは両方の可能性を見つけます：
+    49→
+    50→@lisp
+    51→(parse '(the professor lectures to
+    52→         the student with the cat))
+    53→@end lisp
+    54→
+    55→@noindent
+    56→は次を生成します
+    57→
+    58→@lisp
+    59→(sentence
+    60→ (simple-noun-phrase (article the)
+    61→                     (noun professor))
+    62→ (verb-phrase
+    63→  (verb-phrase
+    64→   (verb lectures)
+    65→   (prep-phrase (prep to)
+    66→                (simple-noun-phrase
+    67→                 (article the)
+    68→                 (noun student))))
+    69→  (prep-phrase (prep with)
+    70→               (simple-noun-phrase
+    71→                (article the)
+    72→                (noun cat)))))
+    73→@end lisp
+    74→
+    75→@noindent
+    76→評価器に再試行を要求すると、次が得られます
+    77→
+    78→@lisp
+    79→(sentence
+    80→ (simple-noun-phrase (article the)
+    81→                     (noun professor))
+    82→ (verb-phrase (verb lectures)
+    83→              (prep-phrase
+    84→               (prep to)
+    85→               (noun-phrase
+    86→                (simple-noun-phrase
+    87→                 (article the)
+    88→                 (noun student))
+    89→                (prep-phrase
+    90→                 (prep with)
+    91→                 (simple-noun-phrase
+    92→                  (article the)
+    93→                  (noun cat)))))))
+    94→@end lisp
+    95→
+    96→@quotation
+    97→@strong{@anchor{Exercise 4.45}Exercise 4.45:} 上記の文法では、次の文は5つの異なる方法で解析できます：「The professor lectures to the student in the class with the cat.」5つの解析を示し、それらの間の意味のニュアンスの違いを説明してください。
+    98→@end quotation
+    99→
+    100→@quotation
+    101→

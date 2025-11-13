@@ -1,0 +1,74 @@
+     1→
+     2→@i{;;; Amb-Eval value:}
+     3→@i{(8 35)}
+     4→
+     5→@i{;;; Amb-Eval input:}
+     6→try-again
+     7→
+     8→@i{;;; There are no more values of}
+     9→@i{(prime-sum-pair
+    10→ (quote (1 3 5 8))
+    11→ (quote (20 35 110)))}
+    12→
+    13→@i{;;; Amb-Eval input:}
+    14→(prime-sum-pair '(19 27 30) '(11 36 58))
+    15→
+    16→@i{;;; Starting a new problem}
+    17→@i{;;; Amb-Eval value:}
+    18→@i{(30 11)}
+    19→@end lisp
+    20→
+    21→@quotation
+    22→@strong{@anchor{Exercise 4.35}Exercise 4.35:} 2つの与えられた境界の間の整数を返す手続き@code{an-integer-between}を記述してください。これは、次のように、与えられた境界の間の整数の三つ組@math{{(i, j, k)}}で、@math{{i \le j}}かつ@math{{i^2 + j^2 = k^2}}であるピタゴラスの三つ組を見つける手続きを実装するために使用できます：
+    23→
+    24→@lisp
+    25→(define (a-pythagorean-triple-between low high)
+    26→  (let ((i (an-integer-between low high)))
+    27→    (let ((j (an-integer-between i high)))
+    28→      (let ((k (an-integer-between j high)))
+    29→        (require (= (+ (* i i) (* j j))
+    30→                    (* k k)))
+    31→        (list i j k)))))
+    32→@end lisp
+    33→@end quotation
+    34→
+    35→@quotation
+    36→@strong{@anchor{Exercise 4.36}Exercise 4.36:} @ref{Exercise 3.69}では、探索される整数のサイズに上限のない、@emph{すべての}ピタゴラスの三つ組のストリームを生成する方法について議論しました。@ref{Exercise 4.35}の手続きで@code{an-integer-between}を単に@code{an-integer-starting-from}に置き換えることが、任意のピタゴラスの三つ組を生成する適切な方法でない理由を説明してください。実際にこれを達成する手続きを記述してください。（つまり、繰り返し@code{try-again}を入力すると、原理的には最終的にすべてのピタゴラスの三つ組を生成する手続きを記述してください。）
+    37→@end quotation
+    38→
+    39→@quotation
+    40→@strong{@anchor{Exercise 4.37}Exercise 4.37:} Ben Bitdiddleは、ピタゴラスの三つ組を生成する次の方法は@ref{Exercise 4.35}のものより効率的であると主張しています。彼は正しいですか？（ヒント：探索しなければならない可能性の数を考慮してください。）
+    41→
+    42→@lisp
+    43→(define (a-pythagorean-triple-between low high)
+    44→  (let ((i (an-integer-between low high))
+    45→        (hsq (* high high)))
+    46→    (let ((j (an-integer-between i high)))
+    47→      (let ((ksq (+ (* i i) (* j j))))
+    48→        (require (>= hsq ksq))
+    49→        (let ((k (sqrt ksq)))
+    50→          (require (integer? k))
+    51→          (list i j k))))))
+    52→@end lisp
+    53→@end quotation
+    54→
+    55→@node	4.3.2, 4.3.3, 4.3.1, 4.3
+    56→@subsection 非決定性プログラムの例
+    57→
+    58→@ref{4.3.3}節では@code{amb}評価器の実装について説明します。しかし、まず、それをどのように使用できるかのいくつかの例を示します。非決定性プログラミングの利点は、探索がどのように実行されるかの詳細を抑制できるため、より高いレベルの抽象化でプログラムを表現できることです。
+    59→
+    60→@subsubheading 論理パズル
+    61→
+    62→次のパズル（@ref{Dinesman 1968}から取られた）は、大規模なクラスの単純な論理パズルの典型です：
+    63→
+    64→@quotation
+    65→Baker、Cooper、Fletcher、Miller、Smithは、5階建てのアパートの異なる階に住んでいます。Bakerは最上階に住んでいません。Cooperは最下階に住んでいません。Fletcherは最上階にも最下階にも住んでいません。MillerはCooperより高い階に住んでいます。SmithはFletcherに隣接する階には住んでいません。FletcherはCooperに隣接する階には住んでいません。誰がどこに住んでいますか？
+    66→@end quotation
+    67→
+    68→@noindent
+    69→すべての可能性を列挙し、与えられた制約を課すことによって、誰が各階に住んでいるかを直接的な方法で決定できます：@footnote{私たちのプログラムは、リストの要素が異なるかどうかを判定するために次の手続きを使用します：
+    70→
+    71→@lisp
+    72→(define (distinct? items)
+    73→  (cond ((null? items) true)
+    74→

@@ -1,0 +1,80 @@
+     1→グローバル環境のプリミティブであり、これらは再定義されます。（また@ref{Exercise 4.33}と@ref{Exercise 4.34}も参照してください。）}
+     2→
+     3→@lisp
+     4→(define (cons x y) (lambda (m) (m x y)))
+     5→(define (car z) (z (lambda (p q) p)))
+     6→(define (cdr z) (z (lambda (p q) q)))
+     7→@end lisp
+     8→
+     9→@noindent
+    10→これらの基本操作の観点から、リスト操作の標準的な定義は無限リスト（ストリーム）でも有限リストと同様に機能し、ストリーム操作はリスト操作として実装できます。いくつかの例を示します：
+    11→
+    12→@lisp
+    13→(define (list-ref items n)
+    14→  (if (= n 0)
+    15→      (car items)
+    16→      (list-ref (cdr items) (- n 1))))
+    17→
+    18→(define (map proc items)
+    19→  (if (null? items)
+    20→      '()
+    21→      (cons (proc (car items))
+    22→            (map proc (cdr items)))))
+    23→
+    24→(define (scale-list items factor)
+    25→  (map (lambda (x) (* x factor))
+    26→       items))
+    27→
+    28→(define (add-lists list1 list2)
+    29→  (cond ((null? list1) list2)
+    30→        ((null? list2) list1)
+    31→        (else (cons (+ (car list1)
+    32→                       (car list2))
+    33→                    (add-lists
+    34→                     (cdr list1)
+    35→                     (cdr list2))))))
+    36→
+    37→(define ones (cons 1 ones))
+    38→
+    39→(define integers
+    40→  (cons 1 (add-lists ones integers)))
+    41→
+    42→@i{;;; L-Eval input:}
+    43→(list-ref integers 17)
+    44→
+    45→@i{;;; L-Eval value:}
+    46→@i{18}
+    47→@end lisp
+    48→
+    49→@noindent
+    50→これらの遅延リストは@ref{Chapter 3}のストリームよりもさらに遅延的であることに注意してください：リストの@code{car}も@code{cdr}も遅延されます。@footnote{これにより、単なるシーケンスだけでなく、より一般的な種類のリスト構造の遅延バージョンを作成できます。@ref{Hughes 1990}では「遅延木」のいくつかの応用について論じています。}実際、遅延ペアの@code{car}や@code{cdr}にアクセスしても、リスト要素の値を強制する必要はありません。値は本当に必要になったとき、例えばプリミティブの引数として使用されるときや、答えとして印刷されるときにのみ強制されます。
+    51→
+    52→遅延ペアは、@ref{3.5.4}でストリームに関して生じた問題にも役立ちます。そこでは、ループを持つシステムのストリームモデルを定式化するには、@code{cons-stream}が提供するものに加えて、明示的な@code{delay}操作をプログラムに散りばめる必要があることがわかりました。遅延評価では、手続きへのすべての引数が一様に遅延されます。例えば、@ref{3.5.4}で元々意図したように、リストを積分し微分方程式を解く手続きを実装できます：
+    53→
+    54→@lisp
+    55→(define (integral integrand initial-value dt)
+    56→  (define int
+    57→    (cons initial-value
+    58→          (add-lists (scale-list integrand dt)
+    59→                     int)))
+    60→  int)
+    61→
+    62→(define (solve f y0 dt)
+    63→  (define y (integral dy y0 dt))
+    64→  (define dy (map f y))
+    65→  y)
+    66→
+    67→@i{;;; L-Eval input:}
+    68→(list-ref (solve (lambda (x) x) 1 0.001) 1000)
+    69→
+    70→@i{;;; L-Eval value:}
+    71→@i{2.716924}
+    72→@end lisp
+    73→
+    74→@quotation
+    75→@strong{@anchor{Exercise 4.32}Exercise 4.32:} @ref{Chapter 3}のストリームと本節で説明した「より遅延的な」遅延リストの違いを示すいくつかの例を挙げてください。この追加の遅延性をどのように活用できますか？
+    76→@end quotation
+    77→
+    78→@quotation
+    79→@strong{@anchor{Exercise 4.33}Exercise 4.33:} Ben Bitdiddleは、上記で与えられた遅延リストの実装を次の式を評価することでテストします：
+    80→

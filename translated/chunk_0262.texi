@@ -1,0 +1,81 @@
+     1→これを実装するために、グローバル変数@code{*unparsed*}を維持します。これはまだ解析されていない入力です。単語をチェックするたびに、@code{*unparsed*}が空でなく、指定されたリストの単語で始まる必要があることを要求します。そうである場合、@code{*unparsed*}からその単語を削除し、その品詞（リストの先頭にあります）と一緒に単語を返します：@footnote{@code{parse-word}が@code{set!}を使用して未解析入力リストを変更することに注意してください。これが機能するためには、@code{amb}評価器がバックトラックするときに@code{set!}操作の効果を元に戻す必要があります。}
+     2→
+     3→@lisp
+     4→(define (parse-word word-list)
+     5→  (require (not (null? *unparsed*)))
+     6→  (require (memq (car *unparsed*)
+     7→                 (cdr word-list)))
+     8→  (let ((found-word (car *unparsed*)))
+     9→    (set! *unparsed* (cdr *unparsed*))
+    10→    (list (car word-list) found-word)))
+    11→@end lisp
+    12→
+    13→@noindent
+    14→解析を開始するには、@code{*unparsed*}を入力全体に設定し、文を解析しようとし、何も残っていないことを確認するだけです：
+    15→
+    16→@lisp
+    17→(define *unparsed* '())
+    18→(define (parse input)
+    19→  (set! *unparsed* input)
+    20→  (let ((sent (parse-sentence)))
+    21→    (require (null? *unparsed*))
+    22→    sent))
+    23→@end lisp
+    24→
+    25→@noindent
+    26→これで、パーサを試して、単純なテスト文で機能することを確認できます：
+    27→
+    28→@lisp
+    29→@i{;;; Amb-Eval input:}
+    30→(parse '(the cat eats))
+    31→
+    32→@i{;;; Starting a new problem}
+    33→@i{;;; Amb-Eval value:}
+    34→@i{(sentence
+    35→ (noun-phrase (article the) (noun cat))
+    36→ (verb eats))}
+    37→@end lisp
+    38→
+    39→@noindent
+    40→@code{amb}評価器は、@code{require}の助けを借りて解析制約を表現するのが便利であるため、ここで有用です。しかし、自動探索とバックトラッキングが本当に効果を発揮するのは、単位をどのように分解できるかについて選択肢がある、より複雑な文法を考慮するときです。
+    41→
+    42→文法に前置詞のリストを追加しましょう：
+    43→
+    44→@lisp
+    45→(define prepositions
+    46→  '(prep for to in by with))
+    47→@end lisp
+    48→
+    49→@noindent
+    50→そして、前置詞句（例えば「for the cat」）を、前置詞とそれに続く名詞句として定義します：
+    51→
+    52→@lisp
+    53→(define (parse-prepositional-phrase)
+    54→  (list 'prep-phrase
+    55→        (parse-word prepositions)
+    56→        (parse-noun-phrase)))
+    57→@end lisp
+    58→
+    59→@noindent
+    60→これで、文を名詞句とそれに続く動詞句として定義できます。動詞句は、動詞または前置詞句によって拡張された動詞句のいずれかになります：@footnote{この定義が再帰的であることに注意してください。動詞の後に任意の数の前置詞句が続く可能性があります。}
+    61→
+    62→@lisp
+    63→(define (parse-sentence)
+    64→  (list 'sentence
+    65→         (parse-noun-phrase)
+    66→         (parse-verb-phrase)))
+    67→
+    68→(define (parse-verb-phrase)
+    69→  (define (maybe-extend verb-phrase)
+    70→    (amb
+    71→     verb-phrase
+    72→     (maybe-extend
+    73→      (list 'verb-phrase
+    74→            verb-phrase
+    75→            (parse-prepositional-phrase)))))
+    76→  (maybe-extend (parse-word verbs)))
+    77→@end lisp
+    78→
+    79→@noindent
+    80→ついでに、「a cat in the class」のようなものを許可するように名詞句の定義を詳しく説明することもできます。以前に名詞句と呼んでいたものを、今は単純名詞句と呼び、名詞句は単純名詞句または前置詞句によって拡張された名詞句のいずれかになります：
+    81→

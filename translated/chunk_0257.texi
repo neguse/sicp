@@ -1,0 +1,73 @@
+     1→
+     2→@i{;;; Starting a new problem}
+     3→@i{;;; Amb-Eval value:}
+     4→@i{(3 20)}
+     5→@end lisp
+     6→
+     7→@noindent
+     8→返された値は、成功した選択が行われるまで、評価器が各リストから要素を繰り返し選択した後に得られました。
+     9→
+    10→@ref{4.3.1}節では@code{amb}を導入し、それが評価器の自動探索メカニズムを通じてどのように非決定性をサポートするかを説明します。@ref{4.3.2}では非決定性プログラムの例を提示し、@ref{4.3.3}では通常のScheme評価器を修正することによって@code{amb}評価器を実装する方法の詳細を示します。
+    11→
+    12→@menu
+    13→* 4.3.1::            Ambと探索
+    14→* 4.3.2::            非決定性プログラムの例
+    15→* 4.3.3::            @code{Amb}評価器の実装
+    16→@end menu
+    17→
+    18→@node	4.3.1, 4.3.2, 4.3, 4.3
+    19→@subsection Ambと探索
+    20→
+    21→非決定性をサポートするようにSchemeを拡張するために、@code{amb}と呼ばれる新しい特殊形式を導入します。@footnote{非決定性プログラミングのための@code{amb}のアイデアは、1961年にJohn McCarthyによって最初に記述されました（@ref{McCarthy 1963}参照）。}式
+    22→
+    23→@lisp
+    24→(amb ⟨@var{e₁}⟩ ⟨@var{e₂}⟩ @r{…} ⟨@var{eₙ}⟩)
+    25→@end lisp
+    26→
+    27→@noindent
+    28→は、@math{n}個の式@math{{⟨\kern0.03em e_i⟩}}のうちの1つの値を「曖昧に」返します。例えば、式
+    29→
+    30→@lisp
+    31→(list (amb 1 2 3) (amb 'a 'b))
+    32→@end lisp
+    33→
+    34→@noindent
+    35→は6つの可能な値を持つことができます：
+    36→
+    37→@example
+    38→@code{(1 a)} @code{(1 b)} @code{(2 a)} @code{(2 b)} @code{(3 a)} @code{(3 b)}
+    39→@end example
+    40→
+    41→@noindent
+    42→単一の選択肢を持つ@code{amb}は、通常の（単一の）値を生成します。
+    43→
+    44→選択肢のない@code{amb}、つまり式@code{(amb)}は、受け入れ可能な値のない式です。操作上、@code{(amb)}を評価すると計算が「失敗」するという式と考えることができます：計算は中止され、値は生成されません。このアイデアを使用して、特定の述語式@code{p}が真でなければならないという要件を次のように表現できます：
+    45→
+    46→@lisp
+    47→(define (require p)
+    48→  (if (not p) (amb)))
+    49→@end lisp
+    50→
+    51→@noindent
+    52→@code{amb}と@code{require}を使用して、上記で使用した@code{an-element-of}手続きを実装できます：
+    53→
+    54→@lisp
+    55→(define (an-element-of items)
+    56→  (require (not (null? items)))
+    57→  (amb (car items)
+    58→       (an-element-of (cdr items))))
+    59→@end lisp
+    60→
+    61→@noindent
+    62→@code{an-element-of}は、リストが空の場合は失敗します。そうでなければ、リストの最初の要素またはリストの残りから選択された要素を曖昧に返します。
+    63→
+    64→無限の範囲の選択肢を表現することもできます。次の手続きは、与えられた@math{n}以上の任意の整数を潜在的に返します：
+    65→
+    66→@lisp
+    67→(define (an-integer-starting-from n)
+    68→  (amb n (an-integer-starting-from (+ n 1))))
+    69→@end lisp
+    70→
+    71→@noindent
+    72→これは@ref{3.5.2}で記述されたストリーム手続き@code{integers-starting-from}に似ていますが、重要な違いがあります：ストリーム手続きは@math{n}で始まるすべての整数のシーケンスを表すオブジェクトを返しますが、@code{amb}手続きは単一の整数を返します。@footnote{実際、非決定的に単一の選択を返すことと、すべての選択を返すことの区別は、私たちの視点に多少依存します。値を使用するコードの観点からは、非決定的な選択は単一の値を返します。コードを設計するプログラマの観点からは、非決定的な選択は潜在的にすべての可能な値を返し、計算は各値が個別に調査されるように分岐します。}
+    73→

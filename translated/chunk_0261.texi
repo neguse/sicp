@@ -1,0 +1,71 @@
+     1→@item
+     2→Kitty：「私は2位でした。Maryは4位でした。」
+     3→
+     4→@item
+     5→Mary：「私は4位でした。トップはBettyでした。」
+     6→
+     7→@end itemize
+     8→
+     9→実際には、5人の女子生徒はどのような順序で配置されましたか？
+    10→@end quotation
+    11→
+    12→@quotation
+    13→@strong{@anchor{Exercise 4.43}Exercise 4.43:} @code{amb}評価器を使用して、次のパズルを解いてください：@footnote{これは、1960年代にLitton Industriesが発行した「Problematical Recreations」というブックレットから取られたもので、@cite{Kansas State Engineer}に帰属しています。}
+    14→
+    15→@quotation
+    16→Mary Ann Mooreの父はヨットを持っており、彼の4人の友人もそれぞれヨットを持っています：Colonel Downing、Mr. Hall、Sir Barnacle Hood、Dr. Parkerです。5人全員がそれぞれ1人の娘を持っており、それぞれが他の誰かの娘にちなんで自分のヨットに名前を付けています。Sir Barnacleのヨットは Gabrielleです。Mr. MooreはLornaを所有しています。Mr. HallはRosalindを所有しています。Colonel Downingが所有するMelissaは、Sir Barnacleの娘にちなんで名付けられています。Gabrielleの父は、Dr. Parkerの娘にちなんで名付けられたヨットを所有しています。Lornaの父は誰ですか？
+    17→@end quotation
+    18→
+    19→効率的に実行されるようにプログラムを記述してください（@ref{Exercise 4.40}参照）。また、Mary Annの姓がMooreであると言われていない場合、いくつの解があるかを判定してください。
+    20→@end quotation
+    21→
+    22→@quotation
+    23→@strong{@anchor{Exercise 4.44}Exercise 4.44:} @ref{Exercise 2.42}では、互いに攻撃しないようにクイーンをチェス盤に配置する「8クイーンパズル」について説明しました。このパズルを解くための非決定性プログラムを記述してください。
+    24→@end quotation
+    25→
+    26→@subsubheading 自然言語の解析
+    27→
+    28→入力として自然言語を受け入れるように設計されたプログラムは、通常、入力を@newterm{解析}すること、つまり入力を何らかの文法構造と照合することから始まります。例えば、「The cat eats.」のような、冠詞の後に名詞、その後に動詞が続く単純な文を認識しようとするかもしれません。このような分析を達成するには、個々の単語の品詞を識別できる必要があります。さまざまな単語を分類するいくつかのリストから始めることができます：@footnote{ここでは、各リストの最初の要素がリスト内の残りの単語の品詞を指定するという慣例を使用します。}
+    29→
+    30→@lisp
+    31→(define nouns
+    32→  '(noun student professor cat class))
+    33→
+    34→(define verbs
+    35→  '(verb studies lectures eats sleeps))
+    36→
+    37→(define articles '(article the a))
+    38→@end lisp
+    39→
+    40→@noindent
+    41→また、@newterm{文法}、つまり文法要素がより単純な要素からどのように構成されるかを説明する規則のセットが必要です。非常に単純な文法は、文が常に2つの部分、つまり名詞句とそれに続く動詞から構成されること、そして名詞句が冠詞とそれに続く名詞から構成されることを規定するかもしれません。この文法では、文「The cat eats」は次のように解析されます：
+    42→
+    43→@lisp
+    44→(sentence
+    45→ (noun-phrase (article the) (noun cat))
+    46→ (verb eats))
+    47→@end lisp
+    48→
+    49→@noindent
+    50→文法規則のそれぞれに対して別々の手続きを持つ単純なプログラムで、このような解析を生成できます。文を解析するために、その2つの構成要素を識別し、これら2つの要素のリストをシンボル@code{sentence}でタグ付けして返します：
+    51→
+    52→@lisp
+    53→(define (parse-sentence)
+    54→  (list 'sentence
+    55→         (parse-noun-phrase)
+    56→         (parse-word verbs)))
+    57→@end lisp
+    58→
+    59→@noindent
+    60→同様に、名詞句は冠詞とそれに続く名詞を見つけることによって解析されます：
+    61→
+    62→@lisp
+    63→(define (parse-noun-phrase)
+    64→  (list 'noun-phrase
+    65→        (parse-word articles)
+    66→        (parse-word nouns)))
+    67→@end lisp
+    68→
+    69→@noindent
+    70→最も低いレベルでは、解析は、次の未解析の単語が必要な品詞の単語のリストのメンバーであることを繰り返しチェックすることに帰着します。
+    71→

@@ -1,0 +1,76 @@
+     1→        ((null? (cdr items)) true)
+     2→        ((member (car items) (cdr items)) false)
+     3→        (else (distinct? (cdr items)))))
+     4→@end lisp
+     5→
+     6→@code{member}は、等価性のテストに@code{eq?}の代わりに@code{equal?}を使用することを除いて@code{memq}に似ています。}
+     7→
+     8→@lisp
+     9→(define (multiple-dwelling)
+    10→  (let ((baker (amb 1 2 3 4 5))
+    11→        (cooper (amb 1 2 3 4 5))
+    12→        (fletcher (amb 1 2 3 4 5))
+    13→        (miller (amb 1 2 3 4 5))
+    14→        (smith (amb 1 2 3 4 5)))
+    15→    (require
+    16→     (distinct? (list baker cooper fletcher
+    17→                      miller smith)))
+    18→    (require (not (= baker 5)))
+    19→    (require (not (= cooper 1)))
+    20→    (require (not (= fletcher 5)))
+    21→    (require (not (= fletcher 1)))
+    22→    (require (> miller cooper))
+    23→    (require
+    24→     (not (= (abs (- smith fletcher)) 1)))
+    25→    (require
+    26→     (not (= (abs (- fletcher cooper)) 1)))
+    27→    (list (list 'baker baker)
+    28→          (list 'cooper cooper)
+    29→          (list 'fletcher fletcher)
+    30→          (list 'miller miller)
+    31→          (list 'smith smith))))
+    32→@end lisp
+    33→
+    34→@noindent
+    35→式@code{(multiple-dwelling)}を評価すると、次の結果が生成されます
+    36→
+    37→@lisp
+    38→((baker 3) (cooper 2) (fletcher 4)
+    39→ (miller 5) (smith 1))
+    40→@end lisp
+    41→
+    42→@noindent
+    43→この単純な手続きは機能しますが、非常に遅いです。@ref{Exercise 4.39}と@ref{Exercise 4.40}では、いくつかの可能な改善について議論します。
+    44→
+    45→@quotation
+    46→@strong{@anchor{Exercise 4.38}Exercise 4.38:} SmithとFletcherが隣接する階に住んでいないという要件を省略するように、multiple-dwelling手続きを修正してください。この修正されたパズルにはいくつの解がありますか？
+    47→@end quotation
+    48→
+    49→@quotation
+    50→@strong{@anchor{Exercise 4.39}Exercise 4.39:} multiple-dwelling手続きにおける制約の順序は答えに影響しますか？答えを見つけるための時間に影響しますか？影響すると思う場合は、制約を並べ替えることによって与えられたものからより高速なプログラムを実証してください。影響しないと思う場合は、その理由を説明してください。
+    51→@end quotation
+    52→
+    53→@quotation
+    54→@strong{@anchor{Exercise 4.40}Exercise 4.40:} 複数居住問題では、異なるという要件の前と後で、人を階に割り当てる割り当てのセットはいくつありますか？すべての可能な人の階への割り当てを生成し、それらを排除するためにバックトラッキングに任せるのは非常に非効率的です。例えば、制約のほとんどは1つまたは2つの人物-階変数にのみ依存し、したがってすべての人のために階が選択される前に課すことができます。前の制約によってまだ除外されていない可能性のみを生成することに基づいて、この問題をはるかに効率的に解決する非決定性手続きを記述し実証してください。（ヒント：これには@code{let}式のネストが必要になります。）
+    55→@end quotation
+    56→
+    57→@quotation
+    58→@strong{@anchor{Exercise 4.41}Exercise 4.41:} 複数居住パズルを解くための通常のSchemeプログラムを記述してください。
+    59→@end quotation
+    60→
+    61→@quotation
+    62→@strong{@anchor{Exercise 4.42}Exercise 4.42:} 次の「嘘つき」パズル（@ref{Phillips 1934}から）を解いてください：
+    63→
+    64→5人の女学生が試験を受けました。彼らの両親は、と彼らは思ったのですが、結果に過度の関心を示しました。したがって、彼らは試験について家に手紙を書く際に、各女子生徒が1つの真実の陳述と1つの虚偽の陳述をすることに同意しました。次は彼らの手紙からの関連する箇所です：
+    65→
+    66→@itemize @bullet
+    67→
+    68→@item
+    69→Betty：「Kittyは試験で2位でした。私は3位でした。」
+    70→
+    71→@item
+    72→Ethel：「私がトップだったと聞いて喜ぶでしょう。Joanは2位でした。」
+    73→
+    74→@item
+    75→Joan：「私は3位で、かわいそうなEthelは最下位でした。」
+    76→

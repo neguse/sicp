@@ -1,0 +1,136 @@
+@caption{@strong{図 3.16:} @code{(cons x x)}によって形成されたリスト@code{z1}。}
+@end iftex
+@end float
+
+@ref{図 3.16}とは対照的に、@ref{図 3.17}は次によって作成される構造を示しています
+
+@lisp
+(define z2
+  (cons (list 'a 'b) (list 'a 'b)))
+@end lisp
+
+@float
+@anchor{Figure 3.17}
+@ifinfo
+@quotation
+@strong{図 3.17:} @code{(cons (list 'a 'b) (list 'a 'b))}によって形成されたリスト@code{z2}。
+
+@example
+      +---+---+     +---+---+     +---+---+
+z2 -->| * | *-+---->| * | *-+---->| * | / |
+      +-|-+---+     +-|-+---+     +-|-+---+
+        |             V             V
+        |           +---+         +---+
+        |           | a |         | b |
+        |           +---+         +---+
+        |             ^             ^
+        |             |             |
+        |           +-|-+---+     +-|-+---+
+        +---------->| * | *-+---->| * | / |
+                    +---+---+     +---+---+
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.17b,121mm,,,.std.svg}
+@caption{@strong{図 3.17:} @code{(cons (list 'a 'b) (list 'a 'b))}によって形成されたリスト@code{z2}。}
+@end iftex
+@end float
+
+@noindent
+この構造では、実際のシンボルは共有されていますが、2つの@code{(a b)}リスト内のペアは別個です。@footnote{2つのペアは別個です。なぜなら@code{cons}への各呼び出しが新しいペアを返すからです。シンボルは共有されています；Schemeでは、与えられた名前を持つ一意のシンボルがあります。Schemeはシンボルを変更する方法を提供しないので、この共有は検出できません。また、この共有により、@code{eq?}を使ってシンボルを比較することができます。これは単にポインタの等価性をチェックするだけです。}
+
+@noindent
+リストと考えると、@code{z1}と@code{z2}は両方とも「同じ」リスト@code{((a b) a b)}を表します。一般に、@code{cons}、@code{car}、@code{cdr}のみを使ってリストを操作する場合、共有は完全に検出できません。しかし、リスト構造にミューテータを許可すると、共有が重要になります。共有が生む違いの例として、適用される構造の@code{car}を変更する次の手続きを考えてみましょう：
+
+@lisp
+(define (set-to-wow! x)
+  (set-car! (car x) 'wow)
+  x)
+@end lisp
+
+@noindent
+@code{z1}と@code{z2}は「同じ」構造ですが、それらに@code{set-to-wow!}を適用すると異なる結果が得られます。@code{z1}では、@code{car}を変更すると@code{cdr}も変更されます。なぜなら@code{z1}では@code{car}と@code{cdr}が同じペアだからです。@code{z2}では、@code{car}と@code{cdr}は別個なので、@code{set-to-wow!}は@code{car}のみを変更します：
+
+@lisp
+z1
+@i{((a b) a b)}
+
+(set-to-wow! z1)
+@i{((wow b) wow b)}
+
+z2
+@i{((a b) a b)}
+
+(set-to-wow! z2)
+@i{((wow b) a b)}
+@end lisp
+
+@noindent
+リスト構造における共有を検出する1つの方法は、@ref{2.3.1}で2つのシンボルが等しいかどうかをテストする方法として導入した述語@code{eq?}を使うことです。より一般的には、@code{(eq? x y)}は@code{x}と@code{y}が同じオブジェクトであるかどうか（つまり、@code{x}と@code{y}がポインタとして等しいかどうか）をテストします。したがって、@ref{図 3.16}と@ref{図 3.17}で定義された@code{z1}と@code{z2}では、@code{(eq? (car z1) (cdr z1))}は真であり、@code{(eq? (car z2) (cdr z2))}は偽です。
+
+次のセクションで見るように、共有を利用してペアで表現できるデータ構造のレパートリーを大幅に拡張できます。一方、共有は危険でもあります。なぜなら、構造に加えられた変更は、変更された部分を共有する他の構造にも影響するからです。変更操作@code{set-car!}と@code{set-cdr!}は注意して使うべきです；データオブジェクトがどのように共有されているかをよく理解していない限り、変更は予期しない結果をもたらす可能性があります。@footnote{可変データオブジェクトの共有を扱う微妙さは、@ref{3.1.3}で提起された「同一性」と「変化」の根本的な問題を反映しています。そこで、言語に変化を認めることは、複合オブジェクトが構成される部分とは異なる「同一性」を持たなければならないことを述べました。Lispでは、この「同一性」を@code{eq?}、つまりポインタの等価性によってテストされる品質と見なします。ほとんどのLisp実装ではポインタは本質的にメモリアドレスなので、コンピュータの特定のメモリ位置の集合に格納された情報がデータオブジェクト「自体」であると規定することによって、オブジェクトの同一性を定義する問題を「解決」しています。これは単純なLispプログラムには十分ですが、計算モデルにおける「同一性」の問題を解決する一般的な方法とは言えません。}
+
+@quotation
+@strong{@anchor{Exercise 3.15}練習問題 3.15:} 上記の構造@code{z1}と@code{z2}に対する@code{set-to-wow!}の効果を説明する箱とポインタの図を描いてください。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.16}練習問題 3.16:} Ben Bitdiddleは、任意のリスト構造のペアの数を数える手続きを書くことにしました。「簡単だ」と彼は推論します。「任意の構造のペアの数は、@code{car}内の数と@code{cdr}内の数に、現在のペアを数えるための1を加えたものだ。」そこでBenは次の手続きを書きます：
+
+@lisp
+(define (count-pairs x)
+  (if (not (pair? x))
+      0
+      (+ (count-pairs (car x))
+         (count-pairs (cdr x))
+         1)))
+@end lisp
+
+この手続きが正しくないことを示してください。特に、Benの手続きが3を返す；4を返す；7を返す；まったく返らない、正確に3つのペアで構成されたリスト構造を表す箱とポインタの図を描いてください。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.17}練習問題 3.17:} 任意の構造内の別個のペアの数を返す、@ref{練習問題 3.16}の@code{count-pairs}手続きの正しいバージョンを考案してください。（ヒント：既にカウントされたペアを追跡するために使用される補助データ構造を維持しながら、構造を走査します。）
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.18}練習問題 3.18:} リストを調べて、連続した@code{cdr}を取ることによってリストの終わりを見つけようとするプログラムが無限ループに入るような、サイクルが含まれているかどうかを判定する手続きを書いてください。@ref{練習問題 3.13}はそのようなリストを構築しました。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.19}練習問題 3.19:} 一定量の空間のみを使用するアルゴリズムを使って@ref{練習問題 3.18}をやり直してください。（これには非常に巧妙なアイデアが必要です。）
+@end quotation
+
+@subsubheading 変更は単なる代入です
+
+複合データを導入したとき、@ref{2.1.3}でペアは手続きの観点から純粋に表現できることを観察しました：
+
+@lisp
+(define (cons x y)
+  (define (dispatch m)
+    (cond ((eq? m 'car) x)
+          ((eq? m 'cdr) y)
+          (else (error "Undefined
+                 operation: CONS" m))))
+  dispatch)
+
+(define (car z) (z 'car))
+(define (cdr z) (z 'cdr))
+@end lisp
+
+@noindent
+同じ観察は可変データにも当てはまります。代入とローカル状態を使って、可変データオブジェクトを手続きとして実装できます。たとえば、@ref{3.1.1}で@code{make-account}を使って銀行口座を実装した方法と類似の方法で、@code{set-car!}と@code{set-cdr!}を処理するために上記のペア実装を拡張できます：
+
+@lisp
+(define (cons x y)
+  (define (set-x! v) (set! x v))
+  (define (set-y! v) (set! y v))
+  (define (dispatch m)
+    (cond ((eq? m 'car) x)
+          ((eq? m 'cdr) y)
+          ((eq? m 'set-car!) set-x!)
+          ((eq? m 'set-cdr!) set-y!)
+          (else (error "Undefined
+                 operation: CONS" m))))
+  dispatch)

@@ -1,0 +1,85 @@
+@end lisp
+
+@noindent
+これで実際のキュー操作を実装できます。前部ポインタが空のリストであればキューは空であると見なします：
+
+@lisp
+(define (empty-queue? queue)
+  (null? (front-ptr queue)))
+@end lisp
+
+@noindent
+@code{make-queue}コンストラクタは、最初は空のキューとして、@code{car}と@code{cdr}の両方が空のリストであるペアを返します：
+
+@lisp
+(define (make-queue) (cons '() '()))
+@end lisp
+
+@noindent
+キューの前部の項目を選択するには、前部ポインタによって示されるペアの@code{car}を返します：
+
+@lisp
+(define (front-queue queue)
+  (if (empty-queue? queue)
+      (error "FRONT called with an
+              empty queue" queue)
+      (car (front-ptr queue))))
+@end lisp
+
+@noindent
+キューに項目を挿入するには、結果が@ref{図 3.20}に示される方法に従います。まず、@code{car}が挿入される項目で@code{cdr}が空のリストである新しいペアを作成します。キューが最初は空だった場合、キューの前部と後部のポインタをこの新しいペアに設定します。そうでない場合、キューの最後のペアを新しいペアを指すように変更し、後部ポインタも新しいペアに設定します。
+
+@float
+@anchor{Figure 3.20}
+@ifinfo
+@strong{図 3.20:} @ref{図 3.19}のキューに対して@code{(insert-queue! q 'd)}を使った結果。
+
+@example
+       +---+---+
+  q -->| * | *-+--------------------------------+
+       +-|-+---+                                |
+         |                                      |
+         | front-ptr                            | rear-ptr
+         V                                      V
+     +---+---+    +---+---+    +---+---+    +---+---+
+     | * | *-+--->| * | *-+--->| * | *-+--->| * | / |
+     +-|-+---+    +-|-+---+    +-|-+---+    +-|-+---+
+       V            V            V            V
+     +---+        +---+        +---+        +---+
+     | a |        | b |        | c |        | d |
+     +---+        +---+        +---+        +---+
+@end example
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.20c,141mm,,,.std.svg}
+@caption{@strong{図 3.20:} @ref{図 3.19}のキューに対して@code{(insert-queue! q 'd)}を使った結果。}
+@end iftex
+@end float
+
+@lisp
+(define (insert-queue! queue item)
+  (let ((new-pair (cons item '())))
+    (cond ((empty-queue? queue)
+           (set-front-ptr! queue new-pair)
+           (set-rear-ptr! queue new-pair)
+           queue)
+          (else (set-cdr! (rear-ptr queue)
+                          new-pair)
+                (set-rear-ptr! queue new-pair)
+                queue))))
+@end lisp
+
+@noindent
+キューの前部の項目を削除するには、前部ポインタを変更して、キューの2番目の項目を指すようにします。これは最初の項目の@code{cdr}ポインタをたどることによって見つけることができます（@ref{図 3.21}参照）：@footnote{最初の項目がキューの最後の項目である場合、削除後に前部ポインタは空のリストになり、キューが空であることを示します；後部ポインタの更新について心配する必要はありません。これは削除された項目をまだ指していますが、@code{empty-queue?}は前部ポインタのみを見るからです。}
+
+@lisp
+(define (delete-queue! queue)
+  (cond ((empty-queue? queue)
+         (error "DELETE! called with
+                 an empty queue" queue))
+        (else (set-front-ptr!
+               queue
+               (cdr (front-ptr queue)))
+              queue)))
+@end lisp
+

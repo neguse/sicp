@@ -1,0 +1,26 @@
+@quotation
+@strong{図 3.24:} プリミティブファンクション。
+
+@example
+       入力
+        |
+        V
+    +-------+
+    |  >o-- |-----> 出力       インバータ
+    +-------+
+
+    入力1 ---|       |
+             |   D   |----> 出力   ANDゲート
+    入力2 ---|       |
+
+    入力1 ---|       |
+             |  ≥1   |----> 出力   ORゲート
+    入力2 ---|       |
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.24b,79mm,,,.std.svg}
+@caption{@strong{図 3.24:} プリミティブファンクション。}
+@end iftex
+@end float

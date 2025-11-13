@@ -1,0 +1,73 @@
+                     (cdr subtable)))))
+        (set-cdr!
+         table
+         (cons (list key-1 (cons key-2 value))
+               (cdr table)))))
+  'ok)
+@end lisp
+
+@subsubheading ローカルテーブルの作成
+
+上で定義された@code{lookup}と@code{insert!}操作は、テーブルを引数として取ります。これにより、複数のテーブルにアクセスするプログラムを使用できます。複数のテーブルを扱う別の方法は、各テーブル用に別々の@code{lookup}と@code{insert!}手続きを持つことです。テーブルを手続き的に、ローカル状態の一部として内部テーブルを維持するオブジェクトとして表現することによって、これを行うことができます。適切なメッセージが送られると、この「テーブルオブジェクト」は内部テーブルを操作する手続きを提供します。この方法で表現される2次元テーブルのジェネレータは次のとおりです：
+
+@lisp
+(define (make-table)
+  (let ((local-table (list '*table*)))
+    (define (lookup key-1 key-2)
+      (let ((subtable
+             (assoc key-1 (cdr local-table))))
+        (if subtable
+            (let ((record
+                   (assoc key-2
+                          (cdr subtable))))
+              (if record (cdr record) false))
+            false)))
+    (define (insert! key-1 key-2 value)
+      (let ((subtable
+             (assoc key-1 (cdr local-table))))
+        (if subtable
+            (let ((record
+                   (assoc key-2
+                          (cdr subtable))))
+              (if record
+                  (set-cdr! record value)
+                  (set-cdr!
+                   subtable
+                   (cons (cons key-2 value)
+                         (cdr subtable)))))
+            (set-cdr!
+             local-table
+             (cons (list key-1
+                         (cons key-2 value))
+                   (cdr local-table)))))
+      'ok)
+    (define (dispatch m)
+      (cond ((eq? m 'lookup-proc) lookup)
+            ((eq? m 'insert-proc!) insert!)
+            (else (error "Unknown operation:
+                          TABLE" m))))
+    dispatch))
+@end lisp
+
+@noindent
+@code{make-table}を使って、@ref{2.4.3}でデータ指向プログラミングに使われた@code{get}と@code{put}操作を次のように実装できます：
+
+@lisp
+(define operation-table (make-table))
+(define get (operation-table 'lookup-proc))
+(define put (operation-table 'insert-proc!))
+@end lisp
+
+@noindent
+@code{Get}は2つのキーを引数として取り、@code{put}は2つのキーと値を引数として取ります。両方の操作は、@code{make-table}への呼び出しによって作成されたオブジェクト内にカプセル化された同じローカルテーブルにアクセスします。
+
+@quotation
+@strong{@anchor{Exercise 3.24}練習問題 3.24:} 上記のテーブル実装では、キーは@code{equal?}（@code{assoc}によって呼び出される）を使って等価性がテストされます。これは常に適切なテストではありません。たとえば、数値キーを持つテーブルがあり、検索する数値との正確な一致は必要なく、その許容範囲内の数値のみが必要な場合があります。キーの「等価性」をテストするために使用される@code{same-key?}手続きを引数として取るテーブルコンストラクタ@code{make-table}を設計してください。@code{Make-table}は、ローカルテーブルの適切な@code{lookup}と@code{insert!}手続きにアクセスするために使用できる@code{dispatch}手続きを返すべきです。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.25}練習問題 3.25:} 1次元および2次元テーブルを一般化して、任意の数のキーの下に値が格納され、異なる数のキーの下に異なる値が格納される可能性があるテーブルを実装する方法を示してください。@code{lookup}と@code{insert!}手続きは、テーブルにアクセスするために使用されるキーのリストを入力として取るべきです。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.26}練習問題 3.26:} 上記で実装されたテーブルを検索するには、レコードのリストをスキャンする必要があります。これは基本的に@ref{2.3.3}の順序なしリスト表現です。大きなテーブルの場合、テーブルを異なる方法で構造化する方が効率的かもしれません。

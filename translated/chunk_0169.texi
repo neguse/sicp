@@ -1,0 +1,91 @@
+@code{*table*}：
+
+@lisp
+(define (make-table)
+  (list '*table*))
+@end lisp
+
+@subsubheading 2次元テーブル
+
+2次元テーブルでは、各値は2つのキーによってインデックス付けされます。このようなテーブルを、各キーがサブテーブルを識別する1次元テーブルとして構築できます。@ref{図 3.23}は次のテーブルの箱とポインタの図を示しています
+
+@example
+math:  +: 43    letters:  a: 97
+       -: 45              b: 98
+       *: 42
+@end example
+
+@noindent
+これには2つのサブテーブルがあります。（サブテーブルは特別なヘッダシンボルを必要としません。サブテーブルを識別するキーがこの目的を果たすからです。）
+
+@float
+@anchor{Figure 3.23}
+@ifinfo
+@strong{図 3.23:} 2次元テーブル。
+
+@example
+table
+  |
+  V
++---+---+   +---+---+   +---+---+
+| * | *-+-->| * | *-+-->| * | / |
++-|-+---+   +-|-+---+   +-|-+---+
+  V           |           V
++-------+     |         +---+---+   +---+---+   +---+---+
+|*table*|     |         | * | *-+-->| * | *-+-->| * | / |
++-------+     |         +-|-+---+   +-|-+---+   +-|-+---+
+              |           V           V           V
+              |       +-------+     +---+---+   +---+---+
+              |       |letters|     | * | * |   | * | * |
+              |       +-------+     +-|-+-|-+   +-|-+-|-+
+              |                       V   V       V   V
+              |                    +---+ +---+ +---+ +---+
+              |                    | a | | 97| | b | | 98|
+              |                    +---+ +---+ +---+ +---+
+              V
+            +---+---+   +---+---+   +---+---+   +---+---+
+            | * | *-+-->| * | *-+-->| * | *-+-->| * | / |
+            +-|-+---+   +-|-+---+   +-|-+---+   +-|-+---+
+              V           V           V           V
+          +------+      +---+---+   +---+---+   +---+---+
+          | math |      | * | * |   | * | * |   | * | * |
+          +------+      +-|-+-|-+   +-|-+-|-+   +-|-+-|-+
+                          V   V       V   V       V   V
+                       +---+ +---+ +---+ +---+ +---+ +---+
+                       | + | | 43| | - | | 45| | * | | 42|
+                       +---+ +---+ +---+ +---+ +---+ +---+
+@end example
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.23b,143mm,,,.std.svg}
+@caption{@strong{図 3.23:} 2次元テーブル。}
+@end iftex
+@end float
+
+@noindent
+項目を検索するとき、最初のキーを使って正しいサブテーブルを識別します。次に2番目のキーを使ってサブテーブル内のレコードを識別します。
+
+@lisp
+(define (lookup key-1 key-2 table)
+  (let ((subtable (assoc key-1 (cdr table))))
+    (if subtable
+        (let ((record
+               (assoc key-2 (cdr subtable))))
+          (if record (cdr record) false))
+        false)))
+@end lisp
+
+@noindent
+キーのペアの下に新しい項目を挿入するには、@code{assoc}を使って最初のキーの下にサブテーブルが格納されているかどうかを確認します。ない場合、単一のレコード（@code{key-2}、@code{value}）を含む新しいサブテーブルを構築し、最初のキーの下でテーブルにそれを挿入します。最初のキーのためのサブテーブルが既に存在する場合、上で説明した1次元テーブルの挿入方法を使って、このサブテーブルに新しいレコードを挿入します：
+
+@lisp
+(define (insert! key-1 key-2 value table)
+  (let ((subtable (assoc key-1 (cdr table))))
+    (if subtable
+        (let ((record
+               (assoc key-2 (cdr subtable))))
+          (if record
+              (set-cdr! record value)
+              (set-cdr!
+               subtable
+               (cons (cons key-2 value)

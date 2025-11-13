@@ -1,0 +1,80 @@
+(define (car z) (z 'car))
+(define (cdr z) (z 'cdr))
+
+(define (set-car! z new-value)
+  ((z 'set-car!) new-value)
+  z)
+
+(define (set-cdr! z new-value)
+  ((z 'set-cdr!) new-value)
+  z)
+@end lisp
+
+@noindent
+理論的には、可変データの振る舞いを説明するために必要なのは代入だけです。@code{set!}を言語に認めるとすぐに、代入だけでなく可変データ全般のすべての問題を提起します。@footnote{一方、実装の観点からは、代入には環境を変更することが必要ですが、環境自体が可変データ構造です。したがって、代入と変更は等力です：それぞれが他方の観点から実装できます。}
+
+@quotation
+@strong{@anchor{Exercise 3.20}練習問題 3.20:} 上記で与えられたペアの手続き的実装を使って、次の一連の式の評価を示す環境図を描いてください
+
+@lisp
+(define x (cons 1 2))
+(define z (cons x x))
+
+(set-car! (cdr z) 17)
+
+(car x)
+@i{17}
+@end lisp
+
+@noindent
+（@ref{練習問題 3.11}と比較してください。）
+@end quotation
+
+@node	3.3.2, 3.3.3, 3.3.1, 3.3
+@subsection キューの表現
+
+ミューテータ@code{set-car!}と@code{set-cdr!}により、@code{cons}、@code{car}、@code{cdr}だけでは構築できないデータ構造を構築するためにペアを使用できます。このセクションでは、キューと呼ばれるデータ構造を表現するためにペアを使う方法を示します。セクション@ref{3.3.3}では、テーブルと呼ばれるデータ構造を表現する方法を示します。
+
+@newterm{キュー}は、一方の端（キューの@newterm{後部}と呼ばれる）に項目が挿入され、もう一方の端（@newterm{前部}）から削除される列です。@ref{図 3.18}は、最初は空のキューに項目@code{a}と@code{b}が挿入される様子を示しています。次に@code{a}が削除され、@code{c}と@code{d}が挿入され、@code{b}が削除されます。項目は常に挿入された順序で削除されるため、キューは@newterm{FIFO}（first in, first out）バッファと呼ばれることがあります。
+
+@float
+@anchor{Figure 3.18}
+@ifinfo
+@quotation
+@strong{図 3.18:} キュー操作。
+
+@example
+操作                         結果のキュー
+(define q (make-queue))
+(insert-queue! q 'a)         a
+(insert-queue! q 'b)         a b
+(delete-queue! q)            b
+(insert-queue! q 'c)         b c
+(insert-queue! q 'd)         b c d
+(delete-queue! q)            c d
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.18,119mm,,,.std.svg}
+@caption{@strong{図 3.18:} キュー操作。}
+@end iftex
+@end float
+
+@noindent
+データ抽象化の観点から、キューを次の操作のセットによって定義されるものと見なすことができます：
+
+@itemize @bullet
+
+@item
+コンストラクタ：@code{(make-queue)}は空のキュー（項目を含まないキュー）を返します。
+
+@item
+2つのセレクタ：
+
+@lisp
+(empty-queue? ⟨@var{queue}⟩)
+@end lisp
+
+@noindent
+キューが空かどうかをテストします。

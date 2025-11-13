@@ -1,0 +1,141 @@
+@float
+@anchor{Figure 3.21}
+@ifinfo
+@strong{図 3.21:} @ref{図 3.20}のキューに対して@code{(delete-queue! q)}を使った結果。
+
+@example
+       +---+---+
+  q -->| * | *-+--------------------------------+
+       +-|-+---+                                |
+         +------------+                         |
+            front-ptr |                         | rear-ptr
+                      V                         V
+     +---+---+    +---+---+    +---+---+    +---+---+
+     | * | *-+--->| * | *-+--->| * | *-+--->| * | / |
+     +-|-+---+    +-|-+---+    +-|-+---+    +-|-+---+
+       V            V            V            V
+     +---+        +---+        +---+        +---+
+     | a |        | b |        | c |        | d |
+     +---+        +---+        +---+        +---+
+@end example
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.21c,141mm,,,.std.svg}
+@caption{@strong{図 3.21:} @ref{図 3.20}のキューに対して@code{(delete-queue! q)}を使った結果。}
+@end iftex
+@end float
+
+@quotation
+@strong{@anchor{Exercise 3.21}練習問題 3.21:} Ben Bitdiddleは上記で説明したキュー実装をテストすることにしました。彼はLispインタプリタに手続きを入力し、それらを試し始めます：
+
+@lisp
+(define q1 (make-queue))
+
+(insert-queue! q1 'a)
+@i{((a) a)}
+
+(insert-queue! q1 'b)
+@i{((a b) b)}
+
+(delete-queue! q1)
+@i{((b) b)}
+
+(delete-queue! q1)
+@i{(() b)}
+@end lisp
+
+「全部間違ってる！」と彼は文句を言います。「インタプリタの応答は、最後の項目がキューに2回挿入されたことを示している。そして両方の項目を削除したのに、2番目の@code{b}がまだそこにあるので、キューは空じゃない。空であるはずなのに。」Eva Lu Atorは、Benが何が起こっているかを誤解していると提案します。「項目がキューに2回入るのではありません」と彼女は説明します。「標準Lispプリンタがキュー表現を理解する方法を知らないだけです。キューを正しく印刷したければ、キュー用の独自の印刷手続きを定義しなければなりません。」Eva Luが何について話しているかを説明してください。特に、Benの例がなぜそのような印刷結果を生成するかを示してください。キューを入力として取り、キュー内の項目の列を印刷する手続き@code{print-queue}を定義してください。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.22}練習問題 3.22:} キューをポインタのペアとして表現する代わりに、ローカル状態を持つ手続きとしてキューを構築できます。ローカル状態は、通常のリストの先頭と終わりへのポインタから成ります。したがって、@code{make-queue}手続きは次の形式になります
+
+@lisp
+(define (make-queue)
+  (let ((front-ptr @r{…} )
+        (rear-ptr @r{…} ))
+    ⟨@var{definitions of internal procedures}⟩
+    (define (dispatch m) @r{…})
+    dispatch))
+@end lisp
+
+@code{make-queue}の定義を完成させ、この表現を使ってキュー操作の実装を提供してください。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.23}練習問題 3.23:} @newterm{デック}（「両端キュー」）は、前部または後部のいずれかに項目を挿入および削除できる列です。デックの操作は、コンストラクタ@code{make-deque}、述語@code{empty-deque?}、セレクタ@code{front-deque}と@code{rear-deque}、ミューテータ@code{front-insert-deque!}、@code{rear-insert-deque!}、@code{front-delete-deque!}、@code{rear-delete-deque!}です。ペアを使ってデックを表現する方法を示し、操作の実装を提供してください。@footnote{サイクルを含む構造を印刷しようとしてインタプリタを困らせないように注意してください。（@ref{練習問題 3.13}参照。）}すべての操作は@math{{\Theta(1)}}ステップで実行されるべきです。
+@end quotation
+
+@node	3.3.3, 3.3.4, 3.3.2, 3.3
+@subsection テーブルの表現
+
+@ref{第2章}で集合を表現する様々な方法を研究したとき、@ref{2.3.3}で識別キーによってインデックス付けされたレコードのテーブルを維持するタスクについて述べました。@ref{2.4.3}でのデータ指向プログラミングの実装では、2つのキーを使って情報を格納および取得する2次元テーブルを広範囲に使用しました。ここでは、可変リスト構造としてテーブルを構築する方法を見ます。
+
+まず、各値が単一のキーの下に格納される1次元テーブルを考えます。テーブルをレコードのリストとして実装し、各レコードはキーと関連付けられた値から成るペアとして実装します。レコードは、@code{car}が連続したレコードを指すペアによってリストを形成するために接着されます。これらの接着ペアはテーブルの@newterm{バックボーン}と呼ばれます。テーブルに新しいレコードを追加するときに変更できる場所を持つために、テーブルを@newterm{ヘッダ付きリスト}として構築します。ヘッダ付きリストは、ダミーの「レコード」---この場合は任意に選ばれたシンボル@code{*table*}---を保持する特別なバックボーンペアを先頭に持ちます。@ref{図 3.22}は次のテーブルの箱とポインタの図を示しています
+
+@lisp
+a:  1
+b:  2
+c:  3
+@end lisp
+
+@float
+@anchor{Figure 3.22}
+@ifinfo
+@strong{図 3.22:} ヘッダ付きリストとして表現されたテーブル。
+
+@example
++---+---+    +---+---+    +---+---+    +---+---+
+| * | *-+--->| * | *-+--->| * | *-+--->| * | / |
++-|-+---+    +-|-+---+    +-|-+---+    +-|-+---+
+|            |            |            |
+V            V            V            V
++---------+   +---+---+   +---+---+   +---+---+
+| *table* |   | * | * |   | * | * |   | * | * |
++---------+   +-|-+-|-+   +-|-+-|-+   +-|-+-|-+
+|   |       |   |       |   |
+V   V       V   V       V   V
++---+ +---+ +---+ +---+ +---+ +---+
+| a | | 1 | | b | | 2 | | c | | 3 |
++---+ +---+ +---+ +---+ +---+ +---+
+@end example
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.22c,138mm,,,.std.svg}
+@caption{@strong{図 3.22:} ヘッダ付きリストとして表現されたテーブル。}
+@end iftex
+@end float
+
+@noindent
+テーブルから情報を抽出するには@code{lookup}手続きを使います。これはキーを引数として取り、関連付けられた値を返します（そのキーの下に格納された値がない場合は偽を返します）。@code{Lookup}は@code{assoc}操作の観点から定義されます。これはキーとレコードのリストを引数として期待します。@code{assoc}はダミーレコードを決して見ないことに注意してください。@code{Assoc}は与えられたキーを@code{car}として持つレコードを返します。@footnote{@code{assoc}は@code{equal?}を使うため、シンボル、数値、またはリスト構造であるキーを認識できます。}次に@code{Lookup}は@code{assoc}によって返された結果のレコードが偽でないことを確認し、レコードの値（@code{cdr}）を返します。
+
+@lisp
+(define (lookup key table)
+  (let ((record (assoc key (cdr table))))
+    (if record
+        (cdr record)
+        false)))
+
+(define (assoc key records)
+  (cond ((null? records) false)
+        ((equal? key (caar records))
+         (car records))
+        (else (assoc key (cdr records)))))
+@end lisp
+
+@noindent
+指定されたキーの下にテーブルに値を挿入するには、まず@code{assoc}を使って、このキーを持つレコードがテーブルに既にあるかどうかを確認します。ない場合、キーと値を@code{cons}して新しいレコードを形成し、ダミーレコードの後、テーブルのレコードのリストの先頭にこれを挿入します。このキーを持つレコードが既にある場合、このレコードの@code{cdr}を指定された新しい値に設定します。テーブルのヘッダは、新しいレコードを挿入するために変更する固定の場所を提供します。@footnote{したがって、最初のバックボーンペアはテーブル「自体」を表すオブジェクトです；つまり、テーブルへのポインタはこのペアへのポインタです。この同じバックボーンペアが常にテーブルを開始します。このように配置しなかった場合、@code{insert!}は新しいレコードを追加するときにテーブルの開始のための新しい値を返さなければなりません。}
+
+@lisp
+(define (insert! key value table)
+  (let ((record (assoc key (cdr table))))
+    (if record
+        (set-cdr! record value)
+        (set-cdr! table
+                  (cons (cons key value)
+                        (cdr table)))))
+  'ok)
+@end lisp
+
+@noindent
+新しいテーブルを構築するには、単にシンボルを含むリストを作成します

@@ -85,7 +85,7 @@ sqrt(x) = the y such that y >= 0 and y^2 = x
 @example
 Guess     Quotient      Average
 
-1         (2/1)  = 2    ((2 + 1)/2)  = 1.5
+(2/1)  = 2    ((2 + 1)/2)  = 1.5
 
 1.5       (2/1.5)       ((1.3333 + 1.5)/2)
             = 1.3333      = 1.4167

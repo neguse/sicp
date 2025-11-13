@@ -1,85 +1,85 @@
-     1	|             |             |    |      |      |             |
-     2	|  identity   +-------------+    +------+------+-------------+
-     3	|             |             |    |             | right-split |
-     4	|             | right-split |    |             |     n-1     |
-     5	|             |             |    |  identity   +-------------+
-     6	|             |     n-1     |    |             | right-split |
-     7	|             |             |    |             |     n-1     |
-     8	+-------------+-------------+    +-------------+-------------+
+|             |             |    |      |      |             |
+|  identity   +-------------+    +------+------+-------------+
+|             |             |    |             | right-split |
+|             | right-split |    |             |     n-1     |
+|             |             |    |  identity   +-------------+
+|             |     n-1     |    |             | right-split |
+|             |             |    |             |     n-1     |
++-------------+-------------+    +-------------+-------------+
      9
-    10	       right-split n                    corner-split n
-    11	@end example
+       right-split n                    corner-split n
+@end example
     12
-    13	@end quotation
-    14	@end ifinfo
-    15	@iftex
-    16	@image{fig/chap2/Fig2.13a,132mm,,,.std.svg}
-    17	@caption{@strong{Figure 2.13:} @code{right-split}と@code{corner-split}の再帰的計画。}
-    18	@end iftex
-    19	@end float
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap2/Fig2.13a,132mm,,,.std.svg}
+@caption{@strong{Figure 2.13:} @code{right-split}と@code{corner-split}の再帰的計画。}
+@end iftex
+@end float
     20
-    21	@noindent
-    22	上方向にも右方向にも分岐することにより、バランスの取れたパターンを生成できます（@ref{Exercise 2.44}、@ref{Figure 2.13}、@ref{Figure 2.14}参照）:
+@noindent
+上方向にも右方向にも分岐することにより、バランスの取れたパターンを生成できます（@ref{Exercise 2.44}、@ref{Figure 2.13}、@ref{Figure 2.14}参照）:
     23
-    24	@lisp
-    25	(define (corner-split painter n)
-    26	  (if (= n 0)
-    27	      painter
-    28	      (let ((up (up-split painter (- n 1)))
-    29	            (right (right-split painter
-    30	                                (- n 1))))
-    31	        (let ((top-left (beside up up))
-    32	              (bottom-right (below right
-    33	                                   right))
-    34	              (corner (corner-split painter
-    35	                                    (- n 1))))
-    36	          (beside (below painter top-left)
-    37	                  (below bottom-right
-    38	                         corner))))))
-    39	@end lisp
+@lisp
+(define (corner-split painter n)
+  (if (= n 0)
+      painter
+      (let ((up (up-split painter (- n 1)))
+            (right (right-split painter
+                                (- n 1))))
+        (let ((top-left (beside up up))
+              (bottom-right (below right
+                                   right))
+              (corner (corner-split painter
+                                    (- n 1))))
+          (beside (below painter top-left)
+                  (below bottom-right
+                         corner))))))
+@end lisp
     40
-    41	@float
-    42	@anchor{Figure 2.14}
-    43	@ifinfo
-    44	@quotation
-    45	@strong{Figure 2.14:} 再帰的操作@code{right-split}と@code{corner-split}をペインター@code{wave}と@code{rogers}に適用したもの。4つの@code{corner-split}図形を組み合わせると、@ref{Figure 2.9}に示されている対称的な@code{square-limit}デザインが生成されます。
+@float
+@anchor{Figure 2.14}
+@ifinfo
+@quotation
+@strong{Figure 2.14:} 再帰的操作@code{right-split}と@code{corner-split}をペインター@code{wave}と@code{rogers}に適用したもの。4つの@code{corner-split}図形を組み合わせると、@ref{Figure 2.9}に示されている対称的な@code{square-limit}デザインが生成されます。
     46
-    47	[2つのグラフィック画像は含まれていません]
+[2つのグラフィック画像は含まれていません]
     48
-    49	@lisp
-    50	(right-split wave 4)         (right-split rogers 4)
-    51	@end lisp
+@lisp
+(right-split wave 4)         (right-split rogers 4)
+@end lisp
     52
-    53	[2つのグラフィック画像は含まれていません]
+[2つのグラフィック画像は含まれていません]
     54
-    55	@lisp
-    56	(corner-split wave 4)        (corner-split rogers 4)
-    57	@end lisp
-    58	@end quotation
-    59	@end ifinfo
-    60	@iftex
-    61	@image{fig/chap2/Fig2.14b,136mm,,,.std.svg}
-    62	@caption{@strong{Figure 2.14:} 再帰的操作@code{right-split}と@code{corner-split}をペインター@code{wave}と@code{rogers}に適用したもの。4つの@code{corner-split}図形を組み合わせると、@ref{Figure 2.9}に示されている対称的な@code{square-limit}デザインが生成されます。}
-    63	@end iftex
-    64	@end float
+@lisp
+(corner-split wave 4)        (corner-split rogers 4)
+@end lisp
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap2/Fig2.14b,136mm,,,.std.svg}
+@caption{@strong{Figure 2.14:} 再帰的操作@code{right-split}と@code{corner-split}をペインター@code{wave}と@code{rogers}に適用したもの。4つの@code{corner-split}図形を組み合わせると、@ref{Figure 2.9}に示されている対称的な@code{square-limit}デザインが生成されます。}
+@end iftex
+@end float
     65
-    66	@code{corner-split}の4つのコピーを適切に配置することにより、@code{square-limit}と呼ばれるパターンが得られます。その@code{wave}と@code{rogers}への適用は@ref{Figure 2.9}に示されています:
+@code{corner-split}の4つのコピーを適切に配置することにより、@code{square-limit}と呼ばれるパターンが得られます。その@code{wave}と@code{rogers}への適用は@ref{Figure 2.9}に示されています:
     67
-    68	@lisp
-    69	(define (square-limit painter n)
-    70	  (let ((quarter (corner-split painter n)))
-    71	    (let ((half (beside (flip-horiz quarter)
-    72	                        quarter)))
-    73	      (below (flip-vert half) half))))
-    74	@end lisp
+@lisp
+(define (square-limit painter n)
+  (let ((quarter (corner-split painter n)))
+    (let ((half (beside (flip-horiz quarter)
+                        quarter)))
+      (below (flip-vert half) half))))
+@end lisp
     75
-    76	@quotation
-    77	@strong{@anchor{Exercise 2.44}Exercise 2.44:} @code{corner-split}で使用される手続き@code{up-split}を定義してください。これは@code{right-split}に似ていますが、@code{below}と@code{beside}の役割を入れ替える点が異なります。
-    78	@end quotation
+@quotation
+@strong{@anchor{Exercise 2.44}Exercise 2.44:} @code{corner-split}で使用される手続き@code{up-split}を定義してください。これは@code{right-split}に似ていますが、@code{below}と@code{beside}の役割を入れ替える点が異なります。
+@end quotation
     79
-    80	@subsubheading 高階操作
+@subsubheading 高階操作
     81
-    82	ペインターを組み合わせるパターンを抽象化することに加えて、より高いレベルで、ペインター操作を組み合わせるパターンを抽象化できます。つまり、ペインター操作を操作する要素として見ることができ、これらの要素の組み合わせ手段---ペインター操作を引数として取り、新しいペインター操作を作成する手続き---を書くことができます。
+ペインターを組み合わせるパターンを抽象化することに加えて、より高いレベルで、ペインター操作を組み合わせるパターンを抽象化できます。つまり、ペインター操作を操作する要素として見ることができ、これらの要素の組み合わせ手段---ペインター操作を引数として取り、新しいペインター操作を作成する手続き---を書くことができます。
     83
-    84	たとえば、@code{flipped-pairs}と@code{square-limit}はそれぞれ、ペインターの画像の4つのコピーを正方形のパターンに配置します。それらはコピーの向きの付け方のみが異なります。このペインター組み合わせのパターンを抽象化する1つの方法は、4つの1引数ペインター操作を取る次の手続きを使用することです
+たとえば、@code{flipped-pairs}と@code{square-limit}はそれぞれ、ペインターの画像の4つのコピーを正方形のパターンに配置します。それらはコピーの向きの付け方のみが異なります。このペインター組み合わせのパターンを抽象化する1つの方法は、4つの1引数ペインター操作を取る次の手続きを使用することです
     85

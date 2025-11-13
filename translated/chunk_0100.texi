@@ -1,87 +1,87 @@
-     1	@end lisp
+@end lisp
      2
-     3	@item
-     4	被加数は和リストの2番目の項目です:
+@item
+被加数は和リストの2番目の項目です:
      5
-     6	@lisp
-     7	(define (addend s) (cadr s))
-     8	@end lisp
+@lisp
+(define (addend s) (cadr s))
+@end lisp
      9
-    10	@item
-    11	加数は和リストの3番目の項目です:
+@item
+加数は和リストの3番目の項目です:
     12
-    13	@lisp
-    14	(define (augend s) (caddr s))
-    15	@end lisp
+@lisp
+(define (augend s) (caddr s))
+@end lisp
     16
-    17	@item
-    18	積は、最初の要素がシンボル@code{*}であるリストです:
-    19	@lisp
-    20	(define (product? x)
-    21	  (and (pair? x) (eq? (car x) '*)))
-    22	@end lisp
+@item
+積は、最初の要素がシンボル@code{*}であるリストです:
+@lisp
+(define (product? x)
+  (and (pair? x) (eq? (car x) '*)))
+@end lisp
     23
-    24	@item
-    25	乗数は積リストの2番目の項目です:
+@item
+乗数は積リストの2番目の項目です:
     26
-    27	@lisp
-    28	(define (multiplier p) (cadr p))
-    29	@end lisp
+@lisp
+(define (multiplier p) (cadr p))
+@end lisp
     30
-    31	@item
-    32	被乗数は積リストの3番目の項目です:
+@item
+被乗数は積リストの3番目の項目です:
     33
-    34	@lisp
-    35	(define (multiplicand p) (caddr p))
-    36	@end lisp
+@lisp
+(define (multiplicand p) (caddr p))
+@end lisp
     37
-    38	@end itemize
+@end itemize
     39
-    40	@noindent
-    41	したがって、動作するシンボリック微分プログラムを持つためには、これらを@code{deriv}によって具体化されたアルゴリズムと組み合わせるだけで済みます。その動作のいくつかの例を見てみましょう:
+@noindent
+したがって、動作するシンボリック微分プログラムを持つためには、これらを@code{deriv}によって具体化されたアルゴリズムと組み合わせるだけで済みます。その動作のいくつかの例を見てみましょう:
     42
-    43	@lisp
-    44	(deriv '(+ x 3) 'x)
-    45	@i{(+ 1 0)}
+@lisp
+(deriv '(+ x 3) 'x)
+@i{(+ 1 0)}
     46
-    47	(deriv '(* x y) 'x)
-    48	@i{(+ (* x 0) (* 1 y))}
+(deriv '(* x y) 'x)
+@i{(+ (* x 0) (* 1 y))}
     49
-    50	(deriv '(* (* x y) (+ x 3)) 'x)
-    51	@i{(+ (* (* x y) (+ 1 0))}
-    52	   @i{(* (+ (* x 0) (* 1 y))}
-    53	      @i{(+  x 3)))}
-    54	@end lisp
+(deriv '(* (* x y) (+ x 3)) 'x)
+@i{(+ (* (* x y) (+ 1 0))}
+   @i{(* (+ (* x 0) (* 1 y))}
+      @i{(+  x 3)))}
+@end lisp
     55
-    56	@noindent
-    57	プログラムは正しい答えを生成します。ただし、それらは簡略化されていません。確かに
-    58	@ifinfo
+@noindent
+プログラムは正しい答えを生成します。ただし、それらは簡略化されていません。確かに
+@ifinfo
     59
-    60	@example
-    61	d(xy)
-    62	----- = x * 0 + 1 * y
-    63	 dx
-    64	@end example
+@example
+d(xy)
+----- = x * 0 + 1 * y
+ dx
+@end example
     65
-    66	@end ifinfo
-    67	@tex
-    68	\[ % :44:
-    69	  {d(xy) \over dx} \,=\, {x \cdot 0} + {1 \cdot y,}  \]
-    70	@end tex
-    71	@noindent
-    72	ですが、プログラムには@math{{x \cdot 0 = 0}}、@math{{1 \cdot y = y}}、および@math{{0 + y = y}}であることを知ってほしいと思います。2番目の例の答えは単に@code{y}であるべきでした。3番目の例が示すように、式が複雑になるとこれは深刻な問題になります。
+@end ifinfo
+@tex
+\[ % :44:
+  {d(xy) \over dx} \,=\, {x \cdot 0} + {1 \cdot y,}  \]
+@end tex
+@noindent
+ですが、プログラムには@math{{x \cdot 0 = 0}}、@math{{1 \cdot y = y}}、および@math{{0 + y = y}}であることを知ってほしいと思います。2番目の例の答えは単に@code{y}であるべきでした。3番目の例が示すように、式が複雑になるとこれは深刻な問題になります。
     73
-    74	私たちの困難は、有理数実装で遭遇したものとよく似ています: 答えを最も単純な形式に簡約していません。有理数の簡約を達成するために、実装のコンストラクタとセレクタのみを変更する必要がありました。ここでも同様の戦略を採用できます。@code{deriv}をまったく変更しません。代わりに、両方の被加数が数値である場合、@code{make-sum}がそれらを加算して合計を返すように@code{make-sum}を変更します。また、被加数の1つが0の場合、@code{make-sum}は他の被加数を返します:
+私たちの困難は、有理数実装で遭遇したものとよく似ています: 答えを最も単純な形式に簡約していません。有理数の簡約を達成するために、実装のコンストラクタとセレクタのみを変更する必要がありました。ここでも同様の戦略を採用できます。@code{deriv}をまったく変更しません。代わりに、両方の被加数が数値である場合、@code{make-sum}がそれらを加算して合計を返すように@code{make-sum}を変更します。また、被加数の1つが0の場合、@code{make-sum}は他の被加数を返します:
     75
-    76	@lisp
-    77	(define (make-sum a1 a2)
-    78	  (cond ((=number? a1 0) a2)
-    79	        ((=number? a2 0) a1)
-    80	        ((and (number? a1) (number? a2))
-    81	         (+ a1 a2))
-    82	        (else (list '+ a1 a2))))
-    83	@end lisp
+@lisp
+(define (make-sum a1 a2)
+  (cond ((=number? a1 0) a2)
+        ((=number? a2 0) a1)
+        ((and (number? a1) (number? a2))
+         (+ a1 a2))
+        (else (list '+ a1 a2))))
+@end lisp
     84
-    85	@noindent
-    86	これは、式が与えられた数値と等しいかどうかをチェックする手続き@code{=number?}を使用します:
+@noindent
+これは、式が与えられた数値と等しいかどうかをチェックする手続き@code{=number?}を使用します:
     87

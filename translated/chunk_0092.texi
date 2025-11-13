@@ -1,80 +1,80 @@
-     1	edge2    \         __--    frame
-     2	vector    \    __--        edge1
-     3	           \_--            vector
-     4	            -   <--+
-     5	          frame    |
-     6	          origin   +-- (0, 0) point
-     7	          vector       on display screen
-     8	@end example
-     9	@end quotation
-    10	@end ifinfo
-    11	@iftex
-    12	@image{fig/chap2/Fig2.15a,78mm,,,.std.svg}
-    13	@caption{@strong{Figure 2.15:} フレームは3つのベクトル---原点と2つの辺---で記述されます。}
-    14	@end iftex
-    15	@end float
+edge2    \         __--    frame
+vector    \    __--        edge1
+           \_--            vector
+            -   <--+
+          frame    |
+          origin   +-- (0, 0) point
+          vector       on display screen
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap2/Fig2.15a,78mm,,,.std.svg}
+@caption{@strong{Figure 2.15:} フレームは3つのベクトル---原点と2つの辺---で記述されます。}
+@end iftex
+@end float
     16
-    17	@noindent
-    18	画像を指定するために、単位正方形@math{{(0 \le x, y \le 1)}}内の座標を使用します。各フレームに、@newterm{フレーム座標マップ}を関連付けます。これは、画像をシフトおよびスケーリングしてフレームに適合させるために使用されます。このマップは、ベクトル@math{{{\bf v} = (x, y)}}をベクトル和にマッピングすることにより、単位正方形をフレームに変換します
-    19	@ifinfo
+@noindent
+画像を指定するために、単位正方形@math{{(0 \le x, y \le 1)}}内の座標を使用します。各フレームに、@newterm{フレーム座標マップ}を関連付けます。これは、画像をシフトおよびスケーリングしてフレームに適合させるために使用されます。このマップは、ベクトル@math{{{\bf v} = (x, y)}}をベクトル和にマッピングすることにより、単位正方形をフレームに変換します
+@ifinfo
     20
-    21	@example
-    22	Origin(Frame) + x * Edge_1(Frame) + y * Edge_2(Frame)
-    23	@end example
+@example
+Origin(Frame) + x * Edge_1(Frame) + y * Edge_2(Frame)
+@end example
     24
-    25	@end ifinfo
-    26	@tex
-    27	\[ % :40:
-    28	  {\text{Origin(Frame)}} + {x \cdot \text{Edge}_1\text{(Frame)}} + {y \cdot \text{Edge}_2\text{(Frame)}.} \]
-    29	@end tex
-    30	@noindent
-    31	たとえば、(0, 0)はフレームの原点にマップされ、(1, 1)は原点に対して対角の頂点にマップされ、(0.5, 0.5)はフレームの中心にマップされます。次の手続きでフレームの座標マップを作成できます:@footnote{@code{Frame-coord-map}は、@ref{Exercise 2.46}以下で説明されているベクトル操作を使用します。これらは、ベクトルの何らかの表現を使用して実装されていると想定しています。データ抽象化のため、ベクトル操作が正しく動作する限り、このベクトル表現が何であるかは問題ではありません。}
+@end ifinfo
+@tex
+\[ % :40:
+  {\text{Origin(Frame)}} + {x \cdot \text{Edge}_1\text{(Frame)}} + {y \cdot \text{Edge}_2\text{(Frame)}.} \]
+@end tex
+@noindent
+たとえば、(0, 0)はフレームの原点にマップされ、(1, 1)は原点に対して対角の頂点にマップされ、(0.5, 0.5)はフレームの中心にマップされます。次の手続きでフレームの座標マップを作成できます:@footnote{@code{Frame-coord-map}は、@ref{Exercise 2.46}以下で説明されているベクトル操作を使用します。これらは、ベクトルの何らかの表現を使用して実装されていると想定しています。データ抽象化のため、ベクトル操作が正しく動作する限り、このベクトル表現が何であるかは問題ではありません。}
     32
-    33	@lisp
-    34	(define (frame-coord-map frame)
-    35	  (lambda (v)
-    36	    (add-vect
-    37	     (origin-frame frame)
-    38	     (add-vect
-    39	      (scale-vect (xcor-vect v)
-    40	                  (edge1-frame frame))
-    41	      (scale-vect (ycor-vect v)
-    42	                  (edge2-frame frame))))))
-    43	@end lisp
+@lisp
+(define (frame-coord-map frame)
+  (lambda (v)
+    (add-vect
+     (origin-frame frame)
+     (add-vect
+      (scale-vect (xcor-vect v)
+                  (edge1-frame frame))
+      (scale-vect (ycor-vect v)
+                  (edge2-frame frame))))))
+@end lisp
     44
-    45	@noindent
-    46	@code{frame-coord-map}をフレームに適用すると、ベクトルが与えられたときにベクトルを返す手続きが返されることに注意してください。引数ベクトルが単位正方形内にある場合、結果ベクトルはフレーム内にあります。たとえば、
+@noindent
+@code{frame-coord-map}をフレームに適用すると、ベクトルが与えられたときにベクトルを返す手続きが返されることに注意してください。引数ベクトルが単位正方形内にある場合、結果ベクトルはフレーム内にあります。たとえば、
     47
-    48	@lisp
-    49	((frame-coord-map a-frame) (make-vect 0 0))
-    50	@end lisp
+@lisp
+((frame-coord-map a-frame) (make-vect 0 0))
+@end lisp
     51
-    52	@noindent
-    53	は、次と同じベクトルを返します
+@noindent
+は、次と同じベクトルを返します
     54
-    55	@lisp
-    56	(origin-frame a-frame)
-    57	@end lisp
+@lisp
+(origin-frame a-frame)
+@end lisp
     58
-    59	@quotation
-    60	@strong{@anchor{Exercise 2.46}Exercise 2.46:} 原点から点まで走る2次元ベクトル@math{\bf v}は、@math{x}座標と@math{y}座標からなる対として表現できます。@code{make-vect}というコンストラクタと、対応するセレクタ@code{xcor-vect}および@code{ycor-vect}を与えることにより、ベクトルのデータ抽象化を実装してください。セレクタとコンストラクタの観点から、ベクトルの加算、ベクトルの減算、ベクトルのスカラー倍の操作を実行する手続き@code{add-vect}、@code{sub-vect}、@code{scale-vect}を実装してください:
-    61	@ifinfo
+@quotation
+@strong{@anchor{Exercise 2.46}Exercise 2.46:} 原点から点まで走る2次元ベクトル@math{\bf v}は、@math{x}座標と@math{y}座標からなる対として表現できます。@code{make-vect}というコンストラクタと、対応するセレクタ@code{xcor-vect}および@code{ycor-vect}を与えることにより、ベクトルのデータ抽象化を実装してください。セレクタとコンストラクタの観点から、ベクトルの加算、ベクトルの減算、ベクトルのスカラー倍の操作を実行する手続き@code{add-vect}、@code{sub-vect}、@code{scale-vect}を実装してください:
+@ifinfo
     62
-    63	@example
-    64	(x_1, y_1) + (x_2, y_2) = (x_1 + x_2, y_1 + y_2)
-    65	(x_1, y_1) - (x_2, y_2) = (x_1 - x_2, y_1 - y_2)
-    66	             s * (x, y) = (sx, sy)
-    67	@end example
-    68	@end ifinfo
-    69	@tex
-    70	\[ % :41:
+@example
+(x_1, y_1) + (x_2, y_2) = (x_1 + x_2, y_1 + y_2)
+(x_1, y_1) - (x_2, y_2) = (x_1 - x_2, y_1 - y_2)
+             s * (x, y) = (sx, sy)
+@end example
+@end ifinfo
+@tex
+\[ % :41:
     71
-    72	\begin{eqnarray}
-    73		(x_1, y_1) + (x_2, y_2)  &=&  (x_1 + x_2, y_1 + y_2), \\
-    74		(x_1, y_1) - (x_2, y_2)  &=&  (x_1 - x_2, y_1 - y_2), \\
-    75		s \cdot (x, y) 		 &=&  (sx, sy).
-    76	\end{eqnarray}
-    77	\]
-    78	@end tex
-    79	@end quotation
+\begin{eqnarray}
+	(x_1, y_1) + (x_2, y_2)  &=&  (x_1 + x_2, y_1 + y_2), \\
+	(x_1, y_1) - (x_2, y_2)  &=&  (x_1 - x_2, y_1 - y_2), \\
+	s \cdot (x, y) 		 &=&  (sx, sy).
+\end{eqnarray}
+\]
+@end tex
+@end quotation
     80

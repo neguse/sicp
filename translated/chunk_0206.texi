@@ -17,7 +17,7 @@
 (define fibs
   (cons-stream
    0 (cons-stream
-      1 (add-streams
+(add-streams
          (stream-cdr fibs) fibs))))
 @end lisp
 
@@ -25,8 +25,8 @@
 この定義は、@code{fibs}が0と1で始まるストリームで、ストリームの残りが@code{fibs}を1つずらして自分自身に加えることで生成できると言っています：
 
 @example
-    1 1 2 3 5  8 13 21 @r{…} = @code{(stream-cdr fibs)}
-    0 1 1 2 3  5  8 13 @r{…} = @code{fibs}
+1 2 3 5  8 13 21 @r{…} = @code{(stream-cdr fibs)}
+1 1 2 3  5  8 13 @r{…} = @code{fibs}
 0 1 1 2 3 5 8 13 21 34 @r{…} = @code{fibs}
 @end example
 

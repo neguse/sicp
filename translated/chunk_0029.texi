@@ -5,8 +5,8 @@
 \text{Fib}(n) \; = \;
   \left\{
     \begin{array}{ll}
-      0 & \;\text{if} \;\; n = 0, \\
-      1 & \;\text{if} \;\; n = 1, \\
+& \;\text{if} \;\; n = 0, \\
+& \;\text{if} \;\; n = 1, \\
       \text{Fib}(n-1) + \text{Fib}(n-2) & \;\text{otherwise}.
     \end{array}
   \right.

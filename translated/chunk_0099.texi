@@ -1,81 +1,81 @@
-     1	0または1になります。
+0または1になります。
      2
-     3	これらの規則を手続きに具体化するために、有理数実装を設計したときと同じように、少し希望的観測を行います。代数式を表現する手段があれば、式が和、積、定数、または変数であるかどうかを判断できるはずです。式の部品を抽出できるはずです。たとえば、和の場合、被加数（第1項）と加数（第2項）を抽出できるようにしたいと思います。また、部品から式を構築できる必要があります。次のセレクタ、コンストラクタ、および述語を実装する手続きがすでにあると仮定しましょう:
+これらの規則を手続きに具体化するために、有理数実装を設計したときと同じように、少し希望的観測を行います。代数式を表現する手段があれば、式が和、積、定数、または変数であるかどうかを判断できるはずです。式の部品を抽出できるはずです。たとえば、和の場合、被加数（第1項）と加数（第2項）を抽出できるようにしたいと思います。また、部品から式を構築できる必要があります。次のセレクタ、コンストラクタ、および述語を実装する手続きがすでにあると仮定しましょう:
      4
-     5	@example
-     6	(variable? e)          @r{@code{e}は変数ですか?}
-     7	(same-variable? v1 v2) @r{@code{v1}と@code{v2}は同じ変数ですか?}
-     8	(sum? e)               @r{@code{e}は和ですか?}
-     9	(addend e)             @r{和@code{e}の被加数。}
-    10	(augend e)             @r{和@code{e}の加数。}
-    11	(make-sum a1 a2)       @r{@code{a1}と@code{a2}の和を構築。}
-    12	(product? e)           @r{@code{e}は積ですか?}
-    13	(multiplier e)         @r{積@code{e}の乗数。}
-    14	(multiplicand e)       @r{積@code{e}の被乗数。}
-    15	(make-product m1 m2)   @r{@code{m1}と@code{m2}の積を構築。}
-    16	@end example
+@example
+(variable? e)          @r{@code{e}は変数ですか?}
+(same-variable? v1 v2) @r{@code{v1}と@code{v2}は同じ変数ですか?}
+(sum? e)               @r{@code{e}は和ですか?}
+(addend e)             @r{和@code{e}の被加数。}
+(augend e)             @r{和@code{e}の加数。}
+(make-sum a1 a2)       @r{@code{a1}と@code{a2}の和を構築。}
+(product? e)           @r{@code{e}は積ですか?}
+(multiplier e)         @r{積@code{e}の乗数。}
+(multiplicand e)       @r{積@code{e}の被乗数。}
+(make-product m1 m2)   @r{@code{m1}と@code{m2}の積を構築。}
+@end example
     17
-    18	@noindent
-    19	これらと、数値を識別するプリミティブ述語@code{number?}を使用して、微分規則を次の手続きとして表現できます:
+@noindent
+これらと、数値を識別するプリミティブ述語@code{number?}を使用して、微分規則を次の手続きとして表現できます:
     20
-    21	@lisp
-    22	(define (deriv exp var)
-    23	  (cond ((number? exp) 0)
-    24	        ((variable? exp)
-    25	         (if (same-variable? exp var) 1 0))
-    26	        ((sum? exp)
-    27	         (make-sum (deriv (addend exp) var)
-    28	                   (deriv (augend exp) var)))
-    29	        ((product? exp)
-    30	         (make-sum
-    31	          (make-product
-    32	           (multiplier exp)
-    33	           (deriv (multiplicand exp) var))
-    34	          (make-product
-    35	           (deriv (multiplier exp) var)
-    36	           (multiplicand exp))))
-    37	        (else (error "unknown expression
-    38	                      type: DERIV" exp))))
-    39	@end lisp
+@lisp
+(define (deriv exp var)
+  (cond ((number? exp) 0)
+        ((variable? exp)
+         (if (same-variable? exp var) 1 0))
+        ((sum? exp)
+         (make-sum (deriv (addend exp) var)
+                   (deriv (augend exp) var)))
+        ((product? exp)
+         (make-sum
+          (make-product
+           (multiplier exp)
+           (deriv (multiplicand exp) var))
+          (make-product
+           (deriv (multiplier exp) var)
+           (multiplicand exp))))
+        (else (error "unknown expression
+                      type: DERIV" exp))))
+@end lisp
     40
-    41	@noindent
-    42	この@code{deriv}手続きには、完全な微分アルゴリズムが組み込まれています。抽象データの観点から表現されているため、適切なセレクタとコンストラクタのセットを設計する限り、代数式をどのように表現するかに関係なく機能します。これが次に取り組むべき問題です。
+@noindent
+この@code{deriv}手続きには、完全な微分アルゴリズムが組み込まれています。抽象データの観点から表現されているため、適切なセレクタとコンストラクタのセットを設計する限り、代数式をどのように表現するかに関係なく機能します。これが次に取り組むべき問題です。
     43
-    44	@subsubheading 代数式の表現
+@subsubheading 代数式の表現
     45
-    46	代数式を表現するためにリスト構造を使用する多くの方法を想像できます。たとえば、通常の代数表記を反映するシンボルのリストを使用して、@math{{ax + b}}をリスト@code{(a * x + b)}として表現できます。ただし、特に直接的な選択の1つは、Lispが組み合わせに使用するのと同じ括弧付き前置表記を使用することです。つまり、@math{{ax + b}}を@code{(+ (* a x) b)}として表現します。その場合、微分問題のデータ表現は次のとおりです:
+代数式を表現するためにリスト構造を使用する多くの方法を想像できます。たとえば、通常の代数表記を反映するシンボルのリストを使用して、@math{{ax + b}}をリスト@code{(a * x + b)}として表現できます。ただし、特に直接的な選択の1つは、Lispが組み合わせに使用するのと同じ括弧付き前置表記を使用することです。つまり、@math{{ax + b}}を@code{(+ (* a x) b)}として表現します。その場合、微分問題のデータ表現は次のとおりです:
     47
-    48	@itemize @bullet
+@itemize @bullet
     49
-    50	@item
-    51	変数はシンボルです。これらはプリミティブ述語@code{symbol?}によって識別されます:
+@item
+変数はシンボルです。これらはプリミティブ述語@code{symbol?}によって識別されます:
     52
-    53	@lisp
-    54	(define (variable? x) (symbol? x))
-    55	@end lisp
+@lisp
+(define (variable? x) (symbol? x))
+@end lisp
     56
-    57	@item
-    58	2つの変数は、それらを表すシンボルが@code{eq?}である場合、同じです:
+@item
+2つの変数は、それらを表すシンボルが@code{eq?}である場合、同じです:
     59
-    60	@lisp
-    61	(define (same-variable? v1 v2)
-    62	  (and (variable? v1)
-    63	       (variable? v2)
-    64	       (eq? v1 v2)))
-    65	@end lisp
+@lisp
+(define (same-variable? v1 v2)
+  (and (variable? v1)
+       (variable? v2)
+       (eq? v1 v2)))
+@end lisp
     66
-    67	@item
-    68	和と積はリストとして構築されます:
+@item
+和と積はリストとして構築されます:
     69
-    70	@lisp
-    71	(define (make-sum a1 a2) (list '+ a1 a2))
-    72	(define (make-product m1 m2) (list '* m1 m2))
-    73	@end lisp
+@lisp
+(define (make-sum a1 a2) (list '+ a1 a2))
+(define (make-product m1 m2) (list '* m1 m2))
+@end lisp
     74
-    75	@item
-    76	和は、最初の要素がシンボル@code{+}であるリストです:
+@item
+和は、最初の要素がシンボル@code{+}であるリストです:
     77
-    78	@lisp
-    79	(define (sum? x)
-    80	  (and (pair? x) (eq? (car x) '+)))
+@lisp
+(define (sum? x)
+  (and (pair? x) (eq? (car x) '+)))
     81

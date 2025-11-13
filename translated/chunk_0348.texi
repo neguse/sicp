@@ -1,0 +1,91 @@
+* 5.5.3::            組み合わせのコンパイル
+* 5.5.4::            命令シーケンスの結合
+* 5.5.5::            コンパイルされたコードの例
+* 5.5.6::            字句的アドレス指定
+* 5.5.7::            コンパイルされたコードと評価器のインターフェース
+@end menu
+
+@node	5.5.1, 5.5.2, 5.5, 5.5
+@subsection コンパイラの構造
+
+@ref{4.1.7}では、元のメタ循環インタプリタを変更して、分析と実行を分離しました。
+各式を分析して、環境を引数として取り、必要な操作を実行する実行手続きを生成しました。
+コンパイラでは、本質的に同じ分析を行います。しかし、実行手続きを生成する代わりに、
+レジスタマシンで実行される命令のシーケンスを生成します。
+
+手続き@code{compile}は、コンパイラのトップレベルディスパッチです。これは、
+@ref{4.1.1}の@code{eval}手続き、@ref{4.1.7}の@code{analyze}手続き、および
+@ref{5.4.1}の明示的制御の評価器の@code{eval-dispatch}エントリポイントに対応
+します。コンパイラは、インタプリタと同様に、@ref{4.1.2}で定義された式構文手続きを
+使用します。@footnote{ただし、コンパイラはSchemeプログラムであり、式を操作するために
+使用する構文手続きは、メタ循環評価器で使用される実際のScheme手続きであることに注意
+してください。対照的に、明示的制御の評価器については、同等の構文操作がレジスタマシンの
+操作として使用可能であると仮定しました。（もちろん、Schemeでレジスタマシンをシミュレート
+したときは、レジスタマシンシミュレーションで実際のScheme手続きを使用しました。）}
+@code{Compile}は、コンパイルされる式の構文型に関するケース分析を実行します。各式型に
+ついて、特殊な@newterm{コードジェネレータ}（code generator）にディスパッチします。
+
+@lisp
+(define (compile exp target linkage)
+  (cond ((self-evaluating? exp)
+         (compile-self-evaluating
+          exp target linkage))
+        ((quoted? exp)
+         (compile-quoted exp target linkage))
+        ((variable? exp)
+         (compile-variable
+          exp target linkage))
+        ((assignment? exp)
+         (compile-assignment
+          exp target linkage))
+        ((definition? exp)
+         (compile-definition
+          exp target linkage))
+        ((if? exp)
+         (compile-if exp target linkage))
+        ((lambda? exp)
+         (compile-lambda exp target linkage))
+        ((begin? exp)
+         (compile-sequence
+          (begin-actions exp) target linkage))
+        ((cond? exp)
+         (compile
+          (cond->if exp) target linkage))
+        ((application? exp)
+         (compile-application
+          exp target linkage))
+        (else
+         (error "Unknown expression type:
+                 COMPILE"
+                exp))))
+@end lisp
+
+@subsubheading ターゲットとリンケージ
+
+@code{Compile}とそれが呼び出すコードジェネレータは、コンパイルする式に加えて2つの
+引数を取ります。@newterm{ターゲット}（target）があり、これはコンパイルされたコードが
+式の値を返すレジスタを指定します。また、@newterm{リンケージ記述子}（linkage descriptor）も
+あり、これは式のコンパイルから得られるコードが実行を終了したときにどのように進む
+べきかを記述します。リンケージ記述子は、コードが次の3つのいずれかを行うことを要求
+できます。
+
+@itemize @bullet
+
+@item
+シーケンス内の次の命令で継続する（これはリンケージ記述子@code{next}によって指定される）、
+
+@item
+コンパイルされている手続きから戻る（これはリンケージ記述子@code{return}によって指定される）、または
+
+@item
+名前付きエントリポイントにジャンプする（これは指定されたラベルをリンケージ記述子として
+使用することによって指定される）。
+
+@end itemize
+
+@noindent
+例えば、@code{val}レジスタのターゲットと@code{next}のリンケージで式@code{5}
+（自己評価的）をコンパイルすると、次の命令が生成されるはずです。
+
+@lisp
+(assign val (const 5))

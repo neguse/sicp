@@ -1,0 +1,88 @@
+\text{(restore} \kern1ex ⟨\kern0.1em{reg_2}⟩\text{)} \\
+
+                                        &
+⟨\kern0.1em{seq_2}⟩                     &
+⟨\kern0.1em{seq_2}⟩                     &
+⟨\kern0.1em{seq_2}⟩
+\end{array}
+\]
+@end tex
+
+@noindent
+命令シーケンスを組み合わせるために@code{preserving}を使用することにより、コンパイラは
+不必要なスタック操作を回避します。これにより、@code{save}および@code{restore}命令を
+生成するかどうかの詳細が@code{preserving}手続き内に分離され、個々のコードジェネレータの
+それぞれを書く際に生じる懸念から分離されます。実際、コードジェネレータによって明示的に
+生成される@code{save}または@code{restore}命令はありません。
+
+原則として、命令シーケンスを単に命令のリストとして表現できます。その場合、
+@code{Append-instruction-sequences}は、通常のリスト@code{append}を実行することによって
+命令シーケンスを組み合わせることができます。しかし、@code{preserving}は、各命令
+シーケンスを分析してシーケンスがどのようにレジスタを使用するかを決定する必要がある
+ため、複雑な操作になります。@code{Preserving}は、その命令シーケンス引数のそれぞれを
+分析する必要があるため、複雑であるだけでなく非効率的です。これらのシーケンス自体が
+@code{preserving}への呼び出しによって構築されている場合でも、その部分は既に分析されて
+いるにもかかわらずです。このような繰り返しの分析を避けるために、各命令シーケンスに
+レジスタ使用に関する情報を関連付けます。基本的な命令シーケンスを構築するときに、
+この情報を明示的に提供し、命令シーケンスを組み合わせる手続きは、コンポーネント
+シーケンスに関連付けられた情報から結合されたシーケンスのレジスタ使用情報を導出します。
+
+命令シーケンスには3つの情報が含まれます。
+
+@itemize @bullet
+
+@item
+シーケンス内の命令が実行される前に初期化する必要があるレジスタのセット（これらの
+レジスタはシーケンスによって@newterm{必要とされる}（needed）と言われる）、
+
+@item
+シーケンス内の命令によって値が変更されるレジスタのセット、および
+
+@item
+シーケンス内の実際の命令（@newterm{ステートメント}（statements）とも呼ばれる）。
+
+@end itemize
+
+@noindent
+命令シーケンスを3つの部分のリストとして表現します。したがって、命令シーケンスの
+コンストラクタは次のようになります。
+
+@lisp
+(define (make-instruction-sequence
+         needs modifies statements)
+  (list needs modifies statements))
+@end lisp
+
+@noindent
+例えば、現在の環境で変数@code{x}の値を検索し、結果を@code{val}に割り当てて戻る
+2命令シーケンスは、レジスタ@code{env}と@code{continue}が初期化されている必要があり、
+レジスタ@code{val}を変更します。したがって、このシーケンスは次のように構築されます。
+
+@lisp
+(make-instruction-sequence
+ '(env continue)
+ '(val)
+ '((assign val
+           (op lookup-variable-value)
+           (const x)
+           (reg env))
+   (goto (reg continue))))
+@end lisp
+
+@noindent
+ステートメントのない命令シーケンスを構築する必要がある場合があります。
+
+@lisp
+(define (empty-instruction-sequence)
+  (make-instruction-sequence '() '() '()))
+@end lisp
+
+@noindent
+命令シーケンスを組み合わせるための手続きは、@ref{5.5.4}に示されています。
+
+@quotation
+@strong{@anchor{Exercise 5.31}練習問題 5.31:} 手続き適用を評価する際、明示的制御の
+評価器は常に、演算子の評価の周りで@code{env}レジスタを保存および復元し、各オペランド
+（最後のオペランドを除く）の評価の周りで@code{env}を保存および復元し、各オペランドの
+評価の周りで@code{argl}を保存および復元し、オペランドシーケンスの評価の周りで
+@code{proc}を保存および復元します。次の各組み合わせについて、これらの@code{save}と

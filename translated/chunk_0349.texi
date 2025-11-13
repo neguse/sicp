@@ -1,0 +1,92 @@
+@end lisp
+
+@noindent
+@code{return}のリンケージで同じ式をコンパイルすると、次の命令が生成されるはずです。
+
+@lisp
+(assign val (const 5))
+(goto (reg continue))
+@end lisp
+
+@noindent
+最初のケースでは、実行はシーケンス内の次の命令で継続されます。2番目のケースでは、
+手続き呼び出しから戻ります。両方のケースで、式の値はターゲット@code{val}レジスタに
+配置されます。
+
+@subsubheading 命令シーケンスとスタック使用
+
+各コードジェネレータは、式用に生成したオブジェクトコードを含む@newterm{命令シーケンス}
+（instruction sequence）を返します。複合式のコード生成は、複合式の評価がコンポーネント式を
+評価することによって達成されるのと同じように、コンポーネント式用のより単純なコード
+ジェネレータからの出力を組み合わせることによって達成されます。
+
+命令シーケンスを組み合わせるための最も単純な方法は、@code{append-instruction-sequences}と
+呼ばれる手続きです。これは、順次実行される任意の数の命令シーケンスを引数として取ります。
+それらを追加し、結合されたシーケンスを返します。つまり、@math{{⟨\kern0.1em seq_1⟩}}と
+@math{{⟨\kern0.1em seq_2⟩}}が命令のシーケンスである場合、
+
+@lisp
+(append-instruction-sequences ⟨@var{seq₁}⟩ ⟨@var{seq₂}⟩)
+@end lisp
+
+@noindent
+を評価すると、次のシーケンスが生成されます。
+
+@lisp
+⟨@var{seq₁}⟩
+⟨@var{seq₂}⟩
+@end lisp
+
+@noindent
+レジスタを保存する必要がある場合、コンパイラのコードジェネレータは、命令シーケンスを
+組み合わせるためのより微妙な方法である@code{preserving}を使用します。@code{Preserving}は
+3つの引数を取ります。レジスタのセットと、順次実行される2つの命令シーケンスです。
+セット内の各レジスタの内容が最初のシーケンスの実行中に保持されるように、2番目の
+シーケンスの実行に必要な場合、シーケンスを追加します。つまり、最初のシーケンスが
+レジスタを変更し、2番目のシーケンスが実際にレジスタの元の内容を必要とする場合、
+@code{preserving}は、シーケンスを追加する前に、最初のシーケンスの周りにレジスタの
+@code{save}と@code{restore}をラップします。それ以外の場合、@code{preserving}は単に
+追加された命令シーケンスを返します。したがって、例えば、
+@code{(preserving (list ⟨@var{reg₁}⟩ ⟨@var{reg₂}⟩) ⟨@var{seg₁}⟩ ⟨@var{seg₂}⟩)}は、
+@math{{⟨\kern0.1em seq_1⟩}}と@math{{⟨\kern0.1em seq_2⟩}}が
+@math{{⟨\kern0.1em reg_1⟩}}と@math{{⟨\kern0.1em reg_2⟩}}をどのように使用するかに
+応じて、次の4つの命令シーケンスのいずれかを生成します。
+@ifinfo
+
+@smallexample
+<seq_1> | (save <reg_1>)    | (save <reg_2>)    | (save <reg_2>)
+<seq_2> | <seq_1>           | <seq_1>           | (save <reg_1>)
+        | (restore <reg_1>) | (restore <reg_2>) | <seq_1>
+        | <seq_2>           | <seq_2>           | (restore <reg_1>)
+        |                   |                   | (restore <reg_2>)
+        |                   |                   | <seq_2>
+@end smallexample
+
+@end ifinfo
+@tex
+\[ % :83:
+
+\begin{array}{l|l|l|l}
+⟨\kern0.1em{seq_1}⟩                     &
+\text{(save}                            &
+\text{(save}                            &
+\text{(save} \kern1ex ⟨\kern0.1em{reg_2}⟩\text{)}    \\
+
+⟨\kern0.1em{seq_2}⟩  		        &
+\kern1ex ⟨\kern0.1em{reg_1}⟩\text{)}    &
+\kern1ex ⟨\kern0.1em{reg_2}⟩\text{)}    &
+\text{(save} \kern1ex ⟨\kern0.1em{reg_1}⟩\text{)}    \\
+
+                                        &
+⟨\kern0.1em{seq_1}⟩                     &
+⟨\kern0.1em{seq_1}⟩                     &
+⟨\kern0.1em{seq_1}⟩                                  \\
+
+                                        &
+\text{(restore}                         &
+\text{(restore}                         &
+\text{(restore} \kern1ex ⟨\kern0.1em{reg_1}⟩\text{)} \\
+
+                                        &
+\kern1ex ⟨\kern0.1em{reg_1}⟩\text{)}    &
+\kern1ex ⟨\kern0.1em{reg_2}⟩\text{)}    &

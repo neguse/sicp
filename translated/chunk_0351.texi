@@ -1,0 +1,97 @@
+@code{restore}操作のうち、どれが余分で、したがってコンパイラの@code{preserving}
+機構によって削除できるかを述べてください。
+
+@lisp
+(f 'x 'y)
+((f) 'x 'y)
+(f (g 'x) y)
+(f (g 'x) 'y)
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.32}練習問題 5.32:} @code{preserving}機構を使用すると、
+コンパイラは、演算子がシンボルである場合、組み合わせの演算子の評価の周りで@code{env}を
+保存および復元することを回避します。このような最適化を評価器に組み込むこともできます。
+実際、@ref{5.4}の明示的制御の評価器は既に、オペランドのない組み合わせを特殊なケース
+として扱うことによって、同様の最適化を実行しています。
+
+@enumerate a
+
+@item
+明示的制御の評価器を拡張して、演算子がシンボルである組み合わせを式の別個のクラスとして
+認識し、そのような式を評価する際にこの事実を利用するようにしてください。
+
+@item
+Alyssa P. Hackerは、評価器を拡張してますます多くの特殊なケースを認識することによって、
+コンパイラのすべての最適化を組み込むことができ、これによってコンパイルの利点を完全に
+排除できると提案しています。このアイデアについてどう思いますか？
+
+@end enumerate
+@end quotation
+
+@node	5.5.2, 5.5.3, 5.5.1, 5.5
+@subsection 式のコンパイル
+
+このセクションと次のセクションでは、@code{compile}手続きがディスパッチするコード
+ジェネレータを実装します。
+
+@subsubheading リンケージコードのコンパイル
+
+一般に、各コードジェネレータの出力は、必要なリンケージを実装する命令---手続き
+@code{compile-linkage}によって生成される---で終わります。リンケージが@code{return}
+である場合、命令@code{(goto (reg continue))}を生成する必要があります。これには
+@code{continue}レジスタが必要であり、どのレジスタも変更しません。リンケージが
+@code{next}である場合、追加の命令を含める必要はありません。それ以外の場合、リンケージは
+ラベルであり、そのラベルへの@code{goto}を生成します。これは、どのレジスタも必要とせず、
+変更しない命令です。@footnote{この手続きは、リストを構築するのに便利なLispの
+@newterm{バッククォート}（backquote）または@newterm{準クォート}（quasiquote）と呼ばれる
+機能を使用します。バッククォートシンボルの前にリストを置くことは、それを引用するのと
+よく似ていますが、リスト内でカンマでフラグが付けられたものはすべて評価されます。
+
+例えば、@code{linkage}の値がシンボル@code{branch25}である場合、式
+
+@lisp
+`((goto (label ,linkage)))
+@end lisp
+
+はリスト
+
+@lisp
+((goto (label branch25)))
+@end lisp
+
+に評価されます。同様に、@code{x}の値がリスト@code{(a b c)}である場合、
+
+@lisp
+`(1 2 ,(car x))
+@end lisp
+
+はリスト
+
+@lisp
+(1 2 a)
+@end lisp
+
+に評価されます。
+}
+
+@lisp
+(define (compile-linkage linkage)
+  (cond ((eq? linkage 'return)
+         (make-instruction-sequence
+          '(continue)
+          '()
+          '((goto (reg continue)))))
+        ((eq? linkage 'next)
+         (empty-instruction-sequence))
+        (else
+         (make-instruction-sequence '() '()
+          `((goto (label ,linkage)))))))
+@end lisp
+
+@noindent
+リンケージコードは、@code{return}リンケージが@code{continue}レジスタを必要とするため、
+@code{continue}レジスタを@code{preserving}することによって命令シーケンスに追加されます。
+与えられた命令シーケンスが@code{continue}を変更し、リンケージコードがそれを必要とする
+場合、

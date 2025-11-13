@@ -1,0 +1,95 @@
+@code{continue}が保存および復元されます。
+
+@lisp
+(define (end-with-linkage
+         linkage instruction-sequence)
+  (preserving '(continue)
+   instruction-sequence
+   (compile-linkage linkage)))
+@end lisp
+
+@subsubheading 単純な式のコンパイル
+
+自己評価式、引用、および変数のコードジェネレータは、必要な値をターゲットレジスタに
+割り当て、次にリンケージ記述子で指定されたとおりに進む命令シーケンスを構築します。
+
+@lisp
+(define (compile-self-evaluating
+         exp target linkage)
+  (end-with-linkage
+   linkage (make-instruction-sequence
+            '()
+            (list target)
+            `((assign ,target (const ,exp))))))
+
+(define (compile-quoted exp target linkage)
+  (end-with-linkage
+   linkage
+   (make-instruction-sequence
+    '()
+    (list target)
+    `((assign
+       ,target
+       (const ,(text-of-quotation exp)))))))
+
+(define (compile-variable
+         exp target linkage)
+  (end-with-linkage
+   linkage
+   (make-instruction-sequence
+    '(env)
+    (list target)
+    `((assign ,target
+              (op lookup-variable-value)
+              (const ,exp)
+              (reg env))))))
+@end lisp
+
+@noindent
+これらのすべての代入命令はターゲットレジスタを変更し、変数を検索する命令は@code{env}
+レジスタを必要とします。
+
+代入と定義は、インタプリタとほぼ同じ方法で処理されます。変数に割り当てられる値を
+計算するコードを再帰的に生成し、実際に変数を設定または定義し、式全体の値（シンボル
+@code{ok}）をターゲットレジスタに割り当てる2命令シーケンスをそれに追加します。再帰的な
+コンパイルは、ターゲット@code{val}とリンケージ@code{next}を持つため、コードはその
+結果を@code{val}に入れ、その後に追加されるコードで継続します。追加は@code{env}を
+preservingして行われます。環境は変数を設定または定義するために必要であり、変数値の
+コードは、レジスタを任意の方法で変更する可能性のある複雑な式のコンパイルである
+可能性があるためです。
+
+@lisp
+(define (compile-assignment
+         exp target linkage)
+  (let ((var (assignment-variable exp))
+        (get-value-code
+         (compile (assignment-value exp)
+                  'val
+                  'next)))
+    (end-with-linkage
+     linkage
+     (preserving
+      '(env)
+      get-value-code
+      (make-instruction-sequence
+       '(env val)
+       (list target)
+       `((perform (op set-variable-value!)
+                  (const ,var)
+                  (reg val)
+                  (reg env))
+         (assign ,target (const ok))))))))
+
+(define (compile-definition
+         exp target linkage)
+  (let ((var (definition-variable exp))
+        (get-value-code
+         (compile (definition-value exp)
+                  'val
+                  'next)))
+    (end-with-linkage
+     linkage
+     (preserving
+      '(env)
+      get-value-code
+      (make-instruction-sequence

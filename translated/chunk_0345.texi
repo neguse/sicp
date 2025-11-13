@@ -1,0 +1,94 @@
+2つの定数によって決定されます。
+
+@end enumerate
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.27}練習問題 5.27:} @ref{Exercise 5.26}との比較のために、
+階乗を再帰的に計算する次の手続きの動作を探求してください。
+
+@lisp
+(define (factorial n)
+  (if (= n 1)
+      1
+      (* (factorial (- n 1)) n)))
+@end lisp
+
+監視されたスタックでこの手続きを実行することにより、@math{{n \ge 1}}について
+@math{{n!}}を評価する際のスタックの最大深度とプッシュの総数を、@math{n}の関数として
+決定してください。（再び、これらの関数は線形になります。）次の表を@math{n}に関する
+適切な式で埋めることによって、実験を要約してください。
+@ifinfo
+
+@example
+               Maximum depth       Number of pushes
+
+Recursive
+factorial
+
+Iterative
+factorial
+@end example
+
+@end ifinfo
+@tex
+\[ % :82:
+
+\begin{array}{l|l|l}
+                	& \text{Maximum} 	& \text{Number of} 	\\
+                	& \text{depth} 	        & \text{pushes} 	\\
+\hline
+\text{Recursive} 	&	                &  \\
+\text{factorial} 	&  	                &  \\
+\hline
+\text{Iterative} 	&               	&  \\
+\text{factorial} 	&  	                &
+\end{array}
+\]
+@end tex
+最大深度は、評価器が計算を実行する際に使用する空間の量の尺度であり、プッシュ数は
+必要な時間とよく相関します。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.28}練習問題 5.28:} @ref{5.4.2}で説明されているように
+@code{eval-sequence}を変更して、評価器が末尾再帰的でなくなるように評価器の定義を
+変更してください。@ref{Exercise 5.26}と@ref{Exercise 5.27}の実験を再実行して、
+@code{factorial}手続きの両方のバージョンが、入力に対して線形に増加する空間を必要と
+することを示してください。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.29}練習問題 5.29:} 木再帰的なフィボナッチ計算でスタック
+操作を監視してください。
+
+@lisp
+(define (fib n)
+  (if (< n 2)
+      n
+      (+ (fib (- n 1)) (fib (- n 2)))))
+@end lisp
+
+@enumerate a
+
+@item
+@math{{n \ge 2}}について@math{{\text{Fib}(n)}}を計算するために必要なスタックの
+最大深度の@math{n}に関する式を与えてください。ヒント：@ref{1.2.2}で、このプロセスが
+使用する空間が@math{n}に対して線形に増加することを論じました。
+
+@item
+@math{{n \ge 2}}について@math{{\text{Fib}(n)}}を計算するために使用されるプッシュの
+総数の式を与えてください。プッシュ数（使用される時間とよく相関する）が@math{n}に対して
+指数的に増加することがわかるはずです。ヒント：@math{{\text{Fib}(n)}}を計算する際に
+使用されるプッシュ数を@math{{S(n)}}とします。@math{{S(n)}}を@math{{S(n - 1)}}、
+@math{{S(n - 2)}}、および@math{n}に依存しない固定の「オーバーヘッド」定数@math{k}の
+観点から表す式があることを論じることができるはずです。その式を示し、@math{k}が何で
+あるかを述べてください。次に、@math{{S(n)}}が@math{{a\cdot\text{Fib}(n + 1) + b}}と
+表されることを示し、@math{a}と@math{b}の値を与えてください。
+
+@end enumerate
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.30}練習問題 5.30:} 私たちの評価器は現在、未知の式型と
+未知の手続き型の2種類のエラーのみをキャッチして通知します。他のエラーは、評価器の

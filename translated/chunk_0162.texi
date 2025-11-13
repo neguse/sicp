@@ -1,0 +1,84 @@
+
+@example
+     +---+---+     +---+---+     +---+---+
+x -->| * | * |     | * | *-+---->| * | / |
+     +-|-+-|-+     +-|-+---+     +-|-+---+
+       |   |         V             V
+       |   |       +---+         +---+
+       |   |       | c |         | d |
+       |   |       +---+         +---+
+       |   |       +---+---+     +---+---+
+       +---+------>| * | *-+---->| * | / |
+           |       +-|-+---+     +-|-+---+
+           |         V             V
+           |       +---+         +---+
+           |       | a |         | b |
+           |       +---+         +---+
+           +------>+---+---+     +---+---+
+                   | * | *-+---->| * | / |
+              y -->+-|-+---+     +-|-+---+
+                     V             V
+                   +---+         +---+
+                   | e |         | f |
+                   +---+         +---+
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.15b,123mm,,,.std.svg}
+@caption{@strong{図 3.15:} @ref{図 3.12}のリストに対する@code{(set-cdr! x y)}の効果。}
+@end iftex
+@end float
+
+@noindent
+@code{Cons}は新しいペアを作成することによって新しいリスト構造を構築しますが、@code{set-car!}と@code{set-cdr!}は既存のペアを変更します。実際、2つのミューテータと、既存のリスト構造の一部ではない新しいペアを返す手続き@code{get-new-pair}の観点から@code{cons}を実装できます。新しいペアを取得し、その@code{car}と@code{cdr}のポインタを指定されたオブジェクトに設定し、新しいペアを@code{cons}の結果として返します。@footnote{@code{Get-new-pair}は、Lisp実装が必要とするメモリ管理の一部として実装しなければならない操作の1つです。これについては@ref{5.3.1}で議論します。}
+
+@lisp
+(define (cons x y)
+  (let ((new (get-new-pair)))
+    (set-car! new x)
+    (set-cdr! new y)
+    new))
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 3.12}練習問題 3.12:} リストを追加する次の手続きは@ref{2.2.1}で導入されました：
+
+@lisp
+(define (append x y)
+  (if (null? x)
+      y
+      (cons (car x) (append (cdr x) y))))
+@end lisp
+
+@code{Append}は@code{x}の要素を@code{y}に連続して@code{cons}することによって新しいリストを形成します。手続き@code{append!}は@code{append}に似ていますが、コンストラクタではなくミューテータです。これは、@code{x}の最後のペアをその@code{cdr}が今や@code{y}になるように変更することによって、リストを継ぎ合わせて追加します。（空の@code{x}で@code{append!}を呼び出すのはエラーです。）
+
+@lisp
+(define (append! x y)
+  (set-cdr! (last-pair x) y)
+  x)
+@end lisp
+
+ここで@code{last-pair}は、引数の最後のペアを返す手続きです：
+
+@lisp
+(define (last-pair x)
+  (if (null? (cdr x))
+      x
+      (last-pair (cdr x))))
+@end lisp
+
+次の対話を考えてください
+
+@lisp
+(define x (list 'a 'b))
+(define y (list 'c 'd))
+(define z (append x y))
+
+z
+@i{(a b c d)}
+
+(cdr x)
+⟨@var{response}⟩
+
+(define w (append! x y))

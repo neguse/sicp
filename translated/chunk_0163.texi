@@ -1,0 +1,80 @@
+w
+@i{(a b c d)}
+
+(cdr x)
+⟨@var{response}⟩
+@end lisp
+
+欠けている@code{⟨}@var{response}@code{⟩}は何ですか？箱とポインタの図を描いて答えを説明してください。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.13}練習問題 3.13:} @ref{練習問題 3.12}で定義された@code{last-pair}手続きを使う次の@code{make-cycle}手続きを考えてください：
+
+@lisp
+(define (make-cycle x)
+  (set-cdr! (last-pair x) x)
+  x)
+@end lisp
+
+次によって作成される構造@code{z}を示す箱とポインタの図を描いてください
+
+@lisp
+(define z (make-cycle (list 'a 'b 'c)))
+@end lisp
+
+@code{(last-pair z)}を計算しようとすると何が起こりますか？
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.14}練習問題 3.14:} 次の手続きは曖昧ですが、非常に有用です：
+
+@lisp
+(define (mystery x)
+  (define (loop x y)
+    (if (null? x)
+        y
+        (let ((temp (cdr x)))
+          (set-cdr! x y)
+          (loop temp x))))
+  (loop x '()))
+@end lisp
+
+@code{Loop}は「一時的」変数@code{temp}を使って@code{x}の@code{cdr}の古い値を保持します。次の行の@code{set-cdr!}が@code{cdr}を破壊するからです。@code{mystery}が一般に何をするかを説明してください。@code{v}が@code{(define v (list 'a 'b 'c 'd))}によって定義されているとします。@code{v}が束縛されているリストを表す箱とポインタの図を描いてください。次に@code{(define w (mystery v))}を評価するとします。この式を評価した後の構造@code{v}と@code{w}を示す箱とポインタの図を描いてください。@code{v}と@code{w}の値として何が印刷されますか？
+@end quotation
+
+@subsubheading 共有と同一性
+
+@ref{3.1.3}で、代入の導入によって引き起こされる「同一性」と「変化」の理論的問題について述べました。これらの問題は、個々のペアが異なるデータオブジェクト間で@newterm{共有}されるときに実際に生じます。たとえば、次によって形成される構造を考えてください
+
+@lisp
+(define x (list 'a 'b))
+(define z1 (cons x x))
+@end lisp
+
+@noindent
+@ref{図 3.16}に示されるように、@code{z1}は@code{car}と@code{cdr}の両方が同じペア@code{x}を指すペアです。@code{z1}の@code{car}と@code{cdr}による@code{x}のこの共有は、@code{cons}が実装される単純明快な方法の結果です。一般に、@code{cons}を使ってリストを構築すると、多くの個々のペアが多くの異なる構造によって共有されるペアの相互リンクされた構造になります。
+
+@float
+@anchor{Figure 3.16}
+@ifinfo
+@quotation
+@strong{図 3.16:} @code{(cons x x)}によって形成されたリスト@code{z1}。
+
+@example
+      +---+---+
+z1 -->| * | * |
+      +-|-+-|-+
+        V   V
+      +---+---+     +---+---+
+ x -->| * | *-+---->| * | / |
+      +-|-+---+     +-|-+---+
+        V             V
+      +---+         +---+
+      | a |         | b |
+      +---+         +---+
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.16b,78mm,,,.std.svg}

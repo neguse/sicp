@@ -1,0 +1,90 @@
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.12b,123mm,,,.std.svg}
+@caption{@strong{図 3.12:} リスト@code{x}: @code{((a b) c d)}と@code{y}: @code{(e f)}。}
+@end iftex
+@end float
+
+@float
+@anchor{Figure 3.13}
+@ifinfo
+@quotation
+@strong{図 3.13:} @ref{図 3.12}のリストに対する@code{(set-car! x y)}の効果。
+
+@example
+     +---+---+     +---+---+     +---+---+
+x -->| * | *-+---->| * | *-+---->| * | / |
+     +-|-+---+     +-|-+---+     +-|-+---+
+       |             V             V
+       |           +---+         +---+
+       |           | c |         | d |
+       |           +---+         +---+
+       |           +---+---+     +---+---+
+       |           | * | *-+---->| * | / |
+       |           +-|-+---+     +-|-+---+
+       |             V             V
+       |           +---+         +---+
+       |           | a |         | b |
+       |           +---+         +---+
+       +---------->+---+---+     +---+---+
+                   | * | *-+---->| * | / |
+              y -->+-|-+---+     +-|-+---+
+                     V             V
+                   +---+         +---+
+                   | e |         | f |
+                   +---+         +---+
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.13b,123mm,,,.std.svg}
+@caption{@strong{図 3.13:} @ref{図 3.12}のリストに対する@code{(set-car! x y)}の効果。}
+@end iftex
+@end float
+
+@ref{図 3.13}を@ref{図 3.14}と比較してください。これは、@code{x}と@code{y}が@ref{図 3.12}の元のリストに束縛された状態で@code{(define z (cons y (cdr x)))}を実行した結果を示しています。変数@code{z}は今や@code{cons}操作によって作成された新しいペアに束縛されています；@code{x}が束縛されているリストは変更されていません。
+
+@float
+@anchor{Figure 3.14}
+@ifinfo
+@quotation
+@strong{図 3.14:} @ref{図 3.12}のリストに対する@code{(define z (cons y (cdr x)))}の効果。
+
+@example
+     +---+---+     +---+---+     +---+---+
+x -->| * | *-+---->| * | *-+---->| * | / |
+     +-|-+---+ +-->+-|-+---+     +-|-+---+
+       |       |     V             V
+       |       |   +---+         +---+
+       |       |   | c |         | d |
+       |       |   +---+         +---+
+       |       |   +---+---+     +---+---+
+       +-------+-->| * | *-+---->| * | / |
+               |   +-|-+---+     +-|-+---+
+     +---+---+ |     V             V
+z -->| * | *-+-+   +---+         +---+
+     +-|-+---+     | a |         | b |
+       |           +---+         +---+
+       +---------->+---+---+     +---+---+
+                   | * | *-+---->| * | / |
+              y -->+-|-+---+     +-|-+---+
+                     V             V
+                   +---+         +---+
+                   | e |         | f |
+                   +---+         +---+
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.14b,123mm,,,.std.svg}
+@caption{@strong{図 3.14:} @ref{図 3.12}のリストに対する@code{(define z (cons y (cdr x)))}の効果。}
+@end iftex
+@end float
+
+@code{set-cdr!}操作は@code{set-car!}に似ています。唯一の違いは、@code{car}ポインタではなく、ペアの@code{cdr}ポインタが置き換えられることです。@ref{図 3.12}のリストに対して@code{(set-cdr! x y)}を実行した効果は@ref{図 3.15}に示されています。ここで、@code{x}の@code{cdr}ポインタが@code{(e f)}へのポインタで置き換えられています。また、以前は@code{x}の@code{cdr}だったリスト@code{(c d)}は、今や構造から切り離されています。
+
+@float
+@anchor{Figure 3.15}
+@ifinfo
+@quotation
+@strong{図 3.15:} @ref{図 3.12}のリストに対する@code{(set-cdr! x y)}の効果。

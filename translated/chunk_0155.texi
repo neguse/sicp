@@ -1,0 +1,86 @@
+(define (make-withdraw balance)
+  (lambda (amount)
+    (if (>= balance amount)
+        (begin (set! balance
+                     (- balance amount))
+               balance)
+        "Insufficient funds")))
+@end lisp
+
+@noindent
+次の評価を説明しましょう
+
+@lisp
+(define W1 (make-withdraw 100))
+@end lisp
+
+@noindent
+に続いて
+
+@lisp
+(W1 50)
+@i{50}
+@end lisp
+
+@noindent
+@ref{図 3.6}は、グローバル環境で@code{make-withdraw}手続きを定義した結果を示しています。これにより、グローバル環境へのポインタを含む手続きオブジェクトが生成されます。ここまでは、すでに見た例と変わりませんが、手続きの本体自体がλ式である点が異なります。
+
+@float
+@anchor{Figure 3.6}
+@ifinfo
+@quotation
+@strong{図 3.6:} グローバル環境で@code{make-withdraw}を定義した結果。
+
+@example
+          +---------------------------+
+global -->| make-withdraw: --+        |
+env       +------------------|--------+
+                             |      ^
+                             V      |
+                         .---.---.  |
+                         | O | O-+--+
+                         `-|-^---'
+                           |
+                           V
+         parameters: balance
+         body: (lambda (amount)
+                 (if (>= balance amount)
+                     (begin (set! balance
+                                  (- balance amount))
+                            balance)
+                     "Insufficient funds"))
+@end example
+@end quotation
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.6c,128mm,,,.std.svg}
+@caption{@strong{図 3.6:} グローバル環境で@code{make-withdraw}を定義した結果。}
+@end iftex
+@end float
+
+@noindent
+計算の興味深い部分は、手続き@code{make-withdraw}を引数に適用するときに起こります：
+
+@lisp
+(define W1 (make-withdraw 100))
+@end lisp
+
+@noindent
+いつものように、仮パラメータ@code{balance}が引数100に束縛される環境E1を設定することから始めます。この環境内で、@code{make-withdraw}の本体、すなわちλ式を評価します。これにより、@code{lambda}によって指定されたコードと、手続きを生成するために@code{lambda}が評価された環境であるE1を持つ新しい手続きオブジェクトが構築されます。結果の手続きオブジェクトは、@code{make-withdraw}への呼び出しによって返される値です。これは、@code{define}自体がグローバル環境で評価されているため、グローバル環境の@code{W1}に束縛されます。@ref{図 3.7}は結果の環境構造を示しています。
+
+@float
+@anchor{Figure 3.7}
+@ifinfo
+@strong{図 3.7:} @code{(define W1 (make-withdraw 100))}を評価した結果。
+
+@example
+          +-----------------------------------------------+
+          | make-withdraw: -----------------------+       |
+global -->|                                       |       |
+          | W1: --+                               |       |
+          +-------|-------------------------------|-------+
+                  |                ^              |     ^
+                  |                |              V     |
+                  |        +-------+------+   .---.---. |
+                  |  E1 -->| balance: 100 |   | O | O-+-+
+                  |        +--------------+   `-|-^---'

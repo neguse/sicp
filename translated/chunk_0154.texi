@@ -1,0 +1,62 @@
+(f 5)       |              |                |               |
+        +------+       +-------+        +------+        +-------+
+  E1 -->| a: 5 |  E2 ->| x: 6  |  E3 -->| x: 6 |  E4 -->| x: 10 |
+        |      |       | y: 10 |        |      |        |       |
+        +------+       +-------+        +------+        +-------+
+   (sum-of-squares   (+ (square x)       (* x x)         (* x x)
+     (+ a 1)            (square u))
+     (+ a 2))
+@end example
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.5b,142mm,,,.std.svg}
+@caption{@strong{図 3.5:} @ref{図 3.4}の手続きを使って@code{(f 5)}を評価することによって作成される環境。}
+@end iftex
+@end float
+
+@noindent
+この組み合わせを評価するために、最初に部分式を評価します。最初の部分式@code{sum-of-squares}は、手続きオブジェクトである値を持ちます。（この値がどのように見つかるかに注意してください：最初にE1の最初のフレームを調べますが、@code{sum-of-squares}の束縛は含まれていません。次に囲んでいる環境、すなわちグローバル環境に進み、@ref{図 3.4}に示されている束縛を見つけます。）他の2つの部分式は、プリミティブ演算@code{+}と@code{*}を適用して2つの組み合わせ@code{(+ a 1)}と@code{(* a 2)}を評価し、それぞれ6と10を得ることによって評価されます。
+
+@noindent
+次に、手続きオブジェクト@code{sum-of-squares}を引数6と10に適用します。これにより、仮パラメータ@code{x}と@code{y}が引数に束縛される新しい環境E2が生じます。E2内で組み合わせ@code{(+ (square x) (square y))}を評価します。これにより@code{(square x)}を評価することになり、ここで@code{square}はグローバルフレームで見つかり、@code{x}は6です。再び、@code{x}が6に束縛される新しい環境E3を設定し、この中で@code{square}の本体@code{(* x x)}を評価します。また、@code{sum-of-squares}を適用する一部として、部分式@code{(square y)}を評価しなければなりません。ここで@code{y}は10です。@code{square}への2回目の呼び出しは、@code{square}の仮パラメータである@code{x}が10に束縛される別の環境E4を作成します。そしてE4内で@code{(* x x)}を評価しなければなりません。
+
+観察すべき重要な点は、@code{square}への各呼び出しが@code{x}の束縛を含む新しい環境を作成することです。ここで、すべて@code{x}という名前の異なるローカル変数を区別するために、異なるフレームがどのように機能するかを見ることができます。@code{square}によって作成された各フレームがグローバル環境を指していることに注意してください。これは@code{square}手続きオブジェクトによって示される環境だからです。
+
+部分式が評価された後、結果が返されます。@code{square}への2回の呼び出しによって生成された値は@code{sum-of-squares}によって加算され、この結果は@code{f}によって返されます。ここでの焦点は環境構造にあるので、これらの返された値が呼び出しから呼び出しへどのように渡されるかについては詳しく述べません；しかし、これも評価プロセスの重要な側面であり、@ref{第5章}で詳細に戻ります。
+
+@quotation
+@strong{@anchor{Exercise 3.9}練習問題 3.9:} @ref{1.2.1}では、階乗を計算する2つの手続きを分析するために置換モデルを使いました。再帰版
+
+@lisp
+(define (factorial n)
+  (if (= n 1)
+      1
+      (* n (factorial (- n 1)))))
+@end lisp
+
+@noindent
+と反復版
+
+@lisp
+(define (factorial n)
+  (fact-iter 1 1 n))
+
+(define (fact-iter product
+                   counter
+                   max-count)
+  (if (> counter max-count)
+      product
+      (fact-iter (* counter product)
+                 (+ counter 1)
+                 max-count)))
+@end lisp
+
+各バージョンの@code{factorial}手続きを使って@code{(factorial 6)}を評価することによって作成される環境構造を示してください。@footnote{環境モデルは、@ref{1.2.1}でのインタプリタが末尾再帰を使って@code{fact-iter}のような手続きを一定量の空間で実行できるという主張を明確にしません。インタプリタの制御構造を扱う@ref{5.4}で末尾再帰について議論します。}
+@end quotation
+
+@node	3.2.3, 3.2.4, 3.2.2, 3.2
+@subsection ローカル状態のリポジトリとしてのフレーム
+
+手続きと代入がローカル状態を持つオブジェクトを表すためにどのように使用できるかを見るために、環境モデルに目を向けることができます。例として、手続きを呼び出すことによって作成される@ref{3.1.1}の「引き出し処理プログラム」を考えてみましょう
+
+@lisp

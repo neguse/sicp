@@ -1,0 +1,82 @@
+           +------------------------------------+
+           | make-withdraw: ...                 |
+global --->|                                    |
+env        | W1: --+                            |
+           +-------|----------------------------+
+                   |                   ^
+                   |                   |
+                   |            +------+------+
+                   |     E1 --->| balance: 50 |
+                   |            +-------------+
+                   V                   ^
+               .---.---.               |
+               | O | O-+---------------+
+               `-|-^---'
+                 |
+                 V
+          parameters: amount
+          body: ...
+@end example
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.9b,147mm,,,.std.svg}
+@caption{@strong{図 3.9:} @code{W1}への呼び出し後の環境。}
+@end iftex
+@end float
+
+@code{make-withdraw}への別の呼び出しによって2番目の「引き出し」オブジェクトを作成するときに何が起こるかを観察してください：
+
+@lisp
+(define W2 (make-withdraw 100))
+@end lisp
+
+@noindent
+これにより@ref{図 3.10}の環境構造が生成されます。これは@code{W2}が手続きオブジェクト、つまりコードと環境のペアであることを示しています。@code{W2}の環境E2は@code{make-withdraw}への呼び出しによって作成されました。これには@code{balance}の独自のローカル束縛を持つフレームが含まれます。一方、@code{W1}と@code{W2}は同じコードを持ちます：@code{make-withdraw}の本体のλ式によって指定されたコードです。@footnote{@code{W1}と@code{W2}がコンピュータに格納された同じ物理的なコードを共有するか、それぞれがコードのコピーを保持するかは、実装の詳細です。@ref{第4章}で実装するインタプリタでは、実際にコードは共有されます。}ここで@code{W1}と@code{W2}が独立したオブジェクトとして振る舞う理由がわかります。@code{W1}への呼び出しはE1に格納された状態変数@code{balance}を参照しますが、@code{W2}への呼び出しはE2に格納された@code{balance}を参照します。したがって、一方のオブジェクトのローカル状態への変更は他方のオブジェクトに影響しません。
+
+@float
+@anchor{Figure 3.10}
+@ifinfo
+@strong{図 3.10:} @code{(define W2 (make-withdraw 100))}を使って2番目のオブジェクトを作成する。
+
+@example
+         +-------------------------------------------------+
+         | make-withdraw: ...                              |
+global ->| W2: ---------------------------+                |
+env      | W1: --+                        |                |
+         +-------|------------------------|----------------+
+                 |              ^         |              ^
+                 |              |         |              |
+                 |       +------+------+  |       +------+-------+
+                 |  E1 ->| balance: 50 |  |  E2 ->| balance: 100 |
+                 |       +-------------+  |       +--------------+
+                 V              ^         V              ^
+             .---.---.          |     .---.---.          |
+             | O | O-+----------+     | O | O-+----------+
+             `-|-^---'                `-|-^---'
+               | +----------------------+
+               V V
+        parameters: amount
+        body: ...
+@end example
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.10b,147mm,,,.std.svg}
+@caption{@strong{図 3.10:} @code{(define W2 (make-withdraw 100))}を使って2番目のオブジェクトを作成する。}
+@end iftex
+@end float
+
+@quotation
+@strong{@anchor{Exercise 3.10}練習問題 3.10:} @code{make-withdraw}手続きでは、ローカル変数@code{balance}は@code{make-withdraw}のパラメータとして作成されます。次のように@code{let}を使ってローカル状態変数を明示的に作成することもできます：
+
+@lisp
+(define (make-withdraw initial-amount)
+  (let ((balance initial-amount))
+    (lambda (amount)
+      (if (>= balance amount)
+          (begin (set! balance
+                       (- balance amount))
+                 balance)
+          "Insufficient funds"))))
+@end lisp
+
+@ref{1.3.2}から、@code{let}は単に手続き呼び出しの糖衣構文であることを思い出してください：

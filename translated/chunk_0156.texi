@@ -1,0 +1,81 @@
+                  V                ^            |
+              .---.---.            |            V
+            +-+-O | O-+------------+    parameters: balance
+            | `---^---'                 body: ...
+            V
+    parameters: amount
+    body: (if (>= balance amount)
+              (begin (set! balance (- balance amount))
+                     balance)
+              "Insufficient funds")
+@end example
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.7b,145mm,,,.std.svg}
+@caption{@strong{図 3.7:} @code{(define W1 (make-withdraw 100))}を評価した結果。}
+@end iftex
+@end float
+
+次に、@code{W1}が引数に適用されるときに何が起こるかを分析できます：
+
+@lisp
+(W1 50)
+@i{50}
+@end lisp
+
+@noindent
+@code{W1}の仮パラメータである@code{amount}が引数50に束縛されるフレームを構築することから始めます。観察すべき重要な点は、このフレームが囲んでいる環境としてグローバル環境ではなく、むしろ環境E1を持つことです。これは@code{W1}手続きオブジェクトによって指定される環境だからです。この新しい環境内で、手続きの本体を評価します：
+
+@lisp
+(if (>= balance amount)
+    (begin (set! balance (- balance amount))
+           balance)
+    "Insufficient funds")
+@end lisp
+
+@noindent
+結果の環境構造は@ref{図 3.8}に示されています。評価されている式は@code{amount}と@code{balance}の両方を参照します。@code{Amount}は環境の最初のフレームで見つかり、@code{balance}は囲んでいる環境のポインタをたどってE1で見つかります。
+
+@float
+@anchor{Figure 3.8}
+@ifinfo
+@strong{図 3.8:} 手続きオブジェクト@code{W1}を適用することによって作成される環境。
+
+@example
+          +---------------------------------------------------+
+          | make-withdraw: ...                                |
+global -->|                                                   |
+env       | W1: --+                                           |
+          +-------|-------------------------------------------+
+                  |               ^
+                  |               |
+                  |       +-------+------+ ここがset!によって
+                  | E1 -->| balance: 100 | 変更されるbalanceです
+                  |       +--------------+
+                  V               ^   ^
+              .---.---.           |   +----+
+              | O | O-+-----------+        |
+              `-|-^---'             +------+-----+
+                |                   | amount: 50 |
+                V                   +------------+
+      parameters: amount   (if (>= balance amount)
+      body: ...                (begin (set! balance
+                                            (- balance amount))
+                                      balance)
+                               "Insufficient funds")
+@end example
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.8c,145mm,,,.std.svg}
+@caption{@strong{図 3.8:} 手続きオブジェクト@code{W1}を適用することによって作成される環境。}
+@end iftex
+@end float
+
+@code{set!}が実行されると、E1の@code{balance}の束縛が変更されます。@code{W1}への呼び出しの完了時に、@code{balance}は50であり、@code{balance}を含むフレームは手続きオブジェクト@code{W1}によってまだ指されています。@code{amount}を束縛するフレーム（この中で@code{balance}を変更するコードを実行しました）はもはや関連性がありません。なぜなら、それを構築した手続き呼び出しが終了し、環境の他の部分からそのフレームへのポインタがないからです。次に@code{W1}が呼び出されると、@code{amount}を束縛し、囲んでいる環境がE1である新しいフレームが構築されます。E1が手続きオブジェクト@code{W1}のローカル状態変数を保持する「場所」として機能することがわかります。@ref{図 3.9}は@code{W1}への呼び出し後の状況を示しています。
+
+@float
+@anchor{Figure 3.9}
+@ifinfo
+@strong{図 3.9:} @code{W1}への呼び出し後の環境。
+
+@example

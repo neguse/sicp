@@ -1,0 +1,87 @@
+
+@lisp
+(let ((⟨@var{var}⟩ ⟨@var{exp}⟩)) ⟨@var{body}⟩)
+@end lisp
+
+@noindent
+は次の代替構文として解釈されます
+
+@lisp
+((lambda (⟨@var{var}⟩) ⟨@var{body}⟩) ⟨@var{exp}⟩)
+@end lisp
+
+環境モデルを使って@code{make-withdraw}のこの代替バージョンを分析し、上記のような図を描いて相互作用を示してください
+
+@lisp
+(define W1 (make-withdraw 100))
+(W1 50)
+(define W2 (make-withdraw 100))
+@end lisp
+
+2つのバージョンの@code{make-withdraw}が同じ振る舞いを持つオブジェクトを作成することを示してください。2つのバージョンで環境構造はどのように異なりますか？
+@end quotation
+
+@node	3.2.4, 3.3, 3.1, 3.2
+@subsection 内部定義
+
+セクション@ref{1.1.8}は、手続きが内部定義を持つことができるという考えを導入しました。これにより、平方根を計算する次の手続きのようなブロック構造が生まれます：
+
+@lisp
+(define (sqrt x)
+  (define (good-enough? guess)
+    (< (abs (- (square guess) x)) 0.001))
+  (define (improve guess)
+    (average guess (/ x guess)))
+  (define (sqrt-iter guess)
+    (if (good-enough? guess)
+        guess
+        (sqrt-iter (improve guess))))
+  (sqrt-iter 1.0))
+@end lisp
+
+@noindent
+今や環境モデルを使って、これらの内部定義が望むように振る舞う理由を見ることができます。@ref{図 3.11}は、内部手続き@code{good-enough?}が@code{guess}が1に等しい状態で初めて呼び出された、式@code{(sqrt 2)}の評価のポイントを示しています。
+
+@float
+@anchor{Figure 3.11}
+@ifinfo
+@strong{図 3.11:} 内部定義を持つ@code{Sqrt}手続き。
+
+@example
+          +--------------------------------------------------+
+global -->| sqrt: --+                                        |
+env       |         |                                        |
+          +---------|----------------------------------------+
+                    V       ^                   ^
+                .---.---.   |                   |
+     +----------+-O | O-+---+        +----------+------------+
+     |          `---^---'            | x: 2                  |
+     V                         E1 -->| good-enough?: -+      |
+parameters: x                        | improve: ...   |      |
+body: (define good-enough? ...)      | sqrt-iter: ... |      |
+      (define improve ...)           +----------------|------+
+      (define sqrt-iter ...)          ^  ^            |     ^
+      (sqrt-iter 1.0)                 |  |            V     |
+                            +---------++ |        .---.---. |
+                      E2 -->| guess: 1 | |        | O | O-+-+
+                            +----------+ |        `-|-^---'
+                      sqrt-iterへの呼び出し |          |
+                                         |          V
+                               +---------++    parameters: guess
+                         E3 -->| guess: 1 |    body: (< (abs ...)
+                               +----------+             ...)
+                         good-enough?への呼び出し
+@end example
+@end ifinfo
+@iftex
+@image{fig/chap3/Fig3.11b,147mm,,,.std.svg}
+@caption{@strong{図 3.11:} 内部定義を持つ@code{Sqrt}手続き。}
+@end iftex
+@end float
+
+環境の構造を観察してください。@code{Sqrt}はグローバル環境のシンボルで、関連付けられた環境がグローバル環境である手続きオブジェクトに束縛されています。@code{sqrt}が呼び出されると、パラメータ@code{x}が2に束縛される、グローバル環境に従属する新しい環境E1が形成されました。次に@code{sqrt}の本体がE1で評価されました。@code{sqrt}の本体の最初の式は次のとおりです
+
+@lisp
+(define (good-enough? guess)
+  (< (abs (- (square guess) x)) 0.001))
+@end lisp

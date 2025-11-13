@@ -1,0 +1,67 @@
+
+@noindent
+この式を評価すると、環境E1で手続き@code{good-enough?}が定義されました。より正確には、シンボル@code{good-enough?}がE1の最初のフレームに追加され、関連付けられた環境がE1である手続きオブジェクトに束縛されました。同様に、@code{improve}と@code{sqrt-iter}はE1で手続きとして定義されました。簡潔にするため、@ref{図 3.11}は@code{good-enough?}の手続きオブジェクトのみを示しています。
+
+@noindent
+ローカル手続きが定義された後、式@code{(sqrt-iter 1.0)}が評価されました。まだ環境E1内です。したがって、E1の@code{sqrt-iter}に束縛された手続きオブジェクトが1を引数として呼び出されました。これにより、@code{sqrt-iter}のパラメータである@code{guess}が1に束縛される環境E2が作成されました。@code{Sqrt-iter}は今度は@code{good-enough?}の引数として（E2からの）@code{guess}の値で@code{good-enough?}を呼び出しました。これにより、@code{guess}（@code{good-enough?}のパラメータ）が1に束縛される別の環境E3が設定されました。@code{sqrt-iter}と@code{good-enough?}は両方とも@code{guess}という名前のパラメータを持ちますが、これらは異なるフレームにある2つの別個のローカル変数です。また、E2とE3は両方ともE1を囲んでいる環境として持ちます。なぜなら、@code{sqrt-iter}と@code{good-enough?}の手続きは両方ともE1を環境部分として持つからです。この結果の1つは、@code{good-enough?}の本体に現れるシンボル@code{x}が、E1に現れる@code{x}の束縛、すなわち元の@code{sqrt}手続きが呼び出されたときの@code{x}の値を参照することです。
+
+環境モデルは、ローカル手続き定義をプログラムをモジュール化するための有用な技法にする2つの重要な性質を説明します：
+
+@itemize @bullet
+
+@item
+ローカル手続きの名前は、囲んでいる手続きの外部の名前と干渉しません。なぜなら、ローカル手続きの名前は、グローバル環境に束縛されるのではなく、手続きが実行されるときに作成されるフレームに束縛されるからです。
+
+@item
+ローカル手続きは、パラメータ名を自由変数として使うだけで、囲んでいる手続きの引数にアクセスできます。これは、ローカル手続きの本体が、囲んでいる手続きの評価環境に従属する環境で評価されるためです。
+
+@end itemize
+
+@quotation
+@strong{@anchor{Exercise 3.11}練習問題 3.11:} @ref{3.2.3}では、環境モデルがローカル状態を持つ手続きの振る舞いをどのように記述するかを見ました。今や内部定義がどのように機能するかを見ました。典型的なメッセージパッシング手続きには、これらの側面の両方が含まれます。@ref{3.1.1}の銀行口座手続きを考えてください：
+
+@lisp
+(define (make-account balance)
+  (define (withdraw amount)
+    (if (>= balance amount)
+        (begin (set! balance
+                     (- balance
+                        amount))
+               balance)
+        "Insufficient funds"))
+  (define (deposit amount)
+    (set! balance (+ balance amount))
+    balance)
+  (define (dispatch m)
+    (cond ((eq? m 'withdraw) withdraw)
+          ((eq? m 'deposit) deposit)
+          (else (error "Unknown request:
+                        MAKE-ACCOUNT"
+                       m))))
+  dispatch)
+@end lisp
+
+次の一連の相互作用によって生成される環境構造を示してください
+
+@lisp
+(define acc (make-account 50))
+
+((acc 'deposit) 40)
+@i{90}
+
+((acc 'withdraw) 60)
+@i{30}
+@end lisp
+
+@code{acc}のローカル状態はどこに保持されていますか？別のアカウントを定義するとします
+
+@lisp
+(define acc2 (make-account 100))
+@end lisp
+
+2つのアカウントのローカル状態はどのように区別されていますか？環境構造のどの部分が@code{acc}と@code{acc2}の間で共有されていますか？
+@end quotation
+
+@node	3.3, 3.4, 3.2, Chapter 3
+@section 可変データによるモデリング
+

@@ -1,0 +1,81 @@
+                  (lambda () (set! x (+ x 1))))
+@end lisp
+
+@noindent
+これは 2 つの並行プロセスを作成します---@code{x} を @code{x} の @code{x} 倍に設定する @math{P_1} と、@code{x} をインクリメントする @math{P_2}。実行が完了した後、@code{x} は @math{P_1} と @math{P_2} のイベントのインターリーブに応じて、5 つの可能な値のいずれかが残されます:
+
+@example
+101: @math{P_1} が @code{x} を 100 に設定し、次に @math{P_2} が
+     @code{x} を 101 にインクリメントします。
+121: @math{P_2} が @code{x} を 11 にインクリメントし、次に @math{P_1} が
+     @code{x} を @code{x} の @code{x} 倍に設定します。
+110: @math{P_2} が @code{x} を 10 から 11 に変更するのは、
+     @math{P_1} が @code{(* x x)} の評価中に @code{x} の値に
+     アクセスする 2 回の間です。
+ 11: @math{P_2} が @code{x} にアクセスし、次に @math{P_1} が @code{x} を 100 に設定し、
+     次に @math{P_2} が @code{x} を設定します。
+100: @math{P_1} が @code{x} に(2 回)アクセスし、次に @math{P_2} が
+     @code{x} を 11 に設定し、次に @math{P_1} が @code{x} を設定します。
+@end example
+
+@noindent
+@newterm{シリアライザ}によって作成されるシリアル化された手続きを使用することで、並行性を制約できます。シリアライザは @code{make-serializer} によって構築され、その実装は以下に示されています。シリアライザは引数として手続きを受け取り、元の手続きのように動作するシリアル化された手続きを返します。特定のシリアライザへのすべての呼び出しは、同じセット内のシリアル化された手続きを返します。
+
+したがって、上記の例とは対照的に、次を実行すると
+
+@lisp
+(define x 10)
+(define s (make-serializer))
+(parallel-execute
+ (s (lambda () (set! x (* x x))))
+ (s (lambda () (set! x (+ x 1)))))
+@end lisp
+
+@noindent
+@code{x} に対して 101 または 121 の 2 つの可能な値のみを生成できます。他の可能性は排除されます。なぜなら、@math{P_1} と @math{P_2} の実行をインターリーブできないからです。
+
+@ref{3.1.1} の @code{make-account} 手続きのバージョンは次のとおりです。預金と引き出しがシリアル化されています:
+
+@lisp
+(define (make-account balance)
+  (define (withdraw amount)
+    (if (>= balance amount)
+        (begin (set! balance
+                     (- balance amount))
+               balance)
+        "Insufficient funds"))
+  (define (deposit amount)
+    (set! balance (+ balance amount))
+    balance)
+  (let ((protected (make-serializer)))
+    (define (dispatch m)
+      (cond ((eq? m 'withdraw)
+             (protected withdraw))
+            ((eq? m 'deposit)
+             (protected deposit))
+            ((eq? m 'balance)
+             balance)
+            (else (error "Unknown request:
+                          MAKE-ACCOUNT"
+                         m))))
+    dispatch))
+@end lisp
+
+@noindent
+この実装により、2 つのプロセスが単一の口座から並行して引き出しまたは預金することはできません。これにより、@ref{図 3.29} で示されているエラーの原因が排除されます。ここで Peter は、Paul が残高にアクセスして新しい値を計算するタイミングと Paul が実際に代入を実行するタイミングの間に口座残高を変更します。一方、各口座には独自のシリアライザがあるため、異なる口座の預金と引き出しは並行して進行できます。
+
+@quotation
+@strong{@anchor{Exercise 3.39}練習問題 3.39:} 上記の並列実行の 5 つの可能性のうち、次のように実行をシリアル化する場合、どれが残りますか:
+
+@lisp
+(define x 10)
+(define s (make-serializer))
+(parallel-execute
+  (lambda ()
+    (set! x ((s (lambda () (* x x))))))
+  (s (lambda () (set! x (+ x 1)))))
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.40}練習問題 3.40:} 次を実行することによって生じる可能性のある @code{x} のすべての可能な値を示してください

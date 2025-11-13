@@ -1,0 +1,81 @@
+                       (- (get-value sum)
+                          (get-value a2))
+                       me))))
+  (define (process-forget-value)
+    (forget-value! sum me)
+    (forget-value! a1 me)
+    (forget-value! a2 me)
+    (process-new-value))
+  (define (me request)
+    (cond ((eq? request 'I-have-a-value)
+           (process-new-value))
+          ((eq? request 'I-lost-my-value)
+           (process-forget-value))
+          (else (error "Unknown request:
+                        ADDER" request))))
+  (connect a1 me)
+  (connect a2 me)
+  (connect sum me)
+  me)
+@end lisp
+
+@noindent
+@code{Adder} は新しい加算器を指定されたコネクタに接続し、それを値として返します。加算器を表す手続き @code{me} は、局所手続きへのディスパッチとして機能します。次の「構文インターフェース」(@ref{3.3.4} の @ref{脚注 155} を参照)がディスパッチと組み合わせて使用されます:
+
+@lisp
+(define (inform-about-value constraint)
+  (constraint 'I-have-a-value))
+(define (inform-about-no-value constraint)
+  (constraint 'I-lost-my-value))
+@end lisp
+
+@noindent
+加算器の局所手続き @code{process-new-value} は、加算器がそのコネクタの 1 つが値を持っていることを通知されたときに呼び出されます。加算器はまず、@code{a1} と @code{a2} の両方が値を持っているかどうかをチェックします。持っている場合、2 つの被加数の和に値を設定するように @code{sum} に指示します。@code{set-value!} への @code{informant} 引数は @code{me} であり、これは加算器オブジェクト自体です。@code{a1} と @code{a2} の両方が値を持っていない場合、加算器は @code{a1} と @code{sum} が値を持っているかどうかをチェックします。持っている場合、これら 2 つの差に @code{a2} を設定します。最後に、@code{a2} と @code{sum} が値を持っている場合、これにより加算器は @code{a1} を設定するのに十分な情報を持ちます。加算器がそのコネクタの 1 つが値を失ったことを通知された場合、すべてのコネクタが値を失うように要求します。(この加算器によって設定された値のみが実際に失われます。)次に @code{process-new-value} を実行します。この最後のステップの理由は、1 つ以上のコネクタがまだ値を持っている可能性がある(つまり、コネクタは元々加算器によって設定されなかった値を持っていた可能性がある)ため、これらの値を加算器を通じて伝播する必要がある可能性があるためです。
+
+乗算器は加算器と非常によく似ています。一方の因数が 0 の場合、もう一方の因数が不明であっても、@code{product} を 0 に設定します。
+
+@lisp
+(define (multiplier m1 m2 product)
+  (define (process-new-value)
+    (cond ((or (and (has-value? m1)
+                    (= (get-value m1) 0))
+               (and (has-value? m2)
+                    (= (get-value m2) 0)))
+           (set-value! product 0 me))
+          ((and (has-value? m1)
+                (has-value? m2))
+           (set-value! product
+                       (* (get-value m1)
+                          (get-value m2))
+                       me))
+          ((and (has-value? product)
+                (has-value? m1))
+           (set-value! m2
+                       (/ (get-value product)
+                          (get-value m1))
+                       me))
+          ((and (has-value? product)
+                (has-value? m2))
+           (set-value! m1
+                       (/ (get-value product)
+                          (get-value m2))
+                       me))))
+  (define (process-forget-value)
+    (forget-value! product me)
+    (forget-value! m1 me)
+    (forget-value! m2 me)
+    (process-new-value))
+  (define (me request)
+    (cond ((eq? request 'I-have-a-value)
+           (process-new-value))
+          ((eq? request 'I-lost-my-value)
+           (process-forget-value))
+          (else
+           (error "Unknown request:
+                   MULTIPLIER"
+                  request))))
+  (connect m1 me)
+  (connect m2 me)
+  (connect product me)
+  me)
+@end lisp

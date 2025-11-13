@@ -1,0 +1,75 @@
+その値を設定し、値を設定するように要求した制約を @code{informant} として記憶します。@footnote{@code{setter} は制約でない場合があります。温度の例では、@code{setter} として @code{user} を使用しました。}次に、コネクタは、値を設定するように要求した制約を除いて、参加しているすべての制約に通知します。これは、指定されたリスト内の指定された項目を除くすべての項目に指定された手続きを適用する次のイテレータを使用して実現されます:
+
+@lisp
+(define (for-each-except exception
+                         procedure
+                         list)
+  (define (loop items)
+    (cond ((null? items) 'done)
+          ((eq? (car items) exception)
+           (loop (cdr items)))
+          (else (procedure (car items))
+                (loop (cdr items)))))
+  (loop list))
+@end lisp
+
+@noindent
+コネクタがその値を忘れるように求められた場合、局所手続き @code{forget-my-value} を実行します。これはまず、要求が元々値を設定したオブジェクトと同じオブジェクトから来ていることを確認します。その場合、コネクタは値の損失について関連する制約に通知します。
+
+局所手続き @code{connect} は、指定された新しい制約がまだそのリストにない場合、制約のリストに追加します。次に、コネクタが値を持っている場合、この事実を新しい制約に通知します。
+
+コネクタの手続き @code{me} は、他の内部手続きへのディスパッチとして機能し、またオブジェクトとしてコネクタを表します。次の手続きは、ディスパッチの構文インターフェースを提供します:
+
+@lisp
+(define (has-value? connector)
+  (connector 'has-value?))
+(define (get-value connector)
+  (connector 'value))
+(define (set-value! connector
+                    new-value
+                    informant)
+  ((connector 'set-value!)
+   new-value
+   informant))
+(define (forget-value! connector retractor)
+  ((connector 'forget) retractor))
+(define (connect connector new-constraint)
+  ((connector 'connect) new-constraint))
+@end lisp
+
+@quotation
+@strong{@anchor{Exercise 3.33}練習問題 3.33:} 基本的な乗算器、加算器、および定数制約を使用して、3 つのコネクタ @code{a}、@code{b}、@code{c} を入力として受け取り、@code{c} の値が @code{a} と @code{b} の値の平均であるという制約を確立する手続き @code{averager} を定義してください。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.34}練習問題 3.34:} Louis Reasoner は、2 番目の端子のコネクタ @code{b} の値が常に最初の端子の値 @code{a} の 2 乗になるように、2 つの端子を持つ制約デバイスである二乗器を構築したいと考えています。彼は乗算器から作られた次の単純なデバイスを提案します:
+
+@lisp
+(define (squarer a b) (multiplier a a b))
+@end lisp
+
+このアイデアには重大な欠陥があります。説明してください。
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.35}練習問題 3.35:} Ben Bitdiddle は Louis に、@ref{練習問題 3.34} の問題を回避する 1 つの方法は、二乗器を新しい基本制約として定義することだと伝えます。このような制約を実装する手続きのための Ben の概要の欠落している部分を埋めてください:
+
+@lisp
+(define (squarer a b)
+  (define (process-new-value)
+    (if (has-value? b)
+        (if (< (get-value b) 0)
+            (error "square less than 0:
+                    SQUARER"
+                   (get-value b))
+            ⟨@var{alternative1}⟩)
+        ⟨@var{alternative2}⟩))
+  (define (process-forget-value) ⟨@var{body1}⟩)
+  (define (me request) ⟨@var{body2}⟩)
+  ⟨@var{rest of definition}⟩
+  me)
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.36}練習問題 3.36:} 大域環境で次の一連の式を評価するとします:

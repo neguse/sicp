@@ -1,0 +1,90 @@
+@code{x} が実行から生じる可能性のあるすべての可能な値を示してください
+
+@lisp
+(define x 10)
+(parallel-execute
+ (lambda () (set! x (* x x)))
+ (lambda () (set! x (* x x x))))
+@end lisp
+
+代わりにシリアル化された手続きを使用する場合、これらの可能性のうちどれが残りますか:
+
+@lisp
+(define x 10)
+(define s (make-serializer))
+(parallel-execute
+ (s (lambda () (set! x (* x x))))
+ (s (lambda () (set! x (* x x x)))))
+@end lisp
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.41}練習問題 3.41:} Ben Bitdiddle は、銀行口座を次のように実装する方がよいと心配しています(コメントされた行が変更されています):
+
+@lisp
+(define (make-account balance)
+  (define (withdraw amount)
+    (if (>= balance amount)
+        (begin
+          (set! balance
+                (- balance amount))
+          balance)
+        "Insufficient funds"))
+  (define (deposit amount)
+    (set! balance (+ balance amount))
+    balance)
+  (let ((protected (make-serializer)))
+    (define (dispatch m)
+      (cond ((eq? m 'withdraw)
+             (protected withdraw))
+            ((eq? m 'deposit)
+             (protected deposit))
+            ((eq? m 'balance)
+             ((protected
+                (lambda ()
+                  balance)))) @r{; シリアル化}
+            (else
+             (error
+              "Unknown request:
+               MAKE-ACCOUNT"
+              m))))
+    dispatch))
+@end lisp
+
+@noindent
+銀行残高へのシリアル化されていないアクセスを許可すると、異常な動作が発生する可能性があるためです。あなたは同意しますか? Ben の懸念を示すシナリオはありますか?
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 3.42}練習問題 3.42:} Ben Bitdiddle は、すべての @code{withdraw} および @code{deposit} メッセージに応答して新しいシリアル化された手続きを作成するのは時間の無駄だと提案しています。彼は、@code{make-account} を変更して、@code{protected} への呼び出しが @code{dispatch} 手続きの外側で行われるようにできると言います。つまり、口座は、引き出し手続きを求められるたびに、(口座と同時に作成された)同じシリアル化された手続きを返します。
+
+@lisp
+(define (make-account balance)
+  (define (withdraw amount)
+    (if (>= balance amount)
+        (begin (set! balance
+                     (- balance amount))
+               balance)
+        "Insufficient funds"))
+  (define (deposit amount)
+    (set! balance (+ balance amount))
+    balance)
+  (let ((protected (make-serializer)))
+    (let ((protected-withdraw
+           (protected withdraw))
+          (protected-deposit
+           (protected deposit)))
+      (define (dispatch m)
+        (cond ((eq? m 'withdraw)
+               protected-withdraw)
+              ((eq? m 'deposit)
+               protected-deposit)
+              ((eq? m 'balance)
+               balance)
+              (else
+               (error "Unknown request:
+                       MAKE-ACCOUNT"
+                      m))))
+      dispatch)))
+@end lisp
+

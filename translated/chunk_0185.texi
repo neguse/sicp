@@ -1,0 +1,93 @@
+
+@noindent
+@code{constant} コンストラクタは、指定されたコネクタの値を単に設定します。定数ボックスに送信された @code{I-have-a-value} または @code{I-lost-my-value} メッセージはエラーを生成します。
+
+@lisp
+(define (constant value connector)
+  (define (me request)
+    (error "Unknown request: CONSTANT"
+           request))
+  (connect connector me)
+  (set-value! connector value me)
+  me)
+@end lisp
+
+@noindent
+最後に、プローブは指定されたコネクタの設定または設定解除に関するメッセージを出力します:
+
+@lisp
+(define (probe name connector)
+  (define (print-probe value)
+    (newline) (display "Probe: ")
+    (display name) (display " = ")
+    (display value))
+  (define (process-new-value)
+    (print-probe (get-value connector)))
+  (define (process-forget-value)
+    (print-probe "?"))
+  (define (me request)
+    (cond ((eq? request 'I-have-a-value)
+           (process-new-value))
+          ((eq? request 'I-lost-my-value)
+           (process-forget-value))
+          (else (error "Unknown request:
+                        PROBE" request))))
+  (connect connector me)
+  me)
+@end lisp
+
+@subsubheading コネクタの表現
+
+コネクタは、局所状態変数 @code{value}(コネクタの現在の値)、@code{informant}(コネクタの値を設定したオブジェクト)、および @code{constraints}(コネクタが参加する制約のリスト)を持つ手続きオブジェクトとして表現されます。
+
+@lisp
+(define (make-connector)
+  (let ((value false)
+        (informant false)
+        (constraints '()))
+    (define (set-my-value newval setter)
+      (cond ((not (has-value? me))
+             (set! value newval)
+             (set! informant setter)
+             (for-each-except
+              setter
+              inform-about-value
+              constraints))
+            ((not (= value newval))
+             (error "Contradiction"
+                    (list value newval)))
+            (else 'ignored)))
+    (define (forget-my-value retractor)
+      (if (eq? retractor informant)
+          (begin (set! informant false)
+                 (for-each-except
+                  retractor
+                  inform-about-no-value
+                  constraints))
+          'ignored))
+    (define (connect new-constraint)
+      (if (not (memq new-constraint
+                     constraints))
+          (set! constraints
+                (cons new-constraint
+                      constraints)))
+      (if (has-value? me)
+          (inform-about-value new-constraint))
+      'done)
+    (define (me request)
+      (cond ((eq? request 'has-value?)
+             (if informant true false))
+            ((eq? request 'value) value)
+            ((eq? request 'set-value!)
+             set-my-value)
+            ((eq? request 'forget)
+             forget-my-value)
+            ((eq? request 'connect) connect)
+            (else (error "Unknown operation:
+                          CONNECTOR"
+                         request))))
+    me))
+@end lisp
+
+@noindent
+コネクタの局所手続き @code{set-my-value} は、コネクタの値を設定する要求があったときに呼び出されます。コネクタが現在値を持っていない場合、

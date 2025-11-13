@@ -1,0 +1,183 @@
+sicp-pocket-ja.texi:679: @node `1.1' previously defined
+sicp-pocket-ja.texi:713: @node `1.1.1' previously defined
+sicp-pocket-ja.texi:1809: @anchor `Exercise 1.6' previously defined
+sicp-pocket-ja.texi:1847: @anchor `Exercise 1.7' previously defined
+sicp-pocket-ja.texi:1860: @anchor `Exercise 1.8' previously defined
+sicp-pocket-ja.texi:1886: @node `1.1.8' previously defined
+sicp-pocket-ja.texi:3389: @anchor `Exercise 1.15' previously defined
+sicp-pocket-ja.texi:3435: @node `1.2.4' previously defined
+sicp-pocket-ja.texi:3597: @anchor `Exercise 1.16' previously defined
+sicp-pocket-ja.texi:3609: @anchor `Exercise 1.17' previously defined
+sicp-pocket-ja.texi:3628: @anchor `Exercise 1.18' previously defined
+sicp-pocket-ja.texi:3638: @anchor `Exercise 1.19' previously defined
+sicp-pocket-ja.texi:3682: @node `1.2.5' previously defined
+sicp-pocket-ja.texi:3778: @anchor `Exercise 1.20' previously defined
+sicp-pocket-ja.texi:3788: @node `1.2.6' previously defined
+sicp-pocket-ja.texi:3982: @anchor `Exercise 1.21' previously defined
+sicp-pocket-ja.texi:3987: @anchor `Exercise 1.22' previously defined
+sicp-pocket-ja.texi:4027: @anchor `Exercise 1.23' previously defined
+sicp-pocket-ja.texi:4043: @anchor `Exercise 1.24' previously defined
+sicp-pocket-ja.texi:4052: @anchor `Exercise 1.25' previously defined
+sicp-pocket-ja.texi:4067: @anchor `Exercise 1.26' previously defined
+sicp-pocket-ja.texi:4095: @anchor `Exercise 1.27' previously defined
+sicp-pocket-ja.texi:4103: @anchor `Exercise 1.28' previously defined
+sicp-pocket-ja.texi:4855: @anchor `Exercise 1.29' previously defined
+sicp-pocket-ja.texi:4885: @anchor `Exercise 1.30' previously defined
+sicp-pocket-ja.texi:4900: @anchor `Exercise 1.31' previously defined
+sicp-pocket-ja.texi:4946: @anchor `Exercise 1.32' previously defined
+sicp-pocket-ja.texi:4975: @anchor `Exercise 1.33' previously defined
+sicp-pocket-ja.texi:4996: @node `1.3.2' previously defined
+sicp-pocket-ja.texi:5278: @anchor `Exercise 1.34' previously defined
+sicp-pocket-ja.texi:6022: unmatched `@end example'
+sicp-pocket-ja.texi:6024: unmatched `@end'
+sicp-pocket-ja.texi:6172: @anchor `Exercise 1.40' previously defined
+sicp-pocket-ja.texi:6183: @anchor `Exercise 1.41' previously defined
+sicp-pocket-ja.texi:6191: @anchor `Exercise 1.42' previously defined
+sicp-pocket-ja.texi:6200: @anchor `Exercise 1.43' previously defined
+sicp-pocket-ja.texi:6211: @anchor `Exercise 1.44' previously defined
+sicp-pocket-ja.texi:6215: @anchor `Exercise 1.45' previously defined
+sicp-pocket-ja.texi:6220: @anchor `Exercise 1.46' previously defined
+sicp-pocket-ja.texi:10313: `@end' expected `quotation', but saw `example'
+sicp-pocket-ja.texi:10313: unmatched `@end example'
+sicp-pocket-ja.texi:10314: unmatched `@end'
+sicp-pocket-ja.texi:10317: @caption is not meaningful outside `@float' environment
+sicp-pocket-ja.texi:10319: unmatched `@end float'
+sicp-pocket-ja.texi:10811: @anchor `Exercise 2.73' previously defined
+sicp-pocket-ja.texi:10877: @anchor `Exercise 2.74' previously defined
+sicp-pocket-ja.texi:14577: unmatched `@end'
+sicp-pocket-ja.texi:14580: @caption is not meaningful outside `@float' environment
+sicp-pocket-ja.texi:14582: unmatched `@end float'
+sicp-pocket-ja.texi:16218: misplaced {
+sicp-pocket-ja.texi:16218: misplaced {
+sicp-pocket-ja.texi:16218: misplaced }
+sicp-pocket-ja.texi:16218: misplaced }
+sicp-pocket-ja.texi:16627: unmatched `@end lisp'
+sicp-pocket-ja.texi:16630: unmatched `@end quotation'
+sicp-pocket-ja.texi:20038: unknown command `footnoteref'
+sicp-pocket-ja.texi:20038: misplaced {
+sicp-pocket-ja.texi:20038: misplaced }
+sicp-pocket-ja.texi:20048: unmatched `@end lisp'
+sicp-pocket-ja.texi:20051: unmatched `@end quotation'
+sicp-pocket-ja.texi:20054: @anchor `Exercise 4.19' previously defined
+sicp-pocket-ja.texi:20069: @anchor `Exercise 4.20' previously defined
+sicp-pocket-ja.texi:20171: @node `4.1.7' previously defined
+sicp-pocket-ja.texi:23885: misplaced }
+sicp-pocket-ja.texi:23941: @node seen before @end float
+sicp-pocket-ja.texi:24780: @anchor `Figure 5.1' previously defined
+sicp-pocket-ja.texi:24842: @anchor `Figure 5.2' previously defined
+sicp-pocket-ja.texi:24888: @anchor `Figure 5.1' previously defined
+sicp-pocket-ja.texi:24950: @anchor `Figure 5.2' previously defined
+sicp-pocket-ja.texi:27019: @anchor `Exercise 5.9' previously defined
+sicp-pocket-ja.texi:27026: @anchor `Exercise 5.10' previously defined
+sicp-pocket-ja.texi:27033: @anchor `Exercise 5.11' previously defined
+sicp-pocket-ja.texi:27071: @anchor `Exercise 5.12' previously defined
+sicp-pocket-ja.texi:28093: unmatched `@end lisp'
+sicp-pocket-ja.texi:28111: @node `5.4' previously defined
+sicp-pocket-ja.texi:28183: @node `5.4.1' previously defined
+sicp-pocket-ja.texi:30937: unmatched `@end lisp'
+sicp-pocket-ja.texi:30938: unmatched `@end quotation'
+sicp-pocket-ja.texi:839: @ref reference to nonexistent node `Chapter 3'
+sicp-pocket-ja.texi:934: @ref reference to nonexistent node `Chapter 3'
+sicp-pocket-ja.texi:1171: @ref reference to nonexistent node `Chapter 3'
+sicp-pocket-ja.texi:1182: @ref reference to nonexistent node `Chapter 3'
+sicp-pocket-ja.texi:1244: @ref reference to nonexistent node `Chapter 3'
+sicp-pocket-ja.texi:1244: @ref reference to nonexistent node `Chapter 3'
+sicp-pocket-ja.texi:2378: @ref reference to nonexistent node `Chapter 3'
+sicp-pocket-ja.texi:3156: @ref reference to nonexistent node `Hardy and Wright (1960)'
+sicp-pocket-ja.texi:5910: @ref reference to nonexistent node `Moses 1970'
+sicp-pocket-ja.texi:5911: @ref reference to nonexistent node `Moses 2012'
+sicp-pocket-ja.texi:5913: @ref reference to nonexistent node `MacDonald 1967'
+sicp-pocket-ja.texi:5916: @ref reference to nonexistent node `Macsyma 2012'
+sicp-pocket-ja.texi:5917: @ref reference to nonexistent node `Fateman 1979'
+sicp-pocket-ja.texi:5917: @ref reference to nonexistent node `Martin and Fateman 1971'
+sicp-pocket-ja.texi:6622: @ref reference to nonexistent node `Chapter 3'
+sicp-pocket-ja.texi:9007: @ref reference to nonexistent node `Chapter 3'
+sicp-pocket-ja.texi:9007: @ref reference to nonexistent node `3.1.3'
+sicp-pocket-ja.texi:10063: @ref reference to nonexistent node `2.5.3'
+sicp-pocket-ja.texi:10686: @ref reference to nonexistent node `Chapter 3'
+sicp-pocket-ja.texi:10928: @ref reference to nonexistent node `Chapter 3'
+sicp-pocket-ja.texi:11275: @ref reference to nonexistent node `図2.24'
+sicp-pocket-ja.texi:12846: @ref reference to nonexistent node `Exercise 3.8'
+sicp-pocket-ja.texi:13085: @ref reference to nonexistent node `3.1.1'
+sicp-pocket-ja.texi:13444: @ref reference to nonexistent node `3.1.1'
+sicp-pocket-ja.texi:13771: @ref reference to nonexistent node `3.1.3'
+sicp-pocket-ja.texi:13875: @ref reference to nonexistent node `3.1.3'
+sicp-pocket-ja.texi:13926: @ref reference to nonexistent node `3.1.1'
+sicp-pocket-ja.texi:14811: @ref reference to nonexistent node `3.1.1'
+sicp-pocket-ja.texi:15335: @ref reference to nonexistent node `脚注 155'
+sicp-pocket-ja.texi:15622: @ref reference to nonexistent node `3.1.3'
+sicp-pocket-ja.texi:15625: @ref reference to nonexistent node `3.1.1'
+sicp-pocket-ja.texi:15656: @ref reference to nonexistent node `3.1.1'
+sicp-pocket-ja.texi:15728: @ref reference to nonexistent node `3.1.3'
+sicp-pocket-ja.texi:15873: @ref reference to nonexistent node `3.1.1'
+sicp-pocket-ja.texi:16028: @ref reference to nonexistent node `3.1.1'
+sicp-pocket-ja.texi:16318: @ref reference to nonexistent node `第 2 章'
+sicp-pocket-ja.texi:16545: @ref reference to nonexistent node `脚注 78'
+sicp-pocket-ja.texi:16924: @ref reference to nonexistent node `2.5.3'
+sicp-pocket-ja.texi:18135: @ref reference to nonexistent node `3.1.2'
+sicp-pocket-ja.texi:18138: @ref reference to nonexistent node `3.1.2'
+sicp-pocket-ja.texi:18216: @ref reference to nonexistent node `Exercise 3.6'
+sicp-pocket-ja.texi:18224: @ref reference to nonexistent node `Exercise 3.5'
+sicp-pocket-ja.texi:18246: @ref reference to nonexistent node `3.1.3'
+sicp-pocket-ja.texi:18280: @ref reference to nonexistent node `3.1.3'
+sicp-pocket-ja.texi:18316: @ref reference to nonexistent node `3.1.3'
+sicp-pocket-ja.texi:18447: @ref reference to nonexistent node `2.5.3'
+sicp-pocket-ja.texi:18473: @ref reference to nonexistent node `Chapter 3'
+sicp-pocket-ja.texi:18513: @ref reference to nonexistent node `3.2'
+sicp-pocket-ja.texi:19328: @ref reference to nonexistent node `3.2'
+sicp-pocket-ja.texi:19962: @ref reference to nonexistent node `Marc Feeley 1986'
+sicp-pocket-ja.texi:20432: @ref reference to nonexistent node `Chapter 3'
+sicp-pocket-ja.texi:20459: @ref reference to nonexistent node `Chapter 3'
+sicp-pocket-ja.texi:20459: @ref reference to nonexistent node `Chapter 3'
+sicp-pocket-ja.texi:20459: @ref reference to nonexistent node `Chapter 3'
+sicp-pocket-ja.texi:20649: @ref reference to nonexistent node `Chapter 3'
+sicp-pocket-ja.texi:20834: @ref reference to nonexistent node `Chapter 3'
+sicp-pocket-ja.texi:20859: @ref reference to nonexistent node `Chapter 3'
+sicp-pocket-ja.texi:20882: @ref reference to nonexistent node `Chapter 3'
+sicp-pocket-ja.texi:21978: @ref reference to nonexistent node `Chapter 3'
+sicp-pocket-ja.texi:22348: @ref reference to nonexistent node `4.4.3'
+sicp-pocket-ja.texi:22606: @ref reference to nonexistent node `4.4.3'
+sicp-pocket-ja.texi:22641: @ref reference to nonexistent node `Exercise 4.69'
+sicp-pocket-ja.texi:22647: @ref reference to nonexistent node `4.4.4'
+sicp-pocket-ja.texi:22673: @ref reference to nonexistent node `4.4.4'
+sicp-pocket-ja.texi:24117: @ref reference to nonexistent node `Chapter 3'
+sicp-pocket-ja.texi:24176: @ref reference to nonexistent node `4.4.4.2'
+sicp-pocket-ja.texi:24196: @ref reference to nonexistent node `4.4.4.1'
+sicp-pocket-ja.texi:24210: @ref reference to nonexistent node `4.4.4.2'
+sicp-pocket-ja.texi:24240: @ref reference to nonexistent node `4.4.4.1'
+sicp-pocket-ja.texi:24292: @ref reference to nonexistent node `4.4.4.4'
+sicp-pocket-ja.texi:24348: @ref reference to nonexistent node `4.4.4.2'
+sicp-pocket-ja.texi:24489: @ref reference to nonexistent node `Figure 4.5'
+sicp-pocket-ja.texi:24507: @ref reference to nonexistent node `4.4.3'
+sicp-pocket-ja.texi:24576: @ref reference to nonexistent node `Chapter 3'
+sicp-pocket-ja.texi:25508: @ref reference to nonexistent node `図5.1'
+sicp-pocket-ja.texi:26110: @ref reference to nonexistent node `Chapter 3'
+sicp-pocket-ja.texi:26144: @ref reference to nonexistent node `Chapter 3'
+sicp-pocket-ja.texi:28413: @ref reference to nonexistent node `Exercise 3.8'
+sicp-pocket-ja.texi:28784: @ref reference to nonexistent node `Chapter 3'
+sicp-pocket-ja.texi:31360: @ref reference to nonexistent node `Figure 5.11'
+sicp-pocket-ja.texi:31383: @ref reference to nonexistent node `Figure 5.12'
+sicp-pocket-ja.texi:10939: Next reference to nonexistent `Chapter 3'
+sicp-pocket-ja.texi:10983: Next reference to nonexistent `2.5.2'
+sicp-pocket-ja.texi:12831: Prev reference to nonexistent `3.2'
+sicp-pocket-ja.texi:12831: Up reference to nonexistent `3.2'
+sicp-pocket-ja.texi:12961: Up reference to nonexistent `3.2'
+sicp-pocket-ja.texi:13082: Up reference to nonexistent `3.2'
+sicp-pocket-ja.texi:13360: Prev reference to nonexistent `3.1'
+sicp-pocket-ja.texi:13360: Up reference to nonexistent `3.2'
+sicp-pocket-ja.texi:13488: Prev reference to nonexistent `3.2'
+sicp-pocket-ja.texi:13488: Up reference to nonexistent `Chapter 3'
+sicp-pocket-ja.texi:15120: Prev reference to nonexistent `3.2'
+sicp-pocket-ja.texi:15619: Up reference to nonexistent `Chapter 3'
+sicp-pocket-ja.texi:16240: Up reference to nonexistent `Chapter 3'
+sicp-pocket-ja.texi:20877: node `4.3' lacks menu item for `4.3.1' despite being its Up target
+sicp-pocket-ja.texi:20877: node `4.3' lacks menu item for `4.3.2' despite being its Up target
+sicp-pocket-ja.texi:20877: node `4.3' lacks menu item for `4.3.3' despite being its Up target
+sicp-pocket-ja.texi:21925: node `4.4' lacks menu item for `4.4.1' despite being its Up target
+sicp-pocket-ja.texi:22644: Next reference to nonexistent `4.4.3'
+sicp-pocket-ja.texi:21925: node `4.4' lacks menu item for `4.4.2' despite being its Up target
+sicp-pocket-ja.texi:23941: Prev reference to nonexistent `4.4.4.4'
+sicp-pocket-ja.texi:23941: Up reference to nonexistent `4.4.4'
+sicp-pocket-ja.texi:24114: Up reference to nonexistent `4.4.4'
+sicp-pocket-ja.texi:24173: Up reference to nonexistent `4.4.4'
+sicp-pocket-ja.texi:24324: Up reference to nonexistent `4.4.4'

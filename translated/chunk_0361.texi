@@ -1,0 +1,283 @@
+@code{seq1}によって必要とされるレジスタを必要とし、保存および復元されるものを除いて
+@code{seq1}によって変更されるレジスタを変更します。この拡張されたシーケンスと
+@code{seq2}は、通常の方法で追加されます。次の手続きは、保存されるレジスタのリストを
+歩いて、この戦略を再帰的に実装します。@footnote{@code{preserving}が3つの引数で
+@code{append}を呼び出すことに注意してください。この本で示されている@code{append}の
+定義は2つの引数のみを受け入れますが、Schemeは標準的に任意の数の引数を取る
+@code{append}手続きを提供します。}
+
+@lisp
+(define (preserving regs seq1 seq2)
+  (if (null? regs)
+      (append-instruction-sequences seq1 seq2)
+      (let ((first-reg (car regs)))
+        (if (and
+             (needs-register? seq2 first-reg)
+             (modifies-register? seq1
+                                 first-reg))
+            (preserving
+             (cdr regs)
+             (make-instruction-sequence
+              (list-union
+               (list first-reg)
+               (registers-needed seq1))
+              (list-difference
+               (registers-modified seq1)
+               (list first-reg))
+              (append `((save ,first-reg))
+                      (statements seq1)
+                      `((restore ,first-reg))))
+             seq2)
+            (preserving
+             (cdr regs)
+             seq1
+             seq2)))))
+@end lisp
+
+@noindent
+別のシーケンスコンバイナである@code{tack-on-instruction-sequence}は、手続き本体を
+別のシーケンスに追加するために@code{compile-lambda}によって使用されます。手続き本体は、
+結合されたシーケンスの一部として実行される「インライン」ではないため、そのレジスタ
+使用は、それが埋め込まれているシーケンスのレジスタ使用に影響を与えません。したがって、
+それを他のシーケンスに追加するときに、手続き本体の必要なレジスタと変更されたレジスタの
+セットを無視します。
+
+@lisp
+(define (tack-on-instruction-sequence
+         seq body-seq)
+  (make-instruction-sequence
+   (registers-needed seq)
+   (registers-modified seq)
+   (append (statements seq)
+           (statements body-seq))))
+@end lisp
+
+@noindent
+@code{Compile-if}と@code{compile-procedure-call}は、テストに続く2つの代替分岐を
+追加するために@code{parallel-instruction-sequences}と呼ばれる特別なコンバイナを
+使用します。2つの分岐は順次実行されることはありません。テストの特定の評価では、
+一方の分岐または他方の分岐が入力されます。このため、2番目の分岐によって必要とされる
+レジスタは、最初の分岐によって変更されても、結合されたシーケンスによって必要とされます。
+
+@lisp
+(define (parallel-instruction-sequences
+         seq1 seq2)
+  (make-instruction-sequence
+   (list-union (registers-needed seq1)
+               (registers-needed seq2))
+   (list-union (registers-modified seq1)
+               (registers-modified seq2))
+   (append (statements seq1)
+           (statements seq2))))
+@end lisp
+
+@node	5.5.5, 5.5.6, 5.5.4, 5.5
+@subsection コンパイルされたコードの例
+
+コンパイラのすべての要素を見たので、コンパイルされたコードの例を調べて、どのように
+まとまっているかを見てみましょう。@code{compile}を呼び出して、再帰的な@code{factorial}
+手続きの定義をコンパイルします。
+
+@lisp
+(compile
+ '(define (factorial n)
+    (if (= n 1)
+        1
+        (* (factorial (- n 1)) n)))
+ 'val
+ 'next)
+@end lisp
+
+@noindent
+@code{define}式の値を@code{val}レジスタに配置すべきであると指定しました。
+@code{define}の実行後にコンパイルされたコードが何をするかは気にしないので、リンケージ
+記述子として@code{next}を選択するのは任意です。
+
+@code{Compile}は、式が定義であると判断するため、@code{compile-definition}を呼び出して、
+割り当てられる値を計算するコード（@code{val}をターゲットに）をコンパイルし、その後に
+定義をインストールするコード、その後に@code{define}の値（シンボル@code{ok}）を
+ターゲットレジスタに入れるコード、最後にリンケージコードが続きます。値を計算する
+コードの周りで@code{Env}が保存されます。定義をインストールするために必要だからです。
+リンケージが@code{next}であるため、この場合、リンケージコードはありません。したがって、
+コンパイルされたコードの骨格は次のようになります。
+
+@lisp
+⟨@emph{値を計算するコードによって変更される場合、@code{env}を保存}⟩
+  ⟨@emph{定義値のコンパイル、
+   ターゲット@code{val}、リンケージ@code{next}}⟩
+  ⟨@emph{上記で保存された場合、@code{env}を復元}⟩
+  (perform (op define-variable!)
+           (const factorial)
+           (reg val)
+           (reg env))
+  (assign val (const ok))
+@end lisp
+
+@noindent
+変数@code{factorial}の値を生成するためにコンパイルされる式は、階乗を計算する手続きで
+ある@code{lambda}式です。@code{Compile}はこれを処理するために@code{compile-lambda}を
+呼び出します。これは手続き本体をコンパイルし、新しいエントリポイントとしてラベルを
+付け、実行時環境で新しいエントリポイントの手続き本体を結合して結果を@code{val}に
+割り当てる命令を生成します。次に、シーケンスはコンパイルされた手続きコードの周りを
+スキップします。これはこの時点で挿入されます。手続きコード自体は、仮パラメータ@code{n}を
+手続き引数にバインドするフレームによって手続きの定義環境を拡張することから始まります。
+次に、実際の手続き本体が続きます。変数の値のこのコードは@code{env}レジスタを変更
+しないため、上記に示されているオプションの@code{save}と@code{restore}は生成されません。
+（@code{entry2}の手続きコードはこの時点では実行されないため、@code{env}の使用は
+無関係です。）したがって、コンパイルされたコードの骨格は次のようになります。
+
+@lisp
+  (assign val (op make-compiled-procedure)
+              (label entry2)
+              (reg env))
+  (goto (label after-lambda1))
+entry2
+  (assign env (op compiled-procedure-env)
+              (reg proc))
+  (assign env (op extend-environment)
+              (const (n))
+              (reg argl)
+              (reg env))
+  ⟨@emph{手続き本体のコンパイル}⟩
+after-lambda1
+  (perform (op define-variable!)
+           (const factorial)
+           (reg val) (reg env))
+  (assign val (const ok))
+@end lisp
+
+@noindent
+手続き本体は常に（@code{compile-lambda-body}によって）ターゲット@code{val}とリンケージ
+@code{return}を持つシーケンスとしてコンパイルされます。この場合のシーケンスは、単一の
+@code{if}式で構成されます。
+
+@lisp
+(if (= n 1)
+    1
+    (* (factorial (- n 1)) n))
+@end lisp
+
+@noindent
+@code{Compile-if}は、最初に述語を計算する（@code{val}をターゲットに）コードを生成し、
+次に結果をチェックし、述語が偽の場合は真の分岐の周りで分岐します。@code{Env}と
+@code{continue}は述語コードの周りで保存されます。@code{if}式の残りの部分に必要に
+なる可能性があるためです。@code{if}式は手続き本体を構成するシーケンスの最後の式
+（そして唯一の式）であるため、そのターゲットは@code{val}であり、そのリンケージは
+@code{return}であるため、真の分岐と偽の分岐の両方がターゲット@code{val}とリンケージ
+@code{return}でコンパイルされます。（つまり、条件の値は、その分岐のいずれかによって
+計算される値であり、手続きの値です。）
+
+@lisp
+⟨@emph{述語によって変更され、分岐によって必要とされる場合、
+ @code{continue}、@code{env}を保存}⟩
+  ⟨@emph{述語のコンパイル、
+   ターゲット@code{val}、リンケージ@code{next}}⟩
+  ⟨@emph{上記で保存された場合、@code{continue}、@code{env}を復元}⟩
+  (test (op false?) (reg val))
+  (branch (label false-branch4))
+true-branch5
+  ⟨@emph{真の分岐のコンパイル、
+   ターゲット@code{val}、リンケージ@code{return}}⟩
+false-branch4
+  ⟨@emph{偽の分岐のコンパイル、
+   ターゲット@code{val}、リンケージ@code{return}}⟩
+after-if3
+@end lisp
+
+@noindent
+述語@code{(= n 1)}は手続き呼び出しです。これは演算子（シンボル@code{=}）を検索し、
+この値を@code{proc}に配置します。次に、引数@code{1}と@code{n}の値を@code{argl}に
+組み立てます。次に、@code{proc}が基本手続きまたは複合手続きを含むかどうかをテストし、
+それに応じて基本分岐または複合分岐にディスパッチします。両方の分岐は@code{after-call}
+ラベルで再開されます。演算子とオペランドの評価の周りでレジスタを保存する要件は、
+この場合、それらの評価が問題のレジスタを変更しないため、レジスタの保存をもたらしません。
+
+@lisp
+  (assign proc (op lookup-variable-value)
+               (const =)
+               (reg env))
+  (assign val (const 1))
+  (assign argl (op list) (reg val))
+  (assign val (op lookup-variable-value)
+              (const n)
+              (reg env))
+  (assign argl (op cons) (reg val) (reg argl))
+  (test (op primitive-procedure?) (reg proc))
+  (branch (label primitive-branch17))
+compiled-branch16
+  (assign continue (label after-call15))
+  (assign val (op compiled-procedure-entry)
+              (reg proc))
+  (goto (reg val))
+primitive-branch17
+  (assign val (op apply-primitive-procedure)
+              (reg proc)
+              (reg argl))
+after-call15
+@end lisp
+
+@noindent
+定数1である真の分岐は、（ターゲット@code{val}とリンケージ@code{return}で）次のように
+コンパイルされます。
+
+@lisp
+(assign val (const 1))
+(goto (reg continue))
+@end lisp
+
+@noindent
+偽の分岐のコードは別の手続き呼び出しです。手続きはシンボル@code{*}の値であり、引数は
+@code{n}と別の手続き呼び出しの結果（@code{factorial}への呼び出し）です。これらの各
+呼び出しは@code{proc}と@code{argl}を設定し、独自の基本分岐と複合分岐を持ちます。
+@ref{Figure 5.17}は、@code{factorial}手続きの定義の完全なコンパイルを示しています。
+述語の周りで上記に示されている@code{continue}と@code{env}の可能な@code{save}と
+@code{restore}が実際に生成されることに注意してください。これらのレジスタは述語の
+手続き呼び出しによって変更され、分岐の手続き呼び出しと@code{return}リンケージに
+必要だからです。
+
+@quotation
+@strong{@anchor{Figure 5.17}Figure 5.17:} @math{\downarrow} @code{factorial}手続きの定義のコンパイル。
+
+@lisp
+@r{;; 手続きを構築し、手続き本体のコードをスキップ}
+  (assign val
+          (op make-compiled-procedure)
+          (label entry2)
+          (reg env))
+  (goto (label after-lambda1))
+entry2     @r{; @code{factorial}への呼び出しはここに入る}
+  (assign env
+          (op compiled-procedure-env)
+          (reg proc))
+  (assign env
+          (op extend-environment)
+          (const (n))
+          (reg argl)
+          (reg env))
+@r{;; 実際の手続き本体を開始}
+  (save continue)
+  (save env)
+@r{;; @code{(= n 1)}を計算}
+  (assign proc
+          (op lookup-variable-value)
+          (const =)
+          (reg env))
+  (assign val (const 1))
+  (assign argl (op list) (reg val))
+  (assign val
+          (op lookup-variable-value)
+          (const n)
+          (reg env))
+  (assign argl (op cons) (reg val) (reg argl))
+  (test (op primitive-procedure?) (reg proc))
+  (branch (label primitive-branch17))
+compiled-branch16
+  (assign continue (label after-call15))
+  (assign val
+          (op compiled-procedure-entry)
+          (reg proc))
+  (goto (reg val))
+primitive-branch17
+  (assign val
+          (op apply-primitive-procedure)
+          (reg proc)

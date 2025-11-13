@@ -1,0 +1,99 @@
+          (reg argl))
+after-call15   @r{; @code{val}には現在@code{(= n 1)}の結果が含まれる}
+  (restore env)
+  (restore continue)
+  (test (op false?) (reg val))
+  (branch (label false-branch4))
+true-branch5  @r{; 1を返す}
+  (assign val (const 1))
+  (goto (reg continue))
+
+false-branch4
+@r{;; @code{(* (factorial (- n 1)) n)}を計算して返す}
+  (assign proc
+          (op lookup-variable-value)
+          (const *)
+          (reg env))
+  (save continue)
+  (save proc)   @r{; @code{*}手続きを保存}
+  (assign val
+          (op lookup-variable-value)
+          (const n)
+          (reg env))
+  (assign argl (op list) (reg val))
+  (save argl)   @r{; @code{*}の部分的な引数リストを保存}
+@r{;; @code{(factorial (- n 1))}を計算,}
+@r{;; これは@code{*}の他の引数}
+  (assign proc
+          (op lookup-variable-value)
+          (const factorial)
+          (reg env))
+  (save proc)  @r{; @code{factorial}手続きを保存}
+@r{;; @code{(- n 1)}を計算、これは@code{factorial}の引数}
+  (assign proc
+          (op lookup-variable-value)
+          (const -)
+          (reg env))
+  (assign val (const 1))
+  (assign argl (op list) (reg val))
+  (assign val
+          (op lookup-variable-value)
+          (const n)
+          (reg env))
+  (assign argl (op cons) (reg val) (reg argl))
+  (test (op primitive-procedure?) (reg proc))
+  (branch (label primitive-branch8))
+compiled-branch7
+  (assign continue (label after-call6))
+  (assign val
+          (op compiled-procedure-entry)
+          (reg proc))
+  (goto (reg val))
+primitive-branch8
+  (assign val
+          (op apply-primitive-procedure)
+          (reg proc)
+          (reg argl))
+
+after-call6   @r{; @code{val}には現在@code{(- n 1)}の結果が含まれる}
+  (assign argl (op list) (reg val))
+  (restore proc) @r{; @code{factorial}を復元}
+@r{;; @code{factorial}を適用}
+  (test (op primitive-procedure?) (reg proc))
+  (branch (label primitive-branch11))
+compiled-branch10
+  (assign continue (label after-call9))
+  (assign val
+          (op compiled-procedure-entry)
+          (reg proc))
+  (goto (reg val))
+primitive-branch11
+  (assign val
+          (op apply-primitive-procedure)
+          (reg proc)
+          (reg argl))
+after-call9      @r{; @code{val}には現在}
+                 @r{; @code{(factorial (- n 1))}の結果が含まれる}
+  (restore argl) @r{; @code{*}の部分的な引数リストを復元}
+  (assign argl (op cons) (reg val) (reg argl))
+  (restore proc) @r{; @code{*}を復元}
+  (restore continue)
+@r{;; @code{*}を適用して値を返す}
+  (test (op primitive-procedure?) (reg proc))
+  (branch (label primitive-branch14))
+compiled-branch13
+@r{;; ここでの複合手続きは末尾再帰的に呼び出されることに注意}
+  (assign val
+          (op compiled-procedure-entry)
+          (reg proc))
+  (goto (reg val))
+primitive-branch14
+  (assign val
+          (op apply-primitive-procedure)
+          (reg proc)
+          (reg argl))
+  (goto (reg continue))
+after-call12
+after-if3
+after-lambda1
+@r{;; 手続きを変数@code{factorial}に割り当てる}

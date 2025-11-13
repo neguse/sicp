@@ -1,0 +1,190 @@
+    (if (null? (cdr operand-codes))
+        code-for-next-arg
+        (preserving
+         '(env)
+         code-for-next-arg
+         (code-to-get-rest-args
+          (cdr operand-codes))))))
+@end lisp
+
+@subsubheading 手続きの適用
+
+組み合わせの要素を評価した後、コンパイルされたコードは@code{proc}の手続きを
+@code{argl}の引数に適用する必要があります。コードは、@ref{4.1.1}のメタ循環評価器の
+@code{apply}手続きまたは@ref{5.4.1}の明示的制御の評価器の@code{apply-dispatch}
+エントリポイントと本質的に同じディスパッチを実行します。適用される手続きが基本手続きか
+コンパイルされた手続きかをチェックします。基本手続きの場合、@code{apply-primitive-procedure}を
+使用します。コンパイルされた手続きをどのように処理するかはすぐに見ます。手続き適用
+コードは次の形式を持ちます。
+
+@lisp
+(test (op primitive-procedure?) (reg proc))
+ (branch (label primitive-branch))
+compiled-branch
+ ⟨@emph{与えられたターゲットと適切なリンケージで
+  コンパイルされた手続きを適用するコード}⟩
+primitive-branch
+ (assign ⟨@var{target}⟩
+         (op apply-primitive-procedure)
+         (reg proc)
+         (reg argl))
+ ⟨@var{linkage}⟩
+after-call
+@end lisp
+
+@noindent
+コンパイルされた分岐が基本分岐の周りをスキップする必要があることを観察してください。
+したがって、元の手続き呼び出しのリンケージが@code{next}であった場合、複合分岐は
+基本分岐の後に挿入されたラベルにジャンプするリンケージを使用する必要があります。
+（これは、@code{compile-if}の真の分岐に使用されるリンケージに似ています。）
+
+@lisp
+(define (compile-procedure-call
+         target linkage)
+  (let ((primitive-branch
+         (make-label 'primitive-branch))
+        (compiled-branch
+         (make-label 'compiled-branch))
+        (after-call
+         (make-label 'after-call)))
+    (let ((compiled-linkage
+           (if (eq? linkage 'next)
+               after-call
+               linkage)))
+      (append-instruction-sequences
+       (make-instruction-sequence
+        '(proc)
+        '()
+        `((test
+           (op primitive-procedure?)
+           (reg proc))
+          (branch
+           (label ,primitive-branch))))
+       (parallel-instruction-sequences
+        (append-instruction-sequences
+         compiled-branch
+         (compile-proc-appl
+          target
+          compiled-linkage))
+        (append-instruction-sequences
+         primitive-branch
+         (end-with-linkage
+          linkage
+          (make-instruction-sequence
+           '(proc argl)
+           (list target)
+           `((assign
+              ,target
+              (op apply-primitive-procedure)
+              (reg proc)
+              (reg argl)))))))
+       after-call))))
+@end lisp
+
+@noindent
+@code{compile-if}の真の分岐と偽の分岐と同様に、基本分岐と複合分岐は、順次実行
+されないため、通常の@code{append-instruction-sequences}ではなく
+@code{parallel-instruction-sequences}を使用して追加されます。
+
+@subsubheading コンパイルされた手続きの適用
+
+手続き適用を処理するコードは、生成する命令シーケンスが非常に短いにもかかわらず、
+コンパイラの最も微妙な部分です。コンパイルされた手続き（@code{compile-lambda}によって
+構築された）には、手続きのコードが開始される場所を指定するラベルであるエントリポイント
+があります。このエントリポイントのコードは@code{val}に結果を計算し、命令
+@code{(goto (reg continue))}を実行することによって戻ります。したがって、リンケージが
+ラベルである場合、与えられたターゲットとリンケージで（@code{compile-proc-appl}に
+よって生成される）コンパイルされた手続き適用のコードは次のようになることを期待
+するかもしれません。
+
+@lisp
+(assign continue
+        (label proc-return))
+ (assign val
+         (op compiled-procedure-entry)
+         (reg proc))
+ (goto (reg val))
+proc-return
+ (assign ⟨@var{target}⟩
+         (reg val))   @r{; ターゲットが@code{val}でない場合に含まれる}
+ (goto (label ⟨@var{linkage}⟩))   @r{; リンケージコード}
+@end lisp
+
+@noindent
+または、リンケージが@code{return}である場合、次のようになります。
+
+@lisp
+(save continue)
+ (assign continue
+         (label proc-return))
+ (assign val
+         (op compiled-procedure-entry)
+         (reg proc))
+ (goto (reg val))
+proc-return
+ (assign ⟨@var{target}⟩
+         (reg val))   @r{; ターゲットが@code{val}でない場合に含まれる}
+ (restore continue)
+ (goto (reg continue))   @r{; リンケージコード}
+@end lisp
+
+@noindent
+このコードは、手続きがラベル@code{proc-return}に戻るように@code{continue}を設定し、
+手続きのエントリポイントにジャンプします。@code{proc-return}のコードは、手続きの
+結果を@code{val}からターゲットレジスタに（必要に応じて）転送し、その後リンケージに
+よって指定された場所にジャンプします。（リンケージは常に@code{return}またはラベルです。
+@code{compile-procedure-call}が複合手続き分岐の@code{next}リンケージを@code{after-call}
+ラベルで置き換えるためです。）
+
+実際、ターゲットが@code{val}でない場合、これがまさにコンパイラが生成するコードです。
+@footnote{実際には、ターゲットが@code{val}でなく、リンケージが@code{return}である
+場合はエラーを通知します。@code{return}リンケージを要求する唯一の場所は手続きを
+コンパイルするときであり、手続きが@code{val}に値を返すのが私たちの規約だからです。}
+ただし、通常、ターゲットは@code{val}です（コンパイラが別のレジスタを指定する唯一の
+時は、演算子の評価を@code{proc}にターゲットするときです）。したがって、手続き結果は
+ターゲットレジスタに直接入れられ、それをコピーする特別な場所に戻る必要はありません。
+代わりに、手続きが呼び出し元のリンケージによって指定された場所に直接「戻る」ように
+@code{continue}を設定することによって、コードを簡略化します。
+
+@lisp
+⟨@emph{リンケージのために@code{continue}を設定}⟩
+(assign val
+        (op compiled-procedure-entry)
+        (reg proc))
+(goto (reg val))
+@end lisp
+
+@noindent
+リンケージがラベルである場合、手続きがそのラベルに戻るように@code{continue}を設定
+します。（つまり、手続きが終わる@code{(goto (reg continue))}は、上記の@code{proc-return}の
+@code{(goto (label ⟨@var{linkage}⟩))}と等価になります。）
+
+@lisp
+(assign continue
+        (label ⟨@var{linkage}⟩))
+(assign val
+        (op compiled-procedure-entry)
+        (reg proc))
+(goto (reg val))
+@end lisp
+
+@noindent
+リンケージが@code{return}である場合、@code{continue}をまったく設定する必要はありません。
+既に望ましい場所を保持しています。（つまり、手続きが終わる@code{(goto (reg continue))}は、
+@code{proc-return}の@code{(goto (reg continue))}が行った場所に直接移動します。）
+
+@lisp
+(assign val
+        (op compiled-procedure-entry)
+        (reg proc))
+(goto (reg val))
+@end lisp
+
+@noindent
+@code{return}リンケージのこの実装により、コンパイラは末尾再帰的コードを生成します。
+手続き本体の最後のステップとして手続きを呼び出すと、スタックに情報を保存せずに直接
+転送が行われます。
+
+代わりに、@code{val}以外のターゲットについて上記で示したように、@code{return}の
+リンケージと@code{val}のターゲットを持つ手続き呼び出しのケースを処理したとしましょう。
+これにより、末尾再帰が破壊されます。システムはまだ

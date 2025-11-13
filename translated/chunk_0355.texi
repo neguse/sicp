@@ -1,0 +1,91 @@
+    (let ((lambda-linkage
+           (if (eq? linkage 'next)
+               after-lambda
+               linkage)))
+      (append-instruction-sequences
+       (tack-on-instruction-sequence
+        (end-with-linkage
+         lambda-linkage
+         (make-instruction-sequence
+          '(env)
+          (list target)
+          `((assign
+             ,target
+             (op make-compiled-procedure)
+             (label ,proc-entry)
+             (reg env)))))
+        (compile-lambda-body exp proc-entry))
+       after-lambda))))
+@end lisp
+
+@noindent
+@code{Compile-lambda}は、手続き本体を@code{lambda}式コードに追加するために、
+@code{append-instruction-sequences}（@ref{5.5.4}）ではなく、特別なコンバイナ
+@code{tack-on-instruction-sequence}を使用します。本体は、結合されたシーケンスが入力
+されたときに実行される命令のシーケンスの一部ではないためです。むしろ、それを置くのに
+便利な場所だったという理由だけでシーケンスに含まれています。
+
+@code{Compile-lambda-body}は、手続きの本体のコードを構築します。このコードは、
+エントリポイントのラベルで始まります。次に、実行時評価環境が手続き本体を評価するための
+正しい環境---つまり、手続きが呼び出される引数に仮パラメータのバインディングを含めるよう
+に拡張された手続きの定義環境---に切り替えるための命令が続きます。この後に、手続き本体を
+構成する式のシーケンスのコードが続きます。シーケンスはリンケージ@code{return}と
+ターゲット@code{val}でコンパイルされるため、@code{val}に手続き結果を入れて手続きから
+戻ることで終了します。
+
+@lisp
+(define (compile-lambda-body exp proc-entry)
+  (let ((formals (lambda-parameters exp)))
+    (append-instruction-sequences
+     (make-instruction-sequence
+      '(env proc argl)
+      '(env)
+      `(,proc-entry
+        (assign env
+                (op compiled-procedure-env)
+                (reg proc))
+        (assign env
+                (op extend-environment)
+                (const ,formals)
+                (reg argl)
+                (reg env))))
+     (compile-sequence (lambda-body exp)
+                       'val
+                       'return))))
+@end lisp
+
+@node	5.5.3, 5.5.4, 5.5.2, 5.5
+@subsection 組み合わせのコンパイル
+
+コンパイルプロセスの本質は、手続き適用のコンパイルです。与えられたターゲットと
+リンケージでコンパイルされた組み合わせのコードは次の形式を持ちます。
+
+@lisp
+⟨@emph{演算子のコンパイル、
+ ターゲット@code{proc}、リンケージ@code{next}}⟩
+⟨@emph{オペランドを評価し、@code{argl}に
+ 引数リストを構築する}⟩
+⟨@emph{与えられたターゲットとリンケージでの
+ 手続き呼び出しのコンパイル}⟩
+@end lisp
+
+@noindent
+レジスタ@code{env}、@code{proc}、@code{argl}は、演算子とオペランドの評価中に保存
+および復元する必要がある場合があります。これは、コンパイラで@code{val}以外のターゲット
+が指定される唯一の場所です。
+
+必要なコードは@code{compile-application}によって生成されます。これは、適用される
+手続きを@code{proc}に入れるコードを生成するために演算子を再帰的にコンパイルし、
+適用の個々のオペランドを評価するコードを生成するためにオペランドをコンパイルします。
+オペランドの命令シーケンスは、@code{argl}に引数のリストを構築するコードと
+（@code{construct-arglist}によって）結合され、結果の引数リストコードは、手続きコード
+および手続き呼び出しを実行するコード（@code{compile-procedure-call}によって生成される）
+と結合されます。コードシーケンスを追加する際、@code{env}レジスタは演算子の評価の周りで
+保存する必要があり（演算子を評価すると@code{env}が変更される可能性があり、オペランドを
+評価するために必要になるため）、@code{proc}レジスタは引数リストの構築の周りで保存する
+必要があります（オペランドを評価すると@code{proc}が変更される可能性があり、実際の手続き
+適用に必要になるため）。@code{Continue}も、手続き呼び出しのリンケージに必要なため、
+全体を通して保存する必要があります。
+
+@lisp
+(define (compile-application

@@ -1,0 +1,95 @@
+どの式に対しても同じ値を与えますが、手続きを呼び出すたびに@code{continue}を保存し、
+呼び出し後に戻って（無駄な）保存を元に戻します。これらの余分な保存は、手続き呼び出しの
+ネスト中に蓄積されます。@footnote{コンパイラに末尾再帰的コードを生成させることは、
+単純なアイデアのように思えるかもしれません。しかし、CやPascalを含む一般的な言語の
+ほとんどのコンパイラはこれを行わないため、これらの言語では手続き呼び出しだけで反復的
+プロセスを表現できません。これらの言語における末尾再帰の難しさは、それらの実装が
+スタックを使用して戻りアドレスだけでなく手続き引数と局所変数を格納することです。
+この本で説明されているScheme実装は、引数と変数をガベージコレクションされるメモリに
+格納します。変数と引数にスタックを使用する理由は、それ以外ではガベージコレクションを
+必要としない言語でガベージコレクションの必要性を回避できるため、一般的により効率的で
+あると信じられているためです。実際、洗練されたLispコンパイラは、末尾再帰を破壊せずに
+引数にスタックを使用できます。（説明については@ref{Hanson 1990}を参照してください。）
+スタック割り当てが実際にガベージコレクションよりも効率的であるかどうかについても
+いくつかの議論があります。しかし、詳細はコンピュータアーキテクチャの細かい点に
+依存するようです。（この問題に関する対立する見解については、@ref{Appel 1987}と
+@ref{Miller and Rozas 1994}を参照してください。）}
+
+@code{Compile-proc-appl}は、呼び出しのターゲットが@code{val}であるかどうか、および
+リンケージが@code{return}であるかどうかに応じて、4つのケースを考慮して上記の手続き
+適用コードを生成します。命令シーケンスはすべてのレジスタを変更すると宣言されることを
+観察してください。手続き本体を実行すると、レジスタが任意の方法で変更される可能性が
+あるためです。@footnote{変数@code{all-regs}は、すべてのレジスタの名前のリストに
+バインドされています。
+
+@lisp
+(define all-regs '(env proc val argl continue))
+@end lisp
+}
+また、ターゲット@code{val}とリンケージ@code{return}を持つケースのコードシーケンスは、
+@code{continue}を必要とすると宣言されていることに注意してください。@code{continue}は
+2命令シーケンスで明示的に使用されていませんが、コンパイルされた手続きに入るときに
+@code{continue}が正しい値を持つことを確認する必要があります。
+
+@lisp
+(define (compile-proc-appl target linkage)
+  (cond ((and (eq? target 'val)
+              (not (eq? linkage 'return)))
+         (make-instruction-sequence
+          '(proc)
+          all-regs
+          `((assign continue (label ,linkage))
+            (assign
+             val
+             (op compiled-procedure-entry)
+             (reg proc))
+            (goto (reg val)))))
+        ((and (not (eq? target 'val))
+              (not (eq? linkage 'return)))
+         (let ((proc-return
+                (make-label 'proc-return)))
+           (make-instruction-sequence
+            '(proc)
+            all-regs
+            `((assign continue
+                      (label ,proc-return))
+              (assign
+               val
+               (op compiled-procedure-entry)
+               (reg proc))
+              (goto (reg val))
+              ,proc-return
+              (assign ,target (reg val))
+              (goto (label ,linkage))))))
+        ((and (eq? target 'val)
+              (eq? linkage 'return))
+         (make-instruction-sequence
+          '(proc continue)
+          all-regs
+          '((assign
+             val
+             (op compiled-procedure-entry)
+             (reg proc))
+            (goto (reg val)))))
+        ((and (not (eq? target 'val))
+              (eq? linkage 'return))
+         (error "return linkage,
+                 target not val: COMPILE"
+                target))))
+@end lisp
+
+@node	5.5.4, 5.5.5, 5.5.3, 5.5
+@subsection 命令シーケンスの結合
+
+このセクションでは、命令シーケンスがどのように表現され、結合されるかの詳細について
+説明します。@ref{5.5.1}から、命令シーケンスが必要なレジスタ、変更されたレジスタ、
+および実際の命令のリストとして表現されることを思い出してください。ラベル（シンボル）も、
+レジスタを必要とせず変更しない命令シーケンスの縮退したケースと見なします。したがって、
+命令シーケンスによって必要とされ変更されるレジスタを決定するために、セレクタを使用
+します。
+
+@lisp
+(define (registers-needed s)
+  (if (symbol? s) '() (car s)))
+(define (registers-modified s)
+  (if (symbol? s) '() (cadr s)))

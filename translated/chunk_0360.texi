@@ -1,0 +1,93 @@
+(define (statements s)
+  (if (symbol? s) (list s) (caddr s)))
+@end lisp
+
+@noindent
+与えられたシーケンスが与えられたレジスタを必要とするか変更するかを決定するために、
+述語を使用します。
+
+@lisp
+(define (needs-register? seq reg)
+  (memq reg (registers-needed seq)))
+(define (modifies-register? seq reg)
+  (memq reg (registers-modified seq)))
+@end lisp
+
+@noindent
+これらの述語とセレクタの観点から、コンパイラ全体で使用されるさまざまな命令シーケンス
+コンバイナを実装できます。
+
+基本的なコンバイナは@code{append-instruction-sequences}です。これは、順次実行される
+任意の数の命令シーケンスを引数として取り、すべてのシーケンスのステートメントを追加した
+ステートメントを持つ命令シーケンスを返します。微妙な点は、結果のシーケンスによって
+必要とされ変更されるレジスタを決定することです。任意のシーケンスによって変更される
+レジスタを変更します。最初のシーケンスを実行する前に初期化する必要があるレジスタ
+（最初のシーケンスによって必要とされるレジスタ）と、それに先行するシーケンスによって
+初期化（変更）されない他のシーケンスによって必要とされるレジスタを必要とします。
+
+シーケンスは@code{append-2-sequences}によって一度に2つずつ追加されます。これは、
+2つの命令シーケンス@code{seq1}と@code{seq2}を取り、そのステートメントが@code{seq1}の
+ステートメントに続いて@code{seq2}のステートメントである命令シーケンスを返します。その
+変更されたレジスタは、@code{seq1}または@code{seq2}によって変更されるレジスタであり、
+その必要なレジスタは、@code{seq1}によって必要とされるレジスタと、@code{seq1}によって
+変更されない@code{seq2}によって必要とされるレジスタです。（集合演算の観点から、
+必要なレジスタの新しい集合は、@code{seq1}によって必要とされるレジスタの集合と、
+@code{seq2}によって必要とされるレジスタと@code{seq1}によって変更されるレジスタの
+集合差の和集合です。）したがって、@code{append-instruction-sequences}は次のように
+実装されます。
+
+@lisp
+(define (append-instruction-sequences . seqs)
+  (define (append-2-sequences seq1 seq2)
+    (make-instruction-sequence
+     (list-union
+      (registers-needed seq1)
+      (list-difference
+       (registers-needed seq2)
+       (registers-modified seq1)))
+     (list-union
+      (registers-modified seq1)
+      (registers-modified seq2))
+     (append (statements seq1)
+             (statements seq2))))
+  (define (append-seq-list seqs)
+    (if (null? seqs)
+        (empty-instruction-sequence)
+        (append-2-sequences
+         (car seqs)
+         (append-seq-list (cdr seqs)))))
+  (append-seq-list seqs))
+@end lisp
+
+@noindent
+この手続きは、@ref{2.3.3}で説明されている（順序なし）集合表現に似た、リストとして
+表現される集合を操作するためのいくつかの単純な操作を使用します。
+
+@lisp
+(define (list-union s1 s2)
+  (cond ((null? s1) s2)
+        ((memq (car s1) s2)
+         (list-union (cdr s1) s2))
+        (else
+         (cons (car s1)
+               (list-union (cdr s1) s2)))))
+
+(define (list-difference s1 s2)
+  (cond ((null? s1) '())
+        ((memq (car s1) s2)
+         (list-difference (cdr s1) s2))
+        (else
+         (cons (car s1)
+               (list-difference (cdr s1)
+                                s2)))))
+@end lisp
+
+@noindent
+2番目の主要な命令シーケンスコンバイナである@code{Preserving}は、レジスタ@code{regs}の
+リストと、順次実行される2つの命令シーケンス@code{seq1}と@code{seq2}を取ります。
+@code{seq1}のステートメントに続いて@code{seq2}のステートメントを持つ命令シーケンスを
+返しますが、@code{seq1}によって変更されるが@code{seq2}によって必要とされる
+@code{regs}内のレジスタを保護するために、@code{seq1}の周りに適切な@code{save}と
+@code{restore}命令があります。これを達成するために、@code{preserving}は最初に、
+必要な@code{save}に続いて@code{seq1}のステートメント、その後に必要な@code{restore}を
+持つシーケンスを作成します。このシーケンスは、保存および復元されるレジスタに加えて

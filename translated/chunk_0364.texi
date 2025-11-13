@@ -1,0 +1,7 @@
+  (perform (op define-variable!)
+           (const factorial)
+           (reg val)
+           (reg env))
+  (assign val (const ok))
+@end lisp
+@end quotation

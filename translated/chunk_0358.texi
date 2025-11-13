@@ -1,0 +1,78 @@
+同じ値を与えますが、各手続き呼び出しは、戻り先のアドレスをスタックに保存することで、
+スタック空間を使用します。このスタック空間の蓄積は、連続する手続き呼び出しが
+ネストされた再帰ではなく、線形の反復を表している場合でも発生します。
+
+このリンケージ処理の実装により、コンパイラによって生成されたコードは自動的に末尾再帰的に
+なります。明示的制御の評価器では、シーケンスの最後の式を評価する際の特別な処理を実装する
+ことによって末尾再帰を実現しました（@ref{5.4.2}参照）。コンパイラでは、末尾再帰は
+手続き呼び出しのコンパイルからより自然に生じます。コンパイラがシーケンスをコンパイル
+するとき、最後の式のコンパイルは、シーケンス全体に渡されたのと同じターゲットとリンケージを
+使用します。したがって、最後の式が手続き呼び出しである場合、そのリンケージはシーケンス
+全体のリンケージになり、上記で説明した最適化が自動的に適用されます。
+
+@code{compile-proc-appl}は、コンパイルされた手続き呼び出しのコードを生成します。
+これは、ターゲットとリンケージの組み合わせに応じて、上記で説明したさまざまなコード
+バリエーションのいずれかを生成します。ターゲットが@code{val}でない場合、命令シーケンスは
+@code{proc-return}で手続き結果をターゲットレジスタに移動し、その後リンケージに
+ジャンプします。（これは常に、手続きが@code{proc-return}に戻るように@code{continue}を
+設定することを必要とします。）ターゲットが@code{val}である場合、@code{continue}の
+設定（もしあれば）はリンケージに依存します。
+
+@lisp
+(define (compile-proc-appl target linkage)
+  (cond ((and (eq? target 'val)
+              (not (eq? linkage 'return)))
+         (make-instruction-sequence
+          '(proc)
+          all-regs
+          `((assign continue
+                    (label ,linkage))
+            (assign val
+                    (op compiled-procedure-entry)
+                    (reg proc))
+            (goto (reg val)))))
+        ((and (not (eq? target 'val))
+              (not (eq? linkage 'return)))
+         (let ((proc-return
+                (make-label 'proc-return)))
+           (make-instruction-sequence
+            '(proc)
+            all-regs
+            `((assign continue
+                      (label ,proc-return))
+              (assign val
+                      (op compiled-procedure-entry)
+                      (reg proc))
+              (goto (reg val))
+              ,proc-return
+              (assign ,target (reg val))
+              (goto (label ,linkage))))))
+        ((and (eq? target 'val)
+              (eq? linkage 'return))
+         (make-instruction-sequence
+          '(proc continue)
+          all-regs
+          '((assign val
+                    (op compiled-procedure-entry)
+                    (reg proc))
+            (goto (reg val)))))
+        ((and (not (eq? target 'val))
+              (eq? linkage 'return))
+         (error "return linkage,
+                 target not val: COMPILE"
+                target))))
+@end lisp
+
+@noindent
+命令シーケンスのレジスタ使用に関する情報は、非常に控えめです。手続き呼び出しが
+どのレジスタを変更するか、または手続き呼び出し後に必要なレジスタを正確に知ることは
+できないため、これらのシーケンスがすべてのレジスタ（@code{all-regs}として定義された
+リスト）を変更すると仮定します。
+
+コンパイルされたコードブロックは、実行を開始すると決して戻りません。したがって、
+コンパイルされた手続き適用のコードのリンケージ部分は、その命令シーケンスによって
+必要とされるレジスタとして@code{continue}を宣言する必要はありません。実際、
+@code{continue}は3番目のケースでのみ必要とされるレジスタとして宣言されています。
+この場合、リンケージが@code{return}であり、手続きが戻るために@code{continue}を
+使用する必要があります。それ以外のすべてのケースでは、リンケージは次の命令
+シーケンスに直接組み込まれているため、@code{continue}は必要ありません。

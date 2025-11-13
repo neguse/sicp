@@ -1,0 +1,95 @@
+         exp target linkage)
+  (let ((proc-code
+         (compile (operator exp) 'proc 'next))
+        (operand-codes
+         (map (lambda (operand)
+                (compile operand 'val 'next))
+              (operands exp))))
+    (preserving
+     '(env continue)
+     proc-code
+     (preserving
+      '(proc continue)
+      (construct-arglist operand-codes)
+      (compile-procedure-call
+       target
+       linkage)))))
+@end lisp
+
+@noindent
+引数リストを構築するコードは、各オペランドを@code{val}に評価し、その値を@code{argl}に
+蓄積されている引数リストに@code{cons}します。引数を@code{argl}に順番に@code{cons}
+するため、最後の引数から始めて最初の引数で終わる必要があります。これにより、結果の
+リストで引数が最初から最後まで順番に表示されます。この評価シーケンスの設定のために
+@code{argl}を空のリストに初期化して命令を無駄にするのではなく、最初のコードシーケンスで
+初期の@code{argl}を構築します。したがって、引数リスト構築の一般的な形式は次のようになり
+ます。
+
+@lisp
+⟨@emph{最後のオペランドのコンパイル、@code{val}をターゲットに}⟩
+(assign argl (op list) (reg val))
+⟨@emph{次のオペランドのコンパイル、@code{val}をターゲットに}⟩
+(assign argl (op cons) (reg val) (reg argl))
+@r{…}
+⟨@emph{最初のオペランドのコンパイル、@code{val}をターゲットに}⟩
+(assign argl (op cons) (reg val) (reg argl))
+@end lisp
+
+@noindent
+最初を除く各オペランド評価の周りで@code{Argl}を保存する必要があり（これまでに蓄積
+された引数が失われないように）、最後を除く各オペランド評価の周りで@code{env}を保存
+する必要があります（後続のオペランド評価で使用するため）。
+
+この引数コードのコンパイルは、最初に評価されるオペランドの特別な扱いと、異なる場所で
+@code{argl}と@code{env}を保存する必要性のために、少し厄介です。@code{construct-arglist}
+手続きは、個々のオペランドを評価するコードを引数として取ります。オペランドがまったく
+ない場合、単に次の命令を出力します。
+
+@lisp
+(assign argl (const ()))
+@end lisp
+
+@noindent
+それ以外の場合、@code{construct-arglist}は最後の引数で@code{argl}を初期化するコードを
+作成し、残りの引数を評価してそれらを順次@code{argl}に追加するコードを追加します。
+引数を最後から最初まで処理するために、@code{compile-application}によって提供された
+順序からオペランドコードシーケンスのリストを逆にする必要があります。
+
+@lisp
+(define (construct-arglist operand-codes)
+  (let ((operand-codes
+         (reverse operand-codes)))
+    (if (null? operand-codes)
+        (make-instruction-sequence
+         '()
+         '(argl)
+         '((assign argl (const ()))))
+        (let ((code-to-get-last-arg
+               (append-instruction-sequences
+                (car operand-codes)
+                (make-instruction-sequence
+                 '(val)
+                 '(argl)
+                 '((assign argl
+                           (op list)
+                           (reg val)))))))
+          (if (null? (cdr operand-codes))
+              code-to-get-last-arg
+              (preserving
+               '(env)
+               code-to-get-last-arg
+               (code-to-get-rest-args
+                (cdr operand-codes))))))))
+
+(define (code-to-get-rest-args operand-codes)
+  (let ((code-for-next-arg
+         (preserving
+          '(argl)
+          (car operand-codes)
+          (make-instruction-sequence
+           '(val argl)
+           '(argl)
+           '((assign argl
+                     (op cons)
+                     (reg val)
+                     (reg argl)))))))

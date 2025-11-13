@@ -1,0 +1,99 @@
+再帰呼び出しの前に保存されない。なぜなら、サブルーチンが戻った後、@code{val}の
+古い内容は役に立たないからである。必要なのは、サブ計算によって生成された新しい
+値だけである。
+
+@float
+@anchor{図5.11}
+@ifinfo
+@strong{図5.11:} 再帰的階乗マシン。
+
+@example
+                             ___
+                            /   \
+    +----------*-----------|  =  |
+    |          |            \___/
+   (X)         |              ^
+    |          |              |
+    V          |          +---+---+   sn    +-------+
++-------+      |          |       +---(X)-->|       |
+|  val  |<-(X)-|----------+   n   |         | stack |
++-----+-+      |          |       |<--(X)---+       |
+  ^   |        |          +-------+   rn    +-+-----+
+  |   |        |            ^                 |   ^
+ (X)  |        |            |                 |   |
+  |   |   +----|--------*  (X)                |  (X) sc
+  |   |   |    |        |   |             rc (X)  |
+  |   |   |    *----.   |   |                 |   |
+  |   V   V    |    V   V   |                 V   |
+  |  -------   |   -------  |              +------+-+
+  |  \  *  /   |   \  -  /  |              |continue+--> controller
+  |   --+--    |    --+--   |              +--------+
+  |     |      |      |     |               ^      ^
+  +-----+      |      +-----+               |      |
+               |                           (X)    (X)
+               |                            |      |
+              / \                   after- / \    / \  fact-
+             /_1_\                  fact  /___\  /___\ done
+@end example
+
+@lisp
+(controller
+   (assign continue (label fact-done))     @r{; 最終的な戻りアドレスを設定}
+ fact-loop
+   (test (op =) (reg n) (const 1))
+   (branch (label base-case))
+   @r{;; @code{n}と@code{continue}を保存して再帰呼び出しの準備をする。}
+   @r{;; サブルーチンが戻ったときに計算が}
+   @r{;; @code{after-fact}で続くように@code{continue}を設定する。}
+   (save continue)
+   (save n)
+   (assign n (op -) (reg n) (const 1))
+   (assign continue (label after-fact))
+   (goto (label fact-loop))
+ after-fact
+   (restore n)
+   (restore continue)
+   (assign val (op *) (reg n) (reg val))   @r{; @code{val}は今@emph{n}(@emph{n} − 1)!を含む}
+   (goto (reg continue))                   @r{; 呼び出し元に戻る}
+ base-case
+   (assign val (const 1))                  @r{; 基底ケース: }1! = 1
+   (goto (reg continue))                   @r{; 呼び出し元に戻る}
+ fact-done)
+@end lisp
+
+@end ifinfo
+@iftex
+@image{fig/chap5/Fig5.11b,147mm,,,.std.svg}
+@caption{@strong{図5.11:} 再帰的階乗マシン。}
+@end iftex
+@end float
+
+原理的には階乗計算には無限のマシンが必要だが、@ref{図5.11}のマシンは
+スタックを除いて実際には有限である。スタックは潜在的に無制限である。
+しかし、スタックの任意の特定の物理的実装は有限サイズであり、これは
+マシンが処理できる再帰呼び出しの深さを制限する。この階乗の実装は、
+スタックで拡張された通常のレジスタマシンとして再帰的アルゴリズムを
+実現するための一般的な戦略を示している。再帰的サブ問題に遭遇したとき、
+サブ問題が解決された後に必要となる現在の値を持つレジスタをスタックに
+保存し、再帰的サブ問題を解き、その後保存されたレジスタを復元してメイン
+問題の実行を続ける。@code{continue}レジスタは常に保存されなければならない。
+保存する必要がある他のレジスタがあるかどうかは、特定のマシンに依存する。
+なぜなら、全ての再帰的計算がサブ問題の解決中に変更されるレジスタの元の値を
+必要とするわけではないからである（@ref{練習問題 5.4}を参照）。
+
+@subsubheading 二重再帰
+
+より複雑な再帰プロセス、@ref{1.2.2}で紹介したフィボナッチ数の木再帰的
+計算を調べよう：
+
+@lisp
+(define (fib n)
+  (if (< n 2)
+      n
+      (+ (fib (- n 1)) (fib (- n 2)))))
+@end lisp
+
+@noindent
+階乗と同様に、再帰的フィボナッチ計算をレジスタ@code{n}、@code{val}、
+@code{continue}を持つ
+

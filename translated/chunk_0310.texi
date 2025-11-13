@@ -1,0 +1,98 @@
+ (branch (label after-gcd-2))
+ (assign s (op rem) (reg c) (reg d))
+ (assign c (reg d))
+ (assign d (reg s))
+ (goto (label gcd-2))
+after-gcd-2
+@end lisp
+
+@end ifinfo
+@iftex
+@image{fig/chap5/Fig5.7b,145mm,,,.std.svg}
+@caption{@strong{図5.7:} 2つの@abbr{GCD}計算を持つマシンのデータパスと
+コントローラー@w{シーケンス}の部分。}
+@end iftex
+@end float
+
+このマシンには、2つの剰余演算箱と2つの等価性テスト箱がある。剰余箱の
+ように複製されたコンポーネントが複雑な場合、これはマシンを構築する
+経済的な方法ではない。より大きなマシンの計算の残りに影響を与えない限り、
+両方の@abbr{GCD}計算に同じコンポーネントを使用することで、データパス
+コンポーネントの複製を避けることができる。コントローラーが@code{gcd-2}に
+到達するまでにレジスタ@code{a}と@code{b}の値が不要な場合（またはこれらの
+値を保管のために他のレジスタに移動できる場合）、最初の@abbr{GCD}だけで
+なく2番目の@abbr{GCD}を計算する際にも、レジスタ@code{c}と@code{d}ではなく
+レジスタ@code{a}と@code{b}を使用するようにマシンを変更できる。これを
+行うと、@ref{図5.8}に示すコントローラーシーケンスが得られる。
+
+@quotation
+@strong{@anchor{図5.8}図5.8:} @math{\downarrow} 2つの異なる@abbr{GCD}計算
+に同じデータパスコンポーネントを使用するマシンのコントローラーシーケンスの
+部分。
+
+@lisp
+gcd-1
+ (test (op =) (reg b) (const 0))
+ (branch (label after-gcd-1))
+ (assign t (op rem) (reg a) (reg b))
+ (assign a (reg b))
+ (assign b (reg t))
+ (goto (label gcd-1))
+after-gcd-1
+  @r{…}
+gcd-2
+ (test (op =) (reg b) (const 0))
+ (branch (label after-gcd-2))
+ (assign t (op rem) (reg a) (reg b))
+ (assign a (reg b))
+ (assign b (reg t))
+ (goto (label gcd-2))
+after-gcd-2
+@end lisp
+
+@end quotation
+
+@noindent
+複製されたデータパスコンポーネントを削除した（したがって、データパスは
+再び@ref{図5.1}のようになる）が、コントローラーには今、エントリポイント
+ラベルのみが異なる2つの@abbr{GCD}シーケンスがある。これらの2つの
+シーケンスを、単一のシーケンス——@code{gcd}@newterm{サブルーチン}——
+への分岐で置き換える方が良い。その終わりで、メイン命令シーケンスの
+正しい場所に戻る。次のようにしてこれを実現できる：@code{gcd}に分岐する
+前に、特別なレジスタ@code{continue}に区別される値（0や1など）を置く。
+@code{gcd}サブルーチンの終わりで、@code{continue}レジスタの値に応じて
+@code{after-gcd-1}または@code{after-gcd-2}のいずれかに戻る。
+@ref{図5.9}は、@code{gcd}命令の単一のコピーのみを含む、結果として
+得られるコントローラーシーケンスの関連部分を示す。
+
+@quotation
+@strong{@anchor{図5.9}図5.9:} @math{\downarrow} @code{continue}レジスタを
+使って@ref{図5.8}の重複コントローラーシーケンスを回避する。
+
+@lisp
+gcd
+ (test (op =) (reg b) (const 0))
+ (branch (label gcd-done))
+ (assign t (op rem) (reg a) (reg b))
+ (assign a (reg b))
+ (assign b (reg t))
+ (goto (label gcd))
+gcd-done
+ (test (op =) (reg continue) (const 0))
+ (branch (label after-gcd-1))
+ (goto (label after-gcd-2))
+  @r{…}
+@r{;; @code{gcd}が必要な最初の場所から}
+@r{;; @code{gcd}に分岐する前に、}
+@r{;; @code{continue}レジスタに0を置く}
+ (assign continue (const 0))
+ (goto (label gcd))
+after-gcd-1
+  @r{…}
+@r{;; @code{gcd}の2番目の使用の前に、}
+@r{;; @code{continue}レジスタに1を置く}
+ (assign continue (const 1))
+ (goto (label gcd))
+after-gcd-2
+@end lisp
+

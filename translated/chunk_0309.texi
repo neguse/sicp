@@ -1,0 +1,99 @@
+@quotation
+@strong{@anchor{図5.6}図5.6:} @math{\downarrow} @ref{図5.5}の@abbr{GCD}
+マシンのコントローラー命令シーケンス。
+
+@lisp
+(controller
+ test-b
+   (test (op =) (reg b) (const 0))
+   (branch (label gcd-done))
+   (assign t (reg a))
+ rem-loop
+   (test (op <) (reg t) (reg b))
+   (branch (label rem-done))
+   (assign t (op -) (reg t) (reg b))
+   (goto (label rem-loop))
+ rem-done
+   (assign a (reg b))
+   (assign b (reg t))
+   (goto (label test-b))
+ gcd-done)
+@end lisp
+
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.3}練習問題 5.3:} @ref{Sec.1.1.7,,1.1.7}で
+述べたニュートン法を使って平方根を計算するマシンを設計せよ：
+
+@lisp
+(define (sqrt x)
+  (define (good-enough? guess)
+    (< (abs (- (square guess) x)) 0.001))
+  (define (improve guess)
+    (average guess (/ x guess)))
+  (define (sqrt-iter guess)
+    (if (good-enough? guess)
+        guess
+        (sqrt-iter (improve guess))))
+  (sqrt-iter 1.0))
+@end lisp
+
+まず、@code{good-enough?}と@code{improve}演算がプリミティブとして
+利用可能であると仮定せよ。次に、これらを算術演算の観点から展開する方法を
+示せ。@code{sqrt}マシン設計の各バージョンを、データパス図を描き、
+レジスタマシン言語でコントローラー定義を書くことで記述せよ。
+@end quotation
+
+@node	5.1.3, 5.1.4, 5.1.2, 5.1
+@subsection サブルーチン
+
+計算を実行するマシンを設計するとき、コンポーネントを複製するのではなく、
+計算の異なる部分でコンポーネントを共有するように配置することを好むことが
+多い。レジスタ@code{a}と@code{b}の内容の@abbr{GCD}を求める計算と、
+レジスタ@code{c}と@code{d}の内容の@abbr{GCD}を求める計算の2つの
+@abbr{GCD}計算を含むマシンを考えよう。プリミティブな@code{gcd}演算が
+あると仮定することから始め、次に@code{gcd}の2つのインスタンスをより
+プリミティブな演算で展開する。@ref{図5.7}は、結果として得られるマシンの
+データパスの@abbr{GCD}部分のみを示し、マシンの残りの部分への接続は
+示していない。この図は、マシンのコントローラーシーケンスの対応する部分も
+示している。
+
+@float
+@anchor{図5.7}
+@ifinfo
+@strong{図5.7:} 2つの@abbr{GCD}計算を持つマシンのデータパスとコントローラーシーケンスの部分。
+
+@example
+                            ___                                 ___
++-----+        +-----+     /   \    +-----+        +-----+     /   \
+|  a  |<-(X)---+  b  |--->|  =  |   |  c  |<-(X)---+  d  |--->|  =  |
++--+--+  a<-b  ++----+     \___/    +--+--+  c<-d  ++----+     \___/
+   |            |  ^         ^         |            |  ^         ^
+   `----.   .---'  |         |         `----.   .---'  |         |
+        V   V     (X) b<-t   |              V   V     (X) d<-t   |
+       -------     |        / \            -------     |        / \
+       \ rem /     |       /_0_\           \ rem /     |       /_0_\
+        --+--      |                        --+--      |
+          |        |                          |        |
+         (X) t<-r  |                         (X) s<-r  |
+          |        |                          |        |
+          V        |                          V        |
+       +-----+     |                       +-----+     |
+       |  t  +-----'                       |  s  +-----'
+       +-----+                             +-----+
+@end example
+
+@lisp
+gcd-1
+ (test (op =) (reg b) (const 0))
+ (branch (label after-gcd-1))
+ (assign t (op rem) (reg a) (reg b))
+ (assign a (reg b))
+ (assign b (reg t))
+ (goto (label gcd-1))
+after-gcd-1
+  @r{…}
+gcd-2
+ (test (op =) (reg d) (const 0))
+

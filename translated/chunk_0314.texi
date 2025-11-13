@@ -1,0 +1,99 @@
+レジスタマシンとして実装できる。このマシンは階乗のマシンより複雑である。
+なぜなら、コントローラーシーケンスには再帰呼び出しを実行する必要がある場所が
+2つあるからである——@math{{\text{Fib}(n - 1)}}を計算するために一度、
+@math{{\text{Fib}(n - 2)}}を計算するために一度。これらの各呼び出しの準備を
+するために、後で必要となる値を持つレジスタを保存し、再帰的に計算する必要がある
+Fibの数に@code{n}レジスタを設定し（@math{{n - 1}}または@math{{n - 2}}）、
+@code{continue}に戻るべきメインシーケンスのエントリポイント
+（それぞれ@code{afterfib-n-1}または@code{afterfib-n-2}）を代入する。
+その後@code{fib-loop}に進む。再帰呼び出しから戻ると、答えは@code{val}にある。
+@ref{図5.12}は、このマシンのコントローラーシーケンスを示す。
+
+@quotation
+@strong{@anchor{図5.12}図5.12:} @math{\downarrow} フィボナッチ数を計算する
+マシンのコントローラー。
+
+@lisp
+(controller
+   (assign continue (label fib-done))
+ fib-loop
+   (test (op <) (reg n) (const 2))
+   (branch (label immediate-answer))
+   @r{;; Fib(@emph{n} − 1)を計算する準備}
+   (save continue)
+   (assign continue (label afterfib-n-1))
+   (save n)           @r{; @code{n}の古い値を保存}
+   (assign n
+           (op -)
+           (reg n)
+           (const 1)) @r{; @code{n}を@code{n-1}に上書き}
+   (goto
+    (label fib-loop)) @r{; 再帰呼び出しを実行}
+ afterfib-n-1 @r{; 戻ると、@code{val}はFib(@emph{n} − 1)を含む}
+   (restore n)
+   (restore continue)
+   @r{;; Fib(@emph{n} − 2)を計算する準備}
+   (assign n (op -) (reg n) (const 2))
+   (save continue)
+   (assign continue (label afterfib-n-2))
+   (save val)         @r{; Fib(@emph{n} − 1)を保存}
+   (goto (label fib-loop))
+ afterfib-n-2 @r{; 戻ると、@code{val}はFib(@emph{n} − 2)を含む}
+   (assign n
+           (reg val)) @r{; @code{n}は今Fib(@emph{n} − 2)を含む}
+   (restore val)      @r{; @code{val}は今Fib(@emph{n} − 1)を含む}
+   (restore continue)
+   (assign val        @r{; Fib(@emph{n} − 1) + Fib(@emph{n} − 2)}
+           (op +)
+           (reg val)
+           (reg n))
+   (goto              @r{; 呼び出し元に戻る、}
+    (reg continue))   @r{; 答えは@code{val}にある}
+ immediate-answer
+   (assign val
+           (reg n))   @r{; 基底ケース: Fib(@emph{n}) = @emph{n}}
+   (goto (reg continue))
+ fib-done)
+@end lisp
+
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.4}練習問題 5.4:} 次の各手続きを実装する
+レジスタマシンを指定せよ。各マシンについて、コントローラー命令シーケンスを
+書き、データパスを示す図を描け。
+
+@enumerate a
+
+@item
+再帰的べき乗：
+
+@lisp
+(define (expt b n)
+  (if (= n 0)
+      1
+      (* b (expt b (- n 1)))))
+@end lisp
+
+@item
+反復的べき乗：
+
+@lisp
+(define (expt b n)
+  (define (expt-iter counter product)
+    (if (= counter 0)
+        product
+        (expt-iter (- counter 1)
+                   (* b product))))
+  (expt-iter n 1))
+@end lisp
+
+@end enumerate
+@end quotation
+
+@quotation
+@strong{@anchor{Exercise 5.5}練習問題 5.5:} 階乗マシンとフィボナッチマシンを、
+自明でない入力（少なくとも1つの再帰呼び出しの実行を必要とする）を使って
+手動でシミュレートせよ。実行中の各重要な時点でスタックの内容を示せ。
+@end quotation
+
